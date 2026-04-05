@@ -1,0 +1,18 @@
+{
+  "name": "cyberzen",
+  "private": true,
+  "packageManager": "bun@1.3.7",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "bun --cwd apps/web run dev",
+    "build": "bun --cwd apps/web run build",
+    "test": "bun --cwd apps/web run test",
+    "check": "bun --cwd apps/web run check",
+    "lint": "bun --cwd apps/web run lint",
+    "format": "bun --cwd apps/web run format",
+    "convex:dev": "bun --cwd apps/web run convex:dev",
+    "convex:codegen": "bun --cwd apps/web run convex:codegen"
+  }
+}

@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.DS_Store
+.env
+.env.*
+!.env.example
+apps/web/node_modules/
+apps/web/.tanstack/
+apps/web/.convex/
+apps/web/convex/_generated/
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+coverage/
