@@ -146,13 +146,15 @@ export default defineSchema({
     exportFormats: v.array(v.string()),
   })
     .index('by_tenant_and_captured_at', ['tenantId', 'capturedAt'])
-    .index('by_repository_and_commit', ['repositoryId', 'commitSha']),
+    .index('by_repository_and_commit', ['repositoryId', 'commitSha'])
+    .index('by_repository_and_captured_at', ['repositoryId', 'capturedAt']),
 
   sbomComponents: defineTable({
     tenantId: v.id('tenants'),
     repositoryId: v.id('repositories'),
     snapshotId: v.id('sbomSnapshots'),
     name: v.string(),
+    normalizedName: v.string(),
     version: v.string(),
     ecosystem: v.string(),
     layer: v.string(),
@@ -164,31 +166,63 @@ export default defineSchema({
     dependents: v.array(v.string()),
   })
     .index('by_snapshot', ['snapshotId'])
+    .index('by_snapshot_and_normalized_name', ['snapshotId', 'normalizedName'])
     .index('by_tenant_and_name', ['tenantId', 'name']),
 
   breachDisclosures: defineTable({
+    repositoryId: v.optional(v.id('repositories')),
+    workflowRunId: v.optional(v.id('workflowRuns')),
     packageName: v.string(),
+    normalizedPackageName: v.string(),
     ecosystem: v.string(),
+    sourceType: v.union(
+      v.literal('manual'),
+      v.literal('github_security_advisory'),
+      v.literal('osv'),
+    ),
     sourceTier: v.union(
       v.literal('tier_1'),
       v.literal('tier_2'),
       v.literal('tier_3'),
     ),
     sourceName: v.string(),
+    sourceRef: v.string(),
+    aliases: v.array(v.string()),
     summary: v.string(),
     severity,
     affectedVersions: v.array(v.string()),
     fixVersion: v.optional(v.string()),
     exploitAvailable: v.boolean(),
+    matchStatus: v.union(
+      v.literal('matched'),
+      v.literal('version_unaffected'),
+      v.literal('version_unknown'),
+      v.literal('unmatched'),
+      v.literal('no_snapshot'),
+    ),
+    versionMatchStatus: v.union(
+      v.literal('affected'),
+      v.literal('unaffected'),
+      v.literal('unknown'),
+    ),
+    matchedSnapshotId: v.optional(v.id('sbomSnapshots')),
+    matchedComponentCount: v.number(),
+    affectedComponentCount: v.number(),
+    matchedVersions: v.array(v.string()),
+    affectedMatchedVersions: v.array(v.string()),
+    matchSummary: v.string(),
+    findingId: v.optional(v.id('findings')),
     publishedAt: v.number(),
   })
     .index('by_package_and_published_at', ['packageName', 'publishedAt'])
+    .index('by_repository_and_source_ref', ['repositoryId', 'sourceRef'])
     .index('by_published_at', ['publishedAt']),
 
   findings: defineTable({
     tenantId: v.id('tenants'),
     repositoryId: v.id('repositories'),
     workflowRunId: v.id('workflowRuns'),
+    breachDisclosureId: v.optional(v.id('breachDisclosures')),
     source: v.string(),
     vulnClass: v.string(),
     title: v.string(),

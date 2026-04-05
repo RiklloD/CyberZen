@@ -14,7 +14,7 @@
     "lint": "biome lint",
     "check": "biome check",
     "sbom:import": "bun scripts/import-sbom.mjs",
-    "convex:dev": "bunx --bun convex dev",
+    "convex:dev": "bunx --bun convex dev --typecheck disable",
     "convex:codegen": "bunx --bun convex codegen --typecheck disable"
   },
   "dependencies": {

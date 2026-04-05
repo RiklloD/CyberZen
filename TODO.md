@@ -17,12 +17,16 @@ Current focus: `Phase 0 - foundation implementation underway`
 - [x] Add the first Convex SBOM ingestion scaffold for normalized inventory snapshots
 - [x] Connect the `sbom-ingest` worker output into the Convex SBOM ingestion mutation
 - [x] Surface repository SBOM snapshots and source manifests in the dashboard
+- [x] Connect breach-disclosure intake to SBOM package matching and finding creation
+- [x] Expand SBOM parsing to additional ecosystems and lockfiles
+- [x] Add SBOM snapshot diffing and richer repository drilldown views
+- [x] Broaden breach-disclosure normalization with feed adapters and version-aware matching
 
 ## Next Up
 
-- [ ] Connect breach-disclosure intake to SBOM package matching and finding creation
-- [ ] Expand SBOM parsing to additional ecosystems and lockfiles
-- [ ] Add SBOM snapshot diffing and richer repository drilldown views
+- [ ] Extend SBOM parsing to remaining ecosystem sources like `pnpm-lock.yaml`, `yarn.lock`, `bun.lock`, and container-native inventory inputs
+- [ ] Deepen repository inventory drilldowns beyond the dashboard card summaries
+- [ ] Wire live advisory ingestion paths for GitHub Security Advisories and OSV into the routed event layer
 
 ## Later
 

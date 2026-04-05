@@ -1,5 +1,6 @@
 import { query } from './_generated/server'
 import { v } from 'convex/values'
+import { compareSnapshotComponents } from './lib/sbomDiff'
 
 const severity = v.union(
   v.literal('critical'),
@@ -15,6 +16,23 @@ const workflowStatus = v.union(
   v.literal('completed'),
   v.literal('failed'),
 )
+
+const diffComponent = v.object({
+  name: v.string(),
+  version: v.string(),
+  ecosystem: v.string(),
+  layer: v.string(),
+  sourceFile: v.string(),
+})
+
+const versionChangeComponent = v.object({
+  name: v.string(),
+  ecosystem: v.string(),
+  layer: v.string(),
+  sourceFile: v.string(),
+  previousVersion: v.string(),
+  nextVersion: v.string(),
+})
 
 const overviewValidator = v.object({
   tenant: v.object({
@@ -47,6 +65,21 @@ const overviewValidator = v.object({
           capturedAt: v.number(),
           totalComponents: v.number(),
           sourceFiles: v.array(v.string()),
+          comparison: v.union(
+            v.null(),
+            v.object({
+              previousCommitSha: v.string(),
+              previousCapturedAt: v.number(),
+              addedCount: v.number(),
+              removedCount: v.number(),
+              updatedCount: v.number(),
+              changedComponentCount: v.number(),
+              vulnerableComponentDelta: v.number(),
+              addedPreview: v.array(diffComponent),
+              removedPreview: v.array(diffComponent),
+              updatedPreview: v.array(versionChangeComponent),
+            }),
+          ),
           previewComponents: v.array(
             v.object({
               name: v.string(),
@@ -54,6 +87,7 @@ const overviewValidator = v.object({
               ecosystem: v.string(),
               layer: v.string(),
               sourceFile: v.string(),
+              hasKnownVulnerabilities: v.boolean(),
             }),
           ),
         }),
@@ -99,9 +133,22 @@ const overviewValidator = v.object({
     v.object({
       _id: v.id('breachDisclosures'),
       packageName: v.string(),
+      sourceType: v.string(),
       sourceTier: v.string(),
       sourceName: v.string(),
+      sourceRef: v.string(),
+      aliases: v.array(v.string()),
+      repositoryName: v.optional(v.string()),
       severity,
+      matchStatus: v.string(),
+      versionMatchStatus: v.string(),
+      matchedComponentCount: v.number(),
+      affectedComponentCount: v.number(),
+      matchedVersions: v.array(v.string()),
+      affectedMatchedVersions: v.array(v.string()),
+      affectedVersions: v.array(v.string()),
+      fixVersion: v.optional(v.string()),
+      matchSummary: v.string(),
       publishedAt: v.number(),
       exploitAvailable: v.boolean(),
     }),
@@ -150,13 +197,16 @@ export const overview = query({
 
     const repositoriesWithSnapshots = await Promise.all(
       repositories.map(async (repository) => {
-        const snapshot = await ctx.db
+        const snapshotHistory = await ctx.db
           .query('sbomSnapshots')
-          .withIndex('by_repository_and_commit', (q) =>
+          .withIndex('by_repository_and_captured_at', (q) =>
             q.eq('repositoryId', repository._id),
           )
           .order('desc')
-          .first()
+          .take(2)
+
+        const snapshot = snapshotHistory[0]
+        const previousSnapshot = snapshotHistory[1] ?? null
 
         if (!snapshot) {
           return {
@@ -165,10 +215,22 @@ export const overview = query({
           }
         }
 
-        const previewComponents = await ctx.db
+        const latestComponents = await ctx.db
           .query('sbomComponents')
           .withIndex('by_snapshot', (q) => q.eq('snapshotId', snapshot._id))
-          .take(4)
+          .collect()
+
+        const previousComponents = previousSnapshot
+          ? await ctx.db
+              .query('sbomComponents')
+              .withIndex('by_snapshot', (q) =>
+                q.eq('snapshotId', previousSnapshot._id),
+              )
+              .collect()
+          : []
+        const comparison = previousSnapshot
+          ? compareSnapshotComponents(previousComponents, latestComponents)
+          : null
 
         return {
           repository,
@@ -178,12 +240,27 @@ export const overview = query({
             capturedAt: snapshot.capturedAt,
             totalComponents: snapshot.totalComponents,
             sourceFiles: snapshot.sourceFiles,
-            previewComponents: previewComponents.map((component) => ({
+            comparison: previousSnapshot && comparison
+              ? {
+                  previousCommitSha: previousSnapshot.commitSha,
+                  previousCapturedAt: previousSnapshot.capturedAt,
+                  addedCount: comparison.addedCount,
+                  removedCount: comparison.removedCount,
+                  updatedCount: comparison.updatedCount,
+                  changedComponentCount: comparison.changedComponentCount,
+                  vulnerableComponentDelta: comparison.vulnerableComponentDelta,
+                  addedPreview: comparison.added.slice(0, 3),
+                  removedPreview: comparison.removed.slice(0, 3),
+                  updatedPreview: comparison.updated.slice(0, 3),
+                }
+              : null,
+            previewComponents: latestComponents.slice(0, 4).map((component) => ({
               name: component.name,
               version: component.version,
               ecosystem: component.ecosystem,
               layer: component.layer,
               sourceFile: component.sourceFile,
+              hasKnownVulnerabilities: component.hasKnownVulnerabilities,
             })),
           },
         }
@@ -229,11 +306,42 @@ export const overview = query({
       .order('desc')
       .first()
 
-    const disclosures = await ctx.db
+    const disclosureRows = await ctx.db
       .query('breachDisclosures')
       .withIndex('by_published_at')
       .order('desc')
       .take(4)
+
+    const disclosures = await Promise.all(
+      disclosureRows.map(async (disclosure) => {
+        const repository = disclosure.repositoryId
+          ? await ctx.db.get(disclosure.repositoryId)
+          : null
+
+        return {
+          _id: disclosure._id,
+          packageName: disclosure.packageName,
+          sourceType: disclosure.sourceType,
+          sourceTier: disclosure.sourceTier,
+          sourceName: disclosure.sourceName,
+          sourceRef: disclosure.sourceRef,
+          aliases: disclosure.aliases,
+          repositoryName: repository?.name,
+          severity: disclosure.severity,
+          matchStatus: disclosure.matchStatus,
+          versionMatchStatus: disclosure.versionMatchStatus,
+          matchedComponentCount: disclosure.matchedComponentCount,
+          affectedComponentCount: disclosure.affectedComponentCount,
+          matchedVersions: disclosure.matchedVersions,
+          affectedMatchedVersions: disclosure.affectedMatchedVersions,
+          affectedVersions: disclosure.affectedVersions,
+          fixVersion: disclosure.fixVersion,
+          matchSummary: disclosure.matchSummary,
+          publishedAt: disclosure.publishedAt,
+          exploitAvailable: disclosure.exploitAvailable,
+        }
+      }),
+    )
 
     const activeWorkflows = workflows.filter(
       (workflow) => workflow.status === 'queued' || workflow.status === 'running',
@@ -307,15 +415,7 @@ export const overview = query({
           order: task.order,
         })),
       })),
-      disclosures: disclosures.map((disclosure) => ({
-        _id: disclosure._id,
-        packageName: disclosure.packageName,
-        sourceTier: disclosure.sourceTier,
-        sourceName: disclosure.sourceName,
-        severity: disclosure.severity,
-        publishedAt: disclosure.publishedAt,
-        exploitAvailable: disclosure.exploitAvailable,
-      })),
+      disclosures,
       gateDecisions: gateDecisions.map((decision) => ({
         _id: decision._id,
         stage: decision.stage,

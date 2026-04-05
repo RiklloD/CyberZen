@@ -4,6 +4,10 @@ import {
   buildBreachDisclosureWorkflow,
   buildGithubPushWorkflow,
 } from './lib/eventRouter'
+import {
+  buildDisclosureMatchSummary,
+  normalizePackageName,
+} from './lib/breachMatching'
 
 export const seedBaseline = mutation({
   args: {},
@@ -196,6 +200,7 @@ export const seedBaseline = mutation({
         repositoryId: paymentsApiId,
         snapshotId,
         name: 'fastapi',
+        normalizedName: normalizePackageName('fastapi'),
         version: '0.117.1',
         ecosystem: 'pypi',
         layer: 'direct',
@@ -211,6 +216,7 @@ export const seedBaseline = mutation({
         repositoryId: paymentsApiId,
         snapshotId,
         name: 'httpx',
+        normalizedName: normalizePackageName('httpx'),
         version: '0.28.1',
         ecosystem: 'pypi',
         layer: 'direct',
@@ -226,6 +232,7 @@ export const seedBaseline = mutation({
         repositoryId: paymentsApiId,
         snapshotId,
         name: 'pyjwt',
+        normalizedName: normalizePackageName('pyjwt'),
         version: '2.10.1',
         ecosystem: 'pypi',
         layer: 'transitive',
@@ -241,6 +248,7 @@ export const seedBaseline = mutation({
         repositoryId: paymentsApiId,
         snapshotId,
         name: 'ghcr.io/atlas/payments-api-base',
+        normalizedName: normalizePackageName('ghcr.io/atlas/payments-api-base'),
         version: '2026.04.03',
         ecosystem: 'container',
         layer: 'container',
@@ -257,17 +265,42 @@ export const seedBaseline = mutation({
       await ctx.db.insert('sbomComponents', component)
     }
 
-    await ctx.db.insert('breachDisclosures', {
+    const disclosureId = await ctx.db.insert('breachDisclosures', {
+      repositoryId: paymentsApiId,
+      workflowRunId: breachWorkflowId,
       packageName: 'pyjwt',
+      normalizedPackageName: normalizePackageName('pyjwt'),
       ecosystem: 'pypi',
+      sourceType: 'github_security_advisory',
       sourceTier: 'tier_1',
       sourceName: 'GitHub Security Advisories',
+      sourceRef: 'GHSA-77m4-fm8m-6h7p',
+      aliases: ['GHSA-77m4-fm8m-6h7p'],
       summary:
         'Authentication bypass conditions may exist when token audience checks are omitted in custom wrappers.',
       severity: 'high',
       affectedVersions: ['>=2.8.0', '<2.10.2'],
       fixVersion: '2.10.2',
       exploitAvailable: true,
+      matchStatus: 'matched',
+      versionMatchStatus: 'affected',
+      matchedSnapshotId: snapshotId,
+      matchedComponentCount: 1,
+      affectedComponentCount: 1,
+      matchedVersions: ['2.10.1'],
+      affectedMatchedVersions: ['2.10.1'],
+      matchSummary: buildDisclosureMatchSummary({
+        packageName: 'pyjwt',
+        repositoryName: 'payments-api',
+        matchStatus: 'matched',
+        matchedComponentCount: 1,
+        affectedComponentCount: 1,
+        matchedVersions: ['2.10.1'],
+        affectedMatchedVersions: ['2.10.1'],
+        affectedVersions: ['>=2.8.0', '<2.10.2'],
+        fixVersion: '2.10.2',
+      }),
+      findingId: undefined,
       publishedAt: now - 30 * 60 * 1000,
     })
 
@@ -275,6 +308,7 @@ export const seedBaseline = mutation({
       tenantId,
       repositoryId: paymentsApiId,
       workflowRunId: breachWorkflowId,
+      breachDisclosureId: disclosureId,
       source: 'breach_intel',
       vulnClass: 'jwt_validation_bypass',
       title: 'PyJWT audience validation wrapper needs exploit confirmation',
@@ -299,6 +333,10 @@ export const seedBaseline = mutation({
       regulatoryImplications: ['PCI-DSS access control review'],
       createdAt: now - 21 * 60 * 1000,
       resolvedAt: undefined,
+    })
+
+    await ctx.db.patch('breachDisclosures', disclosureId, {
+      findingId,
     })
 
     await ctx.db.insert('findings', {

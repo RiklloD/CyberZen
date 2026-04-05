@@ -1,5 +1,18 @@
 import { ConvexError, v } from 'convex/values'
 import { mutation, query } from './_generated/server'
+import { normalizePackageName } from './lib/breachMatching'
+import { compareSnapshotComponents } from './lib/sbomDiff'
+
+const incomingInventoryComponent = v.object({
+  name: v.string(),
+  version: v.string(),
+  ecosystem: v.string(),
+  layer: v.string(),
+  isDirect: v.boolean(),
+  sourceFile: v.string(),
+  dependents: v.array(v.string()),
+  license: v.optional(v.string()),
+})
 
 const inventoryComponent = v.object({
   name: v.string(),
@@ -10,6 +23,24 @@ const inventoryComponent = v.object({
   sourceFile: v.string(),
   dependents: v.array(v.string()),
   license: v.optional(v.string()),
+  hasKnownVulnerabilities: v.boolean(),
+})
+
+const diffComponent = v.object({
+  name: v.string(),
+  version: v.string(),
+  ecosystem: v.string(),
+  layer: v.string(),
+  sourceFile: v.string(),
+})
+
+const versionChangeComponent = v.object({
+  name: v.string(),
+  ecosystem: v.string(),
+  layer: v.string(),
+  sourceFile: v.string(),
+  previousVersion: v.string(),
+  nextVersion: v.string(),
 })
 
 function countByLayer(
@@ -28,7 +59,7 @@ export const ingestRepositoryInventory = mutation({
     branch: v.string(),
     commitSha: v.string(),
     sourceFiles: v.array(v.string()),
-    components: v.array(inventoryComponent),
+    components: v.array(incomingInventoryComponent),
   },
   returns: v.object({
     snapshotId: v.id('sbomSnapshots'),
@@ -71,7 +102,7 @@ export const ingestRepositoryInventory = mutation({
 
     const latestSnapshot = await ctx.db
       .query('sbomSnapshots')
-      .withIndex('by_repository_and_commit', (q) =>
+      .withIndex('by_repository_and_captured_at', (q) =>
         q.eq('repositoryId', repository._id),
       )
       .order('desc')
@@ -104,6 +135,7 @@ export const ingestRepositoryInventory = mutation({
         repositoryId: repository._id,
         snapshotId,
         name: component.name,
+        normalizedName: normalizePackageName(component.name),
         version: component.version,
         ecosystem: component.ecosystem,
         layer: component.layer,
@@ -116,7 +148,7 @@ export const ingestRepositoryInventory = mutation({
       })
     }
 
-    await ctx.db.patch(repository._id, {
+    await ctx.db.patch('repositories', repository._id, {
       latestCommitSha: args.commitSha,
       lastScannedAt: Date.now(),
     })
@@ -140,6 +172,22 @@ export const latestRepositorySnapshot = query({
       totalComponents: v.number(),
       sourceFiles: v.array(v.string()),
       components: v.array(inventoryComponent),
+      comparison: v.union(
+        v.null(),
+        v.object({
+          previousSnapshotId: v.id('sbomSnapshots'),
+          previousCommitSha: v.string(),
+          previousCapturedAt: v.number(),
+          addedCount: v.number(),
+          removedCount: v.number(),
+          updatedCount: v.number(),
+          changedComponentCount: v.number(),
+          vulnerableComponentDelta: v.number(),
+          added: v.array(diffComponent),
+          removed: v.array(diffComponent),
+          updated: v.array(versionChangeComponent),
+        }),
+      ),
     }),
   ),
   handler: async (ctx, args) => {
@@ -163,13 +211,16 @@ export const latestRepositorySnapshot = query({
       return null
     }
 
-    const snapshot = await ctx.db
+    const snapshotHistory = await ctx.db
       .query('sbomSnapshots')
-      .withIndex('by_repository_and_commit', (q) =>
+      .withIndex('by_repository_and_captured_at', (q) =>
         q.eq('repositoryId', repository._id),
       )
       .order('desc')
-      .first()
+      .take(2)
+
+    const snapshot = snapshotHistory[0]
+    const previousSnapshot = snapshotHistory[1] ?? null
 
     if (!snapshot) {
       return null
@@ -179,6 +230,16 @@ export const latestRepositorySnapshot = query({
       .query('sbomComponents')
       .withIndex('by_snapshot', (q) => q.eq('snapshotId', snapshot._id))
       .collect()
+
+    const previousComponents = previousSnapshot
+      ? await ctx.db
+          .query('sbomComponents')
+          .withIndex('by_snapshot', (q) => q.eq('snapshotId', previousSnapshot._id))
+          .collect()
+      : []
+    const comparison = previousSnapshot
+      ? compareSnapshotComponents(previousComponents, components)
+      : null
 
     return {
       snapshotId: snapshot._id,
@@ -196,7 +257,23 @@ export const latestRepositorySnapshot = query({
         sourceFile: component.sourceFile,
         dependents: component.dependents,
         license: component.license,
+        hasKnownVulnerabilities: component.hasKnownVulnerabilities,
       })),
+      comparison: previousSnapshot && comparison
+        ? {
+            previousSnapshotId: previousSnapshot._id,
+            previousCommitSha: previousSnapshot.commitSha,
+            previousCapturedAt: previousSnapshot.capturedAt,
+            addedCount: comparison.addedCount,
+            removedCount: comparison.removedCount,
+            updatedCount: comparison.updatedCount,
+            changedComponentCount: comparison.changedComponentCount,
+            vulnerableComponentDelta: comparison.vulnerableComponentDelta,
+            added: comparison.added,
+            removed: comparison.removed,
+            updated: comparison.updated,
+          }
+        : null,
     }
   },
 })

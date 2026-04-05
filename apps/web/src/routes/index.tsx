@@ -17,9 +17,9 @@ export const Route = createFileRoute("/")({ component: HomePage });
 
 const implementationTrack = [
 	"GitHub-first webhook intake with event dedupe and staged workflow routing",
-	"Python SBOM worker bridged into Convex snapshot ingestion",
-	"Breach-intel normalization against the live SBOM graph",
-	"Convex-backed findings API and dashboard slices",
+	"Multi-ecosystem SBOM worker coverage with snapshot-to-snapshot diffing",
+	"Version-aware breach normalization against the live SBOM graph",
+	"Repository drilldowns and operator remediation surfaces",
 ];
 
 const loadingSkeletonIds = [
@@ -72,8 +72,40 @@ function workflowTone(status: string) {
 	return "warning" as const;
 }
 
+function disclosureTone(status: string) {
+	if (status === "matched") {
+		return "danger" as const;
+	}
+
+	if (status === "version_unknown" || status === "no_snapshot") {
+		return "warning" as const;
+	}
+
+	if (status === "version_unaffected") {
+		return "success" as const;
+	}
+
+	return "info" as const;
+}
+
 function taskTone(status: string) {
 	return workflowTone(status);
+}
+
+function componentTone(layer: string, hasKnownVulnerabilities = false) {
+	if (hasKnownVulnerabilities) {
+		return "danger" as const;
+	}
+
+	if (layer === "direct") {
+		return "success" as const;
+	}
+
+	if (layer === "build") {
+		return "warning" as const;
+	}
+
+	return "info" as const;
 }
 
 function SetupState() {
@@ -447,7 +479,7 @@ function ConfiguredDashboard() {
 										{decision.justification || "No justification captured."}
 									</p>
 									<p className="mt-2 text-sm text-[var(--sea-ink-soft)]">
-										{decision.actorType} • {formatTimestamp(decision.createdAt)}
+										{decision.actorType} / {formatTimestamp(decision.createdAt)}
 									</p>
 								</div>
 							))}
@@ -482,7 +514,7 @@ function ConfiguredDashboard() {
 											{repository.name}
 										</h3>
 										<p className="mt-1 text-sm text-[var(--sea-ink-soft)]">
-											{repository.provider} • {repository.primaryLanguage}
+											{repository.provider} / {repository.primaryLanguage}
 										</p>
 									</div>
 									<StatusPill label={repository.defaultBranch} tone="neutral" />
@@ -513,19 +545,92 @@ function ConfiguredDashboard() {
 											Source manifests:{" "}
 											{repository.latestSnapshot.sourceFiles.join(", ")}
 										</p>
+										{repository.latestSnapshot.comparison ? (
+											<div className="mt-3 rounded-2xl border border-[color:var(--line)]/60 bg-[var(--surface)]/70 p-4">
+												<div className="flex flex-wrap items-center gap-2">
+													<StatusPill
+														label={`+${repository.latestSnapshot.comparison.addedCount} added`}
+														tone="success"
+													/>
+													<StatusPill
+														label={`${repository.latestSnapshot.comparison.updatedCount} updated`}
+														tone="warning"
+													/>
+													<StatusPill
+														label={`-${repository.latestSnapshot.comparison.removedCount} removed`}
+														tone="danger"
+													/>
+													{repository.latestSnapshot.comparison
+														.vulnerableComponentDelta !== 0 ? (
+														<StatusPill
+															label={`vuln delta ${repository.latestSnapshot.comparison.vulnerableComponentDelta > 0 ? "+" : ""}${repository.latestSnapshot.comparison.vulnerableComponentDelta}`}
+															tone={
+																repository.latestSnapshot.comparison
+																	.vulnerableComponentDelta > 0
+																	? "danger"
+																	: "success"
+															}
+														/>
+													) : null}
+												</div>
+												<p className="mt-3 text-sm text-[var(--sea-ink-soft)]">
+													Compared with{" "}
+													{
+														repository.latestSnapshot.comparison
+															.previousCommitSha
+													}{" "}
+													from{" "}
+													{formatTimestamp(
+														repository.latestSnapshot.comparison
+															.previousCapturedAt,
+													)}
+												</p>
+												<div className="mt-3 space-y-2 text-sm text-[var(--sea-ink-soft)]">
+													{repository.latestSnapshot.comparison.updatedPreview.map(
+														(component) => (
+															<p
+																key={`${repository._id}-update-${component.name}-${component.sourceFile}`}
+															>
+																Updated {component.name} in{" "}
+																{component.sourceFile}:{" "}
+																{component.previousVersion} to{" "}
+																{component.nextVersion}
+															</p>
+														),
+													)}
+													{repository.latestSnapshot.comparison.addedPreview.map(
+														(component) => (
+															<p
+																key={`${repository._id}-add-${component.name}-${component.version}-${component.sourceFile}`}
+															>
+																Added {component.name}@{component.version} via{" "}
+																{component.sourceFile}
+															</p>
+														),
+													)}
+													{repository.latestSnapshot.comparison.removedPreview.map(
+														(component) => (
+															<p
+																key={`${repository._id}-remove-${component.name}-${component.version}-${component.sourceFile}`}
+															>
+																Removed {component.name}@{component.version}{" "}
+																from {component.sourceFile}
+															</p>
+														),
+													)}
+												</div>
+											</div>
+										) : null}
 										<div className="mt-3 flex flex-wrap gap-2">
 											{repository.latestSnapshot.previewComponents.map(
 												(component) => (
 													<StatusPill
 														key={`${repository._id}-${component.name}-${component.version}`}
 														label={`${component.name}@${component.version}`}
-														tone={
-															component.layer === "direct"
-																? "success"
-																: component.layer === "build"
-																	? "warning"
-																	: "info"
-														}
+														tone={componentTone(
+															component.layer,
+															component.hasKnownVulnerabilities,
+														)}
 													/>
 												),
 											)}
@@ -544,12 +649,17 @@ function ConfiguredDashboard() {
 				<article className="panel rounded-[1.75rem] p-6">
 					<p className="island-kicker mb-2">Breach watchlist</p>
 					<h2 className="text-2xl font-semibold text-[var(--sea-ink)]">
-						Tiered disclosure intake is ready for real feed adapters next.
+						Feed-normalized disclosure intake is now version aware against live
+						inventory.
 					</h2>
 					<div className="mt-5 space-y-4">
 						{overview.disclosures.map((disclosure) => (
 							<div key={disclosure._id} className="signal-row">
 								<div className="flex flex-wrap items-center gap-2">
+									<StatusPill
+										label={disclosure.sourceType.replaceAll("_", " ")}
+										tone="neutral"
+									/>
 									<StatusPill
 										label={disclosure.sourceTier.replace("_", " ")}
 										tone="info"
@@ -557,6 +667,10 @@ function ConfiguredDashboard() {
 									<StatusPill
 										label={disclosure.severity}
 										tone={severityTone(disclosure.severity)}
+									/>
+									<StatusPill
+										label={disclosure.matchStatus.replace("_", " ")}
+										tone={disclosureTone(disclosure.matchStatus)}
 									/>
 									{disclosure.exploitAvailable ? (
 										<StatusPill label="exploit available" tone="danger" />
@@ -566,9 +680,39 @@ function ConfiguredDashboard() {
 									{disclosure.packageName}
 								</h3>
 								<p className="mt-2 text-sm text-[var(--sea-ink-soft)]">
-									{disclosure.sourceName} •{" "}
+									{disclosure.sourceName}
+									{disclosure.repositoryName
+										? ` / ${disclosure.repositoryName}`
+										: ""}
+									{" / "}
+									{disclosure.sourceRef}
+									{" / "}
 									{formatTimestamp(disclosure.publishedAt)}
 								</p>
+								<p className="mt-2 text-sm text-[var(--sea-ink-soft)]">
+									{disclosure.matchSummary}
+								</p>
+								{disclosure.affectedVersions.length > 0 ? (
+									<p className="mt-2 text-sm text-[var(--sea-ink-soft)]">
+										Affected ranges: {disclosure.affectedVersions.join(" ; ")}
+									</p>
+								) : null}
+								{disclosure.fixVersion ? (
+									<p className="mt-2 text-sm text-[var(--sea-ink-soft)]">
+										Fixed in: {disclosure.fixVersion}
+									</p>
+								) : null}
+								{disclosure.affectedMatchedVersions.length > 0 ? (
+									<p className="mt-2 text-sm text-[var(--sea-ink-soft)]">
+										Affected installed versions:{" "}
+										{disclosure.affectedMatchedVersions.join(", ")}
+									</p>
+								) : disclosure.matchedVersions.length > 0 ? (
+									<p className="mt-2 text-sm text-[var(--sea-ink-soft)]">
+										Observed installed versions:{" "}
+										{disclosure.matchedVersions.join(", ")}
+									</p>
+								) : null}
 							</div>
 						))}
 					</div>

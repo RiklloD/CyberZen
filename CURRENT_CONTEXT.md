@@ -13,7 +13,7 @@ This is the always-on context file for fast session recovery. Read this first at
 
 - Current phase: `Phase 0 - foundation implementation underway`
 - Current milestone focus: `M0 -> M1`
-- Current objective: build the runnable Sentinel control plane and move from the first real SBOM feature slice into breach matching and broader ecosystem support
+- Current objective: build the runnable Sentinel control plane and move from breach-disclosure normalization into live advisory ingestion and deeper operator drilldowns
 - Canonical frontend/runtime stack: `TanStack Start + React + Tailwind + Bun`
 - Canonical control-plane backend: `Convex`
 - Planned analytics: `PostHog`
@@ -38,16 +38,22 @@ This is the always-on context file for fast session recovery. Read this first at
 - Reusable event-router templates for GitHub push and breach-disclosure workflows
 - Workflow progress mutations with task-level state rollups back into workflow and event status
 - Dashboard workflow progress view with staged task visibility and local simulation controls
-- Python `sbom-ingest` worker with real repository parsing for `package.json`, `package-lock.json`, `requirements.txt`, and `pyproject.toml`
+- Python `sbom-ingest` worker with real repository parsing for `package.json`, `package-lock.json`, `requirements.txt`, `pyproject.toml`, `Pipfile.lock`, `poetry.lock`, `go.mod`, `go.sum`, `Cargo.toml`, and `Cargo.lock`
 - Convex SBOM ingestion mutation scaffold for normalized inventory snapshots
 - Bun bridge command in `apps/web` to run the Python SBOM worker and import snapshot payloads into Convex
 - Dashboard repository inventory cards now surface latest SBOM snapshot metadata, source manifests, and preview components
+- Dashboard repository inventory cards now compare the latest snapshot against the previous import with added, removed, updated, and vulnerable-component delta summaries
+- Breach-disclosure intake now matches the latest repository SBOM snapshot, flags vulnerable components, creates findings, and advances workflow state automatically
+- Breach-disclosure normalization now includes GitHub Security Advisory and OSV adapter helpers with repo-aware package selection
+- Breach matching is now version aware, distinguishing affected, unaffected, unknown, unmatched, and no-snapshot states instead of relying on name-only matches
+- Dashboard breach watchlist now shows per-repository match status, matched versions, and vulnerable inventory previews
 - Python `agent-core` scaffold with a FastAPI health endpoint
 
 ## Verified Status
 
 - `bun run check` in `apps/web`: passing
 - `bun run build` in `apps/web`: passing
+- `bun run test` in `apps/web`: passing
 - `bunx tsc --noEmit` in `apps/web`: passing
 - `bun run sbom:import -- . --dry-run --tenant atlas-fintech --repository atlas-fintech/operator-console --branch main --commit local-dryrun` in `apps/web`: passing
 - `python -m compileall services\agent-core\src`: passing
@@ -63,9 +69,9 @@ This is the always-on context file for fast session recovery. Read this first at
 
 ## Immediate Next Steps
 
-1. Connect breach-disclosure intake to SBOM package matching and finding creation
-2. Expand SBOM parsing beyond the current `package.json`, `package-lock.json`, `requirements.txt`, and `pyproject.toml` coverage
-3. Add SBOM snapshot diffing and richer repository drilldown views
+1. Wire live advisory ingestion paths for GitHub Security Advisories and OSV into the routed event layer
+2. Extend SBOM parsing to remaining ecosystem sources like `pnpm-lock.yaml`, `yarn.lock`, `bun.lock`, and container-native inventory inputs
+3. Deepen repository inventory drilldowns beyond the dashboard card summaries
 4. Initialize Convex locally and regenerate backend types from a live deployment
 5. Wire GitHub webhook delivery into the routed ingestion mutations
 
@@ -82,6 +88,7 @@ This is the always-on context file for fast session recovery. Read this first at
   - core platform services
   - data plane foundation
   - SBOM ingestion pipeline
+  - breach intel MVP
 - Not started:
   - GitHub integration
   - SBOM ingestion pipeline
