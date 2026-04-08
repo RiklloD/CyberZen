@@ -14,7 +14,7 @@ This file tracks overall program progress for the Sentinel platform. Keep it sta
 ## Current Program State
 
 - Current phase: `Phase 0 - foundation implementation underway`
-- Current objective: establish a runnable Sentinel control plane with the chosen stack, deepen SBOM coverage and drift visibility, and move the breach-intel path from normalized feed adapters toward live ingest paths
+- Current objective: establish a runnable Sentinel control plane with the chosen stack, turn the completed SBOM and breach-intel foundations into live integrations, and keep moving M1 toward a real deployment-backed repository scan path
 - Tracking cadence: update this file whenever a milestone changes state
 
 ## Delivery Model
@@ -36,11 +36,11 @@ We will not build Sentinel as one large feature drop. We will build it in layers
 | WS-02 | Repository bootstrap | App skeletons, package management, linting, formatting, CI, environment config | WS-01 | `[in-progress]` |
 | WS-03 | Core platform services | API gateway, auth, tenant model, event router, workflow runner, agent task execution | WS-02 | `[in-progress]` |
 | WS-04 | Data plane | PostgreSQL, pgvector, Redis, object storage, graph store abstraction, schema migrations | WS-02 | `[in-progress]` |
-| WS-05 | Integration layer | GitHub, GitLab, CI providers, Slack, webhook ingest/emit | WS-03 | `[not-started]` |
+| WS-05 | Integration layer | GitHub, GitLab, CI providers, Slack, webhook ingest/emit | WS-03 | `[in-progress]` |
 | WS-06 | SBOM registry MVP | Dependency ingestion, snapshot storage, diffing, export endpoints | WS-04, WS-05 | `[in-progress]` |
 | WS-07 | Breach intel MVP | Feed ingestion, normalization, deduplication, impact fanout | WS-03, WS-04 | `[in-progress]` |
-| WS-08 | Semantic fingerprinting MVP | Parsing, chunking, embeddings pipeline, vector search, candidate findings | WS-04 | `[not-started]` |
-| WS-09 | Exploit validation MVP | Sandbox job lifecycle, reproducible validation flow, artifact storage | WS-03, WS-04 | `[not-started]` |
+| WS-08 | Semantic fingerprinting MVP | Parsing, chunking, embeddings pipeline, vector search, candidate findings | WS-04 | `[in-progress]` |
+| WS-09 | Exploit validation MVP | Sandbox job lifecycle, reproducible validation flow, artifact storage | WS-03, WS-04 | `[in-progress]` |
 | WS-10 | CI/CD gate MVP | Policy engine, PR checks, deploy gates, override auditing | WS-03, WS-05, WS-06, WS-09 | `[not-started]` |
 | WS-11 | PR generation MVP | Fix proposal pipeline, audit trail, provider integration | WS-03, WS-05, WS-06, WS-09 | `[not-started]` |
 | WS-12 | API and dashboard v1 | Findings, SBOM, trust scores, attack surface, reports | WS-03, WS-04, WS-06, WS-07, WS-08 | `[not-started]` |
@@ -70,10 +70,11 @@ We will not build Sentinel as one large feature drop. We will build it in layers
 
 ## Immediate Risks
 
-- The chosen stack is now defined, but Convex still needs to be initialized locally before backend type generation can happen normally.
-- The routed event/workflow backbone now exists in code, but it still needs a live Convex deployment and GitHub webhook path to be exercised end-to-end.
-- The SBOM pipeline now includes local multi-ecosystem parsing, a bridge command that can import worker output into Convex, dashboard snapshot surfacing, and snapshot-to-snapshot drift summaries, but it still needs coverage for YAML/Bun/container-native sources and deeper repository drilldowns.
-- Breach intake now supports GitHub Security Advisory and OSV normalization plus version-aware SBOM matching, but it still needs live advisory ingest paths and broader feed coverage beyond mutation entrypoints.
+- Convex is now initialized locally and deployment-backed code generation works, but the GitHub webhook path still needs a real repository secret and delivery test to be exercised end-to-end.
+- The SBOM pipeline now includes local multi-ecosystem parsing across npm, pnpm, Yarn, Bun, Python, Go, Rust, and container-native sources, plus a bridge command that can import worker output into Convex and dashboard drilldowns with drift and vulnerable-inventory summaries, but it still needs a live Convex deployment and GitHub delivery path to be exercised end-to-end.
+- Breach intake now supports GitHub Security Advisory and OSV normalization, version-aware SBOM matching, live ID-based advisory imports, the GitHub webhook path in code, scheduled or bulk sync in code, and aggregator-style sync-run visibility in the dashboard, but it still needs the first live sync run plus broader Tier 2 and Tier 3 feed coverage beyond the current authoritative sources.
+- Semantic fingerprinting now has a path-aware MVP in the Convex control plane with candidate findings, workflow-stage advancement, and dashboard visibility, but it still lacks the full embedding, tree-sitter, and vector-search stack from the long-term spec.
+- Exploit validation now has a local-first MVP that records validation runs, classifies findings, advances validation workflow stages, and exposes recent evidence in the dashboard, but it still lacks the real sandbox lifecycle, artifact capture, and post-fix replay loop from the long-term design.
 - The local machine does not currently have Go installed, so the Go services are architectural boundaries rather than verified runtimes today.
 - The long-term spec still requires specialized stores for vectors, graphs, and sandbox artifacts; we should keep the MVP control-plane contracts clean so those additions remain incremental.
 

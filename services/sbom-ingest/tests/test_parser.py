@@ -253,6 +253,238 @@ class AnalyzeRepositoryTests(unittest.TestCase):
         self.assertEqual(component_index[("cargo", "tokio")].layer, "build")
         self.assertEqual(component_index[("cargo", "bytes")].layer, "transitive")
 
+    def test_parses_pnpm_lock_inventory(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            (root / "package.json").write_text(
+                json.dumps(
+                    {
+                        "dependencies": {"react": "^19.2.0"},
+                        "devDependencies": {"vitest": "^3.0.5"},
+                    }
+                ),
+                encoding="utf-8",
+            )
+            (root / "pnpm-lock.yaml").write_text(
+                textwrap.dedent(
+                    """
+                    lockfileVersion: '9.0'
+
+                    importers:
+                      .:
+                        dependencies:
+                          react:
+                            specifier: ^19.2.0
+                            version: 19.2.0
+                        devDependencies:
+                          vitest:
+                            specifier: ^3.0.5
+                            version: 3.0.5
+
+                    packages:
+                      react@19.2.0:
+                        resolution: {integrity: sha512-demo}
+                      vitest@3.0.5:
+                        resolution: {integrity: sha512-demo}
+                      '@types/node@22.10.2':
+                        resolution: {integrity: sha512-demo}
+                    """
+                ).strip(),
+                encoding="utf-8",
+            )
+
+            snapshot = analyze_repository(root)
+
+        component_index = {
+            (component.ecosystem, component.name): component
+            for component in snapshot.components
+        }
+
+        self.assertEqual(
+            sorted(snapshot.source_files),
+            ["package.json", "pnpm-lock.yaml"],
+        )
+        self.assertEqual(component_index[("npm", "react")].version, "19.2.0")
+        self.assertEqual(component_index[("npm", "react")].layer, "direct")
+        self.assertEqual(component_index[("npm", "vitest")].layer, "build")
+        self.assertEqual(component_index[("npm", "@types/node")].layer, "transitive")
+
+    def test_parses_yarn_lock_inventory(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            (root / "package.json").write_text(
+                json.dumps(
+                    {
+                        "dependencies": {"react": "^19.2.0"},
+                        "devDependencies": {"vitest": "^3.0.5"},
+                    }
+                ),
+                encoding="utf-8",
+            )
+            (root / "yarn.lock").write_text(
+                textwrap.dedent(
+                    """
+                    react@^19.2.0:
+                      version "19.2.0"
+                      resolved "https://registry.yarnpkg.com/react/-/react-19.2.0.tgz"
+
+                    vitest@^3.0.5:
+                      version "3.0.5"
+                      resolved "https://registry.yarnpkg.com/vitest/-/vitest-3.0.5.tgz"
+
+                    "@types/node@^22.10.2":
+                      version "22.10.2"
+                      resolved "https://registry.yarnpkg.com/@types/node/-/node-22.10.2.tgz"
+                    """
+                ).strip(),
+                encoding="utf-8",
+            )
+
+            snapshot = analyze_repository(root)
+
+        component_index = {
+            (component.ecosystem, component.name): component
+            for component in snapshot.components
+        }
+
+        self.assertEqual(
+            sorted(snapshot.source_files),
+            ["package.json", "yarn.lock"],
+        )
+        self.assertEqual(component_index[("npm", "react")].version, "19.2.0")
+        self.assertEqual(component_index[("npm", "react")].layer, "direct")
+        self.assertEqual(component_index[("npm", "vitest")].layer, "build")
+        self.assertEqual(component_index[("npm", "@types/node")].layer, "transitive")
+
+    def test_parses_bun_lock_inventory(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            (root / "package.json").write_text(
+                json.dumps(
+                    {
+                        "dependencies": {"react": "^19.2.0"},
+                        "devDependencies": {"vitest": "^3.0.5"},
+                    }
+                ),
+                encoding="utf-8",
+            )
+            (root / "bun.lock").write_text(
+                textwrap.dedent(
+                    """
+                    {
+                      "lockfileVersion": 1,
+                      "workspaces": {
+                        "": {
+                          "dependencies": {
+                            "react": "^19.2.0"
+                          },
+                          "devDependencies": {
+                            "vitest": "^3.0.5"
+                          }
+                        }
+                      },
+                      "packages": {
+                        "react": ["react@19.2.0", "", {}, "sha512-demo"],
+                        "vitest": ["vitest@3.0.5", "", {}, "sha512-demo"],
+                        "@types/node": ["@types/node@22.10.2", "", {}, "sha512-demo"]
+                      }
+                    }
+                    """
+                ).strip(),
+                encoding="utf-8",
+            )
+
+            snapshot = analyze_repository(root)
+
+        component_index = {
+            (component.ecosystem, component.name): component
+            for component in snapshot.components
+        }
+
+        self.assertEqual(
+            sorted(snapshot.source_files),
+            ["bun.lock", "package.json"],
+        )
+        self.assertEqual(component_index[("npm", "react")].version, "19.2.0")
+        self.assertEqual(component_index[("npm", "react")].layer, "direct")
+        self.assertEqual(component_index[("npm", "vitest")].layer, "build")
+        self.assertEqual(component_index[("npm", "@types/node")].layer, "transitive")
+
+    def test_parses_container_inventory_inputs(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            (root / "Dockerfile").write_text(
+                textwrap.dedent(
+                    """
+                    FROM node:22-alpine AS build
+                    WORKDIR /app
+                    FROM build AS test
+                    RUN npm test
+                    FROM ghcr.io/acme/runtime-base@sha256:deadbeef
+                    """
+                ).strip(),
+                encoding="utf-8",
+            )
+            (root / "infra").mkdir()
+            (root / "infra" / "docker-compose.yml").write_text(
+                textwrap.dedent(
+                    """
+                    services:
+                      api:
+                        image: ghcr.io/acme/api:2026.04.06
+                    """
+                ).strip(),
+                encoding="utf-8",
+            )
+            (root / "k8s").mkdir()
+            (root / "k8s" / "deployment.yaml").write_text(
+                textwrap.dedent(
+                    """
+                    apiVersion: apps/v1
+                    kind: Deployment
+                    spec:
+                      template:
+                        spec:
+                          containers:
+                            - name: worker
+                              image: registry.internal:5000/acme/worker:1.2.3
+                    """
+                ).strip(),
+                encoding="utf-8",
+            )
+
+            snapshot = analyze_repository(root)
+
+        container_components = [
+            component
+            for component in snapshot.components
+            if component.ecosystem == "container"
+        ]
+        component_index = {
+            (component.name, component.version): component
+            for component in container_components
+        }
+
+        self.assertEqual(
+            sorted(snapshot.source_files),
+            ["Dockerfile", "infra/docker-compose.yml", "k8s/deployment.yaml"],
+        )
+        self.assertEqual(component_index[("node", "22-alpine")].layer, "container")
+        self.assertEqual(component_index[("node", "22-alpine")].source_file, "Dockerfile")
+        self.assertEqual(
+            component_index[("ghcr.io/acme/runtime-base", "sha256:deadbeef")].source_file,
+            "Dockerfile",
+        )
+        self.assertEqual(
+            component_index[("ghcr.io/acme/api", "2026.04.06")].source_file,
+            "infra/docker-compose.yml",
+        )
+        self.assertEqual(
+            component_index[("registry.internal:5000/acme/worker", "1.2.3")].source_file,
+            "k8s/deployment.yaml",
+        )
+        self.assertTrue(all(component.is_direct for component in container_components))
+
 
 if __name__ == "__main__":
     unittest.main()

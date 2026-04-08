@@ -51,6 +51,18 @@ const gateDecision = v.union(
   v.literal('overridden'),
 )
 
+const advisorySyncStatus = v.union(
+  v.literal('completed'),
+  v.literal('skipped'),
+  v.literal('failed'),
+)
+
+const exploitValidationOutcome = v.union(
+  v.literal('validated'),
+  v.literal('likely_exploitable'),
+  v.literal('unexploitable'),
+)
+
 export default defineSchema({
   tenants: defineTable({
     slug: v.string(),
@@ -79,7 +91,8 @@ export default defineSchema({
     lastScannedAt: v.optional(v.number()),
   })
     .index('by_tenant', ['tenantId'])
-    .index('by_tenant_and_full_name', ['tenantId', 'fullName']),
+    .index('by_tenant_and_full_name', ['tenantId', 'fullName'])
+    .index('by_provider_and_full_name', ['provider', 'fullName']),
 
   ingestionEvents: defineTable({
     tenantId: v.id('tenants'),
@@ -90,6 +103,9 @@ export default defineSchema({
     workflowType: v.string(),
     status: lifecycleStatus,
     externalRef: v.optional(v.string()),
+    branch: v.optional(v.string()),
+    commitSha: v.optional(v.string()),
+    changedFiles: v.optional(v.array(v.string())),
     summary: v.string(),
     receivedAt: v.number(),
   })
@@ -245,7 +261,26 @@ export default defineSchema({
   })
     .index('by_tenant_and_created_at', ['tenantId', 'createdAt'])
     .index('by_tenant_and_status', ['tenantId', 'status'])
-    .index('by_repository_and_status', ['repositoryId', 'status']),
+    .index('by_repository_and_status', ['repositoryId', 'status'])
+    .index('by_workflow_run_and_source', ['workflowRunId', 'source']),
+
+  exploitValidationRuns: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    workflowRunId: v.id('workflowRuns'),
+    findingId: v.id('findings'),
+    status: lifecycleStatus,
+    outcome: v.optional(exploitValidationOutcome),
+    validationConfidence: v.number(),
+    sandboxSummary: v.string(),
+    evidenceSummary: v.string(),
+    reproductionHint: v.string(),
+    startedAt: v.number(),
+    completedAt: v.optional(v.number()),
+  })
+    .index('by_tenant_and_started_at', ['tenantId', 'startedAt'])
+    .index('by_repository_and_started_at', ['repositoryId', 'startedAt'])
+    .index('by_finding_and_started_at', ['findingId', 'startedAt']),
 
   gateDecisions: defineTable({
     tenantId: v.id('tenants'),
@@ -262,4 +297,27 @@ export default defineSchema({
   })
     .index('by_tenant_and_created_at', ['tenantId', 'createdAt'])
     .index('by_repository_and_stage', ['repositoryId', 'stage']),
+
+  advisorySyncRuns: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    triggerType: v.union(v.literal('manual'), v.literal('scheduled')),
+    status: advisorySyncStatus,
+    packageCount: v.number(),
+    lookbackHours: v.number(),
+    githubQueried: v.number(),
+    githubFetched: v.number(),
+    githubImported: v.number(),
+    githubDeduped: v.number(),
+    osvQueried: v.number(),
+    osvFetched: v.number(),
+    osvImported: v.number(),
+    osvDeduped: v.number(),
+    reason: v.optional(v.string()),
+    startedAt: v.number(),
+    completedAt: v.number(),
+  })
+    .index('by_tenant_and_started_at', ['tenantId', 'startedAt'])
+    .index('by_repository_and_started_at', ['repositoryId', 'startedAt'])
+    .index('by_status', ['status']),
 })

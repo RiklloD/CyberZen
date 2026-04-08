@@ -11,10 +11,28 @@ REQUIREMENT_PATTERN = re.compile(
     r"^\s*([A-Za-z0-9_.-]+)(?:\[[A-Za-z0-9_,.-]+\])?\s*([<>=!~]{1,2}\s*[^;,\s]+)?"
 )
 GO_REQUIRE_PATTERN = re.compile(r"^([^\s]+)\s+([^\s]+?)(?:\s*//\s*(.+))?$")
+YARN_VERSION_PATTERN = re.compile(r'^\s+version\s+"?([^"]+)"?$')
+DOCKERFILE_FROM_PATTERN = re.compile(
+    r"^\s*FROM(?:\s+--platform=[^\s]+)?\s+([^\s]+)(?:\s+AS\s+([A-Za-z0-9._-]+))?\s*$",
+    re.IGNORECASE,
+)
+CONTAINER_IMAGE_PATTERN = re.compile(r"^\s*image:\s*([^\s#]+)")
 NODE_DIRECT_GROUPS = ("dependencies", "optionalDependencies", "peerDependencies")
 NODE_BUILD_GROUPS = ("devDependencies",)
 CARGO_DIRECT_GROUPS = ("dependencies",)
 CARGO_BUILD_GROUPS = ("dev-dependencies", "build-dependencies")
+IGNORED_REPOSITORY_DIRS = {
+    ".git",
+    "node_modules",
+    ".turbo",
+    ".next",
+    "dist",
+    "build",
+    "target",
+    "__pycache__",
+    ".venv",
+    "venv",
+}
 
 
 def _normalize_name(raw_name: str) -> str:
@@ -35,6 +53,108 @@ def _coerce_locked_version(raw_version: object) -> str:
         return version[2:]
 
     return version
+
+
+def _strip_wrapping_quotes(value: str) -> str:
+    stripped = value.strip()
+    if len(stripped) >= 2 and stripped[0] == stripped[-1] and stripped[0] in ('"', "'"):
+        return stripped[1:-1]
+
+    return stripped
+
+
+def _split_node_package_identifier(raw_identifier: str) -> tuple[str, str] | None:
+    identifier = _strip_wrapping_quotes(raw_identifier.strip().rstrip(":").lstrip("/"))
+    identifier = identifier.split("(", maxsplit=1)[0]
+    if "@" not in identifier[1:]:
+        return None
+
+    name, version = identifier.rsplit("@", maxsplit=1)
+    if not name or not version:
+        return None
+
+    return _normalize_name(name), _coerce_locked_version(version)
+
+
+def _replace_ecosystem_components(
+    components: list[InventoryComponent],
+    ecosystem: str,
+) -> list[InventoryComponent]:
+    return [
+        component
+        for component in components
+        if component.ecosystem != ecosystem
+    ]
+
+
+def _parse_json_with_trailing_commas(raw_text: str) -> object:
+    sanitized = re.sub(r",(\s*[}\]])", r"\1", raw_text)
+    return json.loads(sanitized)
+
+
+def _relative_source_file(root: Path, path: Path) -> str:
+    try:
+        return path.relative_to(root).as_posix()
+    except ValueError:
+        return path.name
+
+
+def _iter_repository_files(root: Path) -> list[Path]:
+    files: list[Path] = []
+
+    for path in root.rglob("*"):
+        if any(part in IGNORED_REPOSITORY_DIRS for part in path.parts):
+            continue
+        if path.is_file():
+            files.append(path)
+
+    return files
+
+
+def _parse_container_image_reference(raw_reference: str) -> tuple[str, str] | None:
+    reference = _strip_wrapping_quotes(raw_reference.strip())
+    if not reference:
+        return None
+
+    reference = reference.split("#", maxsplit=1)[0].strip()
+    if not reference or "${" in reference:
+        return None
+
+    if "@" in reference:
+        name, digest = reference.split("@", maxsplit=1)
+        if not name or not digest:
+            return None
+        return _normalize_name(name), digest
+
+    last_slash = reference.rfind("/")
+    last_colon = reference.rfind(":")
+    if last_colon > last_slash:
+        name = reference[:last_colon]
+        version = reference[last_colon + 1 :]
+        if name and version:
+            return _normalize_name(name), version
+
+    return _normalize_name(reference), "unknown"
+
+
+def _make_container_component(
+    root: Path,
+    source_path: Path,
+    raw_reference: str,
+) -> InventoryComponent | None:
+    parsed = _parse_container_image_reference(raw_reference)
+    if not parsed:
+        return None
+
+    name, version = parsed
+    return InventoryComponent(
+        name=name,
+        version=version,
+        ecosystem="container",
+        layer="container",
+        is_direct=True,
+        source_file=_relative_source_file(root, source_path),
+    )
 
 
 def _parse_requirement_entry(entry: str) -> tuple[str, str] | None:
@@ -142,6 +262,35 @@ def _parse_package_json(package_json_path: Path) -> tuple[list[InventoryComponen
     return components, direct_names, build_names
 
 
+def _collect_node_workspace_groups(
+    workspace_entries: dict[str, object],
+) -> tuple[set[str], set[str]]:
+    direct_names: set[str] = set()
+    build_names: set[str] = set()
+
+    for raw_workspace in workspace_entries.values():
+        if not isinstance(raw_workspace, dict):
+            continue
+
+        for group_name in NODE_DIRECT_GROUPS:
+            entries = raw_workspace.get(group_name, {})
+            if not isinstance(entries, dict):
+                continue
+
+            for raw_name in entries:
+                direct_names.add(_normalize_name(raw_name))
+
+        for group_name in NODE_BUILD_GROUPS:
+            entries = raw_workspace.get(group_name, {})
+            if not isinstance(entries, dict):
+                continue
+
+            for raw_name in entries:
+                build_names.add(_normalize_name(raw_name))
+
+    return direct_names, build_names
+
+
 def _derive_lock_package_name(package_path: str, package_data: dict[str, object]) -> str | None:
     if isinstance(package_data.get("name"), str):
         return _normalize_name(str(package_data["name"]))
@@ -209,6 +358,227 @@ def _parse_package_lock(
         )
 
     return components
+
+
+def _parse_bun_lock(
+    bun_lock_path: Path,
+    direct_names: set[str],
+    build_names: set[str],
+) -> tuple[list[InventoryComponent], set[str], set[str]]:
+    lock_data = _parse_json_with_trailing_commas(
+        bun_lock_path.read_text(encoding="utf-8")
+    )
+    source_file = bun_lock_path.name
+    components: list[InventoryComponent] = []
+    seen: set[tuple[str, str, str]] = set()
+    workspace_direct_names, workspace_build_names = _collect_node_workspace_groups(
+        lock_data.get("workspaces", {}) if isinstance(lock_data.get("workspaces"), dict) else {}
+    )
+    all_direct_names = direct_names | workspace_direct_names
+    all_build_names = build_names | workspace_build_names
+
+    packages = lock_data.get("packages", {})
+    if not isinstance(packages, dict):
+        return components, all_direct_names, all_build_names
+
+    for raw_name, raw_entry in packages.items():
+        descriptor = raw_name
+        if isinstance(raw_entry, list) and raw_entry and isinstance(raw_entry[0], str):
+            descriptor = raw_entry[0]
+
+        parsed = _split_node_package_identifier(descriptor)
+        if not parsed:
+            continue
+
+        name, version = parsed
+        is_direct = name in all_direct_names or name in all_build_names
+        if name in all_build_names:
+            layer = "build"
+        elif name in all_direct_names:
+            layer = "direct"
+        else:
+            layer = "transitive"
+
+        signature = ("npm", name, version)
+        if signature in seen:
+            continue
+
+        seen.add(signature)
+        components.append(
+            InventoryComponent(
+                name=name,
+                version=version,
+                ecosystem="npm",
+                layer=layer,
+                is_direct=is_direct,
+                source_file=source_file,
+            )
+        )
+
+    return components, all_direct_names, all_build_names
+
+
+def _extract_yarn_package_name(raw_selector_line: str) -> str | None:
+    selector_line = raw_selector_line.strip().rstrip(":")
+    if selector_line.startswith("__metadata"):
+        return None
+
+    selectors = [
+        _strip_wrapping_quotes(selector.strip())
+        for selector in selector_line.split(",")
+        if selector.strip()
+    ]
+    if not selectors:
+        return None
+
+    selector = selectors[0]
+    if selector.startswith("@"):
+        separator = selector.find("@", 1)
+        if separator <= 1:
+            return None
+        return _normalize_name(selector[:separator])
+
+    if "@" not in selector:
+        return None
+
+    return _normalize_name(selector.split("@", maxsplit=1)[0])
+
+
+def _parse_yarn_lock(
+    yarn_lock_path: Path,
+    direct_names: set[str],
+    build_names: set[str],
+) -> list[InventoryComponent]:
+    source_file = yarn_lock_path.name
+    components: list[InventoryComponent] = []
+    seen: set[tuple[str, str, str]] = set()
+    current_name: str | None = None
+    current_version: str | None = None
+
+    def finalize_current_entry() -> None:
+        nonlocal current_name, current_version
+
+        if not current_name or not current_version:
+            current_name = None
+            current_version = None
+            return
+
+        signature = ("npm", current_name, current_version)
+        if signature not in seen:
+            seen.add(signature)
+            is_direct = current_name in direct_names or current_name in build_names
+            if current_name in build_names:
+                layer = "build"
+            elif current_name in direct_names:
+                layer = "direct"
+            else:
+                layer = "transitive"
+
+            components.append(
+                InventoryComponent(
+                    name=current_name,
+                    version=current_version,
+                    ecosystem="npm",
+                    layer=layer,
+                    is_direct=is_direct,
+                    source_file=source_file,
+                )
+            )
+
+        current_name = None
+        current_version = None
+
+    for raw_line in yarn_lock_path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.rstrip()
+        if line and not line.startswith(" "):
+            finalize_current_entry()
+            current_name = _extract_yarn_package_name(line)
+            continue
+
+        if current_name is None:
+            continue
+
+        version_match = YARN_VERSION_PATTERN.match(line)
+        if version_match:
+            current_version = _coerce_locked_version(version_match.group(1))
+
+    finalize_current_entry()
+    return components
+
+
+def _parse_pnpm_lock(
+    pnpm_lock_path: Path,
+    direct_names: set[str],
+    build_names: set[str],
+) -> tuple[list[InventoryComponent], set[str], set[str]]:
+    source_file = pnpm_lock_path.name
+    components: list[InventoryComponent] = []
+    seen: set[tuple[str, str, str]] = set()
+    current_section: str | None = None
+    current_importer_group: str | None = None
+    importer_direct_names: set[str] = set()
+    importer_build_names: set[str] = set()
+
+    for raw_line in pnpm_lock_path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.rstrip()
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+
+        indent = len(line) - len(line.lstrip(" "))
+        if indent == 0 and stripped.endswith(":"):
+            current_section = stripped[:-1]
+            current_importer_group = None
+            continue
+
+        if current_section == "importers":
+            if indent == 4 and stripped.endswith(":"):
+                current_importer_group = _strip_wrapping_quotes(stripped[:-1])
+                continue
+
+            if indent == 6 and current_importer_group in (*NODE_DIRECT_GROUPS, *NODE_BUILD_GROUPS):
+                dependency_name = _strip_wrapping_quotes(stripped.split(":", maxsplit=1)[0])
+                if current_importer_group in NODE_BUILD_GROUPS:
+                    importer_build_names.add(_normalize_name(dependency_name))
+                else:
+                    importer_direct_names.add(_normalize_name(dependency_name))
+                continue
+
+        if current_section != "packages" or indent != 2 or not stripped.endswith(":"):
+            continue
+
+        parsed = _split_node_package_identifier(stripped[:-1])
+        if not parsed:
+            continue
+
+        name, version = parsed
+        all_direct_names = direct_names | importer_direct_names
+        all_build_names = build_names | importer_build_names
+        is_direct = name in all_direct_names or name in all_build_names
+        if name in all_build_names:
+            layer = "build"
+        elif name in all_direct_names:
+            layer = "direct"
+        else:
+            layer = "transitive"
+
+        signature = ("npm", name, version)
+        if signature in seen:
+            continue
+
+        seen.add(signature)
+        components.append(
+            InventoryComponent(
+                name=name,
+                version=version,
+                ecosystem="npm",
+                layer=layer,
+                is_direct=is_direct,
+                source_file=source_file,
+            )
+        )
+
+    return components, direct_names | importer_direct_names, build_names | importer_build_names
 
 
 def _parse_requirements_txt(requirements_path: Path) -> list[InventoryComponent]:
@@ -649,6 +1019,49 @@ def _parse_cargo_lock(
     return components
 
 
+def _parse_dockerfile(root: Path, dockerfile_path: Path) -> list[InventoryComponent]:
+    components: list[InventoryComponent] = []
+    stage_aliases: set[str] = set()
+
+    for raw_line in dockerfile_path.read_text(encoding="utf-8").splitlines():
+        match = DOCKERFILE_FROM_PATTERN.match(raw_line.strip())
+        if not match:
+            continue
+
+        raw_reference = match.group(1)
+        stage_alias = match.group(2)
+        normalized_reference = _normalize_name(raw_reference)
+
+        if normalized_reference in stage_aliases:
+            if stage_alias:
+                stage_aliases.add(_normalize_name(stage_alias))
+            continue
+
+        component = _make_container_component(root, dockerfile_path, raw_reference)
+        if component:
+            components.append(component)
+
+        if stage_alias:
+            stage_aliases.add(_normalize_name(stage_alias))
+
+    return components
+
+
+def _parse_container_manifest_images(root: Path, manifest_path: Path) -> list[InventoryComponent]:
+    components: list[InventoryComponent] = []
+
+    for raw_line in manifest_path.read_text(encoding="utf-8").splitlines():
+        match = CONTAINER_IMAGE_PATTERN.match(raw_line.strip())
+        if not match:
+            continue
+
+        component = _make_container_component(root, manifest_path, match.group(1))
+        if component:
+            components.append(component)
+
+    return components
+
+
 def _dedupe_components(components: list[InventoryComponent]) -> list[InventoryComponent]:
     deduped: dict[tuple[str, str, str, str], InventoryComponent] = {}
 
@@ -699,9 +1112,14 @@ def analyze_repository(root_path: str | Path) -> InventorySnapshot:
 
     components: list[InventoryComponent] = []
     source_files: list[str] = []
+    repository_files = _iter_repository_files(root)
+    repository_file_set = {path.resolve() for path in repository_files}
 
     package_json_path = root / "package.json"
     package_lock_path = root / "package-lock.json"
+    pnpm_lock_path = root / "pnpm-lock.yaml"
+    yarn_lock_path = root / "yarn.lock"
+    bun_lock_path = root / "bun.lock"
     requirements_path = root / "requirements.txt"
     pipfile_lock_path = root / "Pipfile.lock"
     pyproject_path = root / "pyproject.toml"
@@ -728,11 +1146,36 @@ def analyze_repository(root_path: str | Path) -> InventorySnapshot:
         source_files.append(package_lock_path.name)
         lock_components = _parse_package_lock(package_lock_path, direct_names, build_names)
         if lock_components:
-            components = [
-                component
-                for component in components
-                if component.ecosystem != "npm"
-            ]
+            components = _replace_ecosystem_components(components, "npm")
+            components.extend(lock_components)
+
+    if pnpm_lock_path.exists():
+        source_files.append(pnpm_lock_path.name)
+        lock_components, direct_names, build_names = _parse_pnpm_lock(
+            pnpm_lock_path,
+            direct_names,
+            build_names,
+        )
+        if lock_components:
+            components = _replace_ecosystem_components(components, "npm")
+            components.extend(lock_components)
+
+    if yarn_lock_path.exists():
+        source_files.append(yarn_lock_path.name)
+        lock_components = _parse_yarn_lock(yarn_lock_path, direct_names, build_names)
+        if lock_components:
+            components = _replace_ecosystem_components(components, "npm")
+            components.extend(lock_components)
+
+    if bun_lock_path.exists():
+        source_files.append(bun_lock_path.name)
+        lock_components, direct_names, build_names = _parse_bun_lock(
+            bun_lock_path,
+            direct_names,
+            build_names,
+        )
+        if lock_components:
+            components = _replace_ecosystem_components(components, "npm")
             components.extend(lock_components)
 
     if requirements_path.exists():
@@ -741,11 +1184,7 @@ def analyze_repository(root_path: str | Path) -> InventorySnapshot:
 
     if pipfile_lock_path.exists():
         source_files.append(pipfile_lock_path.name)
-        components = [
-            component
-            for component in components
-            if component.ecosystem != "pypi"
-        ]
+        components = _replace_ecosystem_components(components, "pypi")
         components.extend(_parse_pipfile_lock(pipfile_lock_path))
 
     if pyproject_path.exists():
@@ -780,11 +1219,7 @@ def analyze_repository(root_path: str | Path) -> InventorySnapshot:
         source_files.append(go_sum_path.name)
         lock_components = _parse_go_sum(go_sum_path, go_direct_names)
         if lock_components:
-            components = [
-                component
-                for component in components
-                if component.ecosystem != "gomod"
-            ]
+            components = _replace_ecosystem_components(components, "gomod")
             components.extend(lock_components)
 
     if cargo_toml_path.exists():
@@ -800,12 +1235,50 @@ def analyze_repository(root_path: str | Path) -> InventorySnapshot:
             cargo_build_names,
         )
         if lock_components:
-            components = [
-                component
-                for component in components
-                if component.ecosystem != "cargo"
-            ]
+            components = _replace_ecosystem_components(components, "cargo")
             components.extend(lock_components)
+
+    dockerfiles = sorted(
+        [
+            path
+            for path in repository_files
+            if path.name == "Dockerfile" or path.name.startswith("Dockerfile.")
+        ],
+        key=lambda path: _relative_source_file(root, path),
+    )
+    seen_container_paths: set[Path] = set()
+
+    for dockerfile_path in dockerfiles:
+        source_files.append(_relative_source_file(root, dockerfile_path))
+        seen_container_paths.add(dockerfile_path.resolve())
+        components.extend(_parse_dockerfile(root, dockerfile_path))
+
+    manifest_candidates = sorted(
+        [
+            path
+            for path in repository_files
+            if (
+                path.resolve() not in seen_container_paths
+                and (
+                    path.name in {"docker-compose.yml", "docker-compose.yaml", "compose.yml", "compose.yaml"}
+                    or any(
+                        part in {"k8s", "helm", "infra", "deploy", "deployment", "manifests"}
+                        for part in path.parts
+                    )
+                )
+                and path.suffix.lower() in {".yml", ".yaml"}
+            )
+        ],
+        key=lambda path: _relative_source_file(root, path),
+    )
+
+    for manifest_path in manifest_candidates:
+        manifest_components = _parse_container_manifest_images(root, manifest_path)
+        if not manifest_components:
+            continue
+
+        source_files.append(_relative_source_file(root, manifest_path))
+        components.extend(manifest_components)
 
     return InventorySnapshot(
         root_path=str(root),

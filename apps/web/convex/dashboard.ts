@@ -34,6 +34,27 @@ const versionChangeComponent = v.object({
   nextVersion: v.string(),
 })
 
+const previewInventoryComponent = v.object({
+  name: v.string(),
+  version: v.string(),
+  ecosystem: v.string(),
+  layer: v.string(),
+  sourceFile: v.string(),
+  hasKnownVulnerabilities: v.boolean(),
+})
+
+const advisorySyncStatus = v.union(
+  v.literal('completed'),
+  v.literal('skipped'),
+  v.literal('failed'),
+)
+
+const validationOutcome = v.union(
+  v.literal('validated'),
+  v.literal('likely_exploitable'),
+  v.literal('unexploitable'),
+)
+
 const overviewValidator = v.object({
   tenant: v.object({
     name: v.string(),
@@ -47,6 +68,71 @@ const overviewValidator = v.object({
     criticalFindings: v.number(),
     activeWorkflows: v.number(),
     sbomComponents: v.number(),
+  }),
+  advisoryAggregator: v.object({
+    lastCompletedAt: v.optional(v.number()),
+    recentImportedDisclosures: v.number(),
+    recentMatchedDisclosures: v.number(),
+    recentRuns: v.array(
+      v.object({
+        _id: v.id('advisorySyncRuns'),
+        repositoryName: v.string(),
+        triggerType: v.string(),
+        status: advisorySyncStatus,
+        packageCount: v.number(),
+        githubFetched: v.number(),
+        githubImported: v.number(),
+        osvFetched: v.number(),
+        osvImported: v.number(),
+        startedAt: v.number(),
+        completedAt: v.number(),
+        reason: v.optional(v.string()),
+      }),
+    ),
+    sourceCoverage: v.array(
+      v.object({
+        sourceType: v.string(),
+        sourceName: v.string(),
+        sourceTier: v.string(),
+        disclosureCount: v.number(),
+        matchedCount: v.number(),
+        lastPublishedAt: v.optional(v.number()),
+      }),
+    ),
+  }),
+  semanticFingerprint: v.object({
+    openCandidateCount: v.number(),
+    pendingValidationCount: v.number(),
+    recentFindings: v.array(
+      v.object({
+        _id: v.id('findings'),
+        title: v.string(),
+        vulnClass: v.string(),
+        repositoryName: v.string(),
+        severity,
+        confidence: v.number(),
+        validationStatus: v.string(),
+        createdAt: v.number(),
+      }),
+    ),
+  }),
+  exploitValidation: v.object({
+    pendingCount: v.number(),
+    validatedCount: v.number(),
+    likelyExploitableCount: v.number(),
+    recentRuns: v.array(
+      v.object({
+        _id: v.id('exploitValidationRuns'),
+        repositoryName: v.string(),
+        findingTitle: v.string(),
+        status: workflowStatus,
+        outcome: v.optional(validationOutcome),
+        validationConfidence: v.number(),
+        startedAt: v.number(),
+        completedAt: v.optional(v.number()),
+        evidenceSummary: v.string(),
+      }),
+    ),
   }),
   repositories: v.array(
     v.object({
@@ -64,6 +150,13 @@ const overviewValidator = v.object({
           commitSha: v.string(),
           capturedAt: v.number(),
           totalComponents: v.number(),
+          directDependencyCount: v.number(),
+          transitiveDependencyCount: v.number(),
+          buildDependencyCount: v.number(),
+          containerDependencyCount: v.number(),
+          runtimeDependencyCount: v.number(),
+          aiModelDependencyCount: v.number(),
+          vulnerableComponentCount: v.number(),
           sourceFiles: v.array(v.string()),
           comparison: v.union(
             v.null(),
@@ -80,16 +173,8 @@ const overviewValidator = v.object({
               updatedPreview: v.array(versionChangeComponent),
             }),
           ),
-          previewComponents: v.array(
-            v.object({
-              name: v.string(),
-              version: v.string(),
-              ecosystem: v.string(),
-              layer: v.string(),
-              sourceFile: v.string(),
-              hasKnownVulnerabilities: v.boolean(),
-            }),
-          ),
+          previewComponents: v.array(previewInventoryComponent),
+          vulnerablePreview: v.array(previewInventoryComponent),
         }),
       ),
     }),
@@ -194,6 +279,7 @@ export const overview = query({
       .query('repositories')
       .withIndex('by_tenant', (q) => q.eq('tenantId', tenant._id))
       .collect()
+    const repositoryIds = new Set(repositories.map((repository) => repository._id))
 
     const repositoriesWithSnapshots = await Promise.all(
       repositories.map(async (repository) => {
@@ -231,6 +317,9 @@ export const overview = query({
         const comparison = previousSnapshot
           ? compareSnapshotComponents(previousComponents, latestComponents)
           : null
+        const vulnerableComponents = latestComponents.filter(
+          (component) => component.hasKnownVulnerabilities,
+        )
 
         return {
           repository,
@@ -239,6 +328,13 @@ export const overview = query({
             commitSha: snapshot.commitSha,
             capturedAt: snapshot.capturedAt,
             totalComponents: snapshot.totalComponents,
+            directDependencyCount: snapshot.directDependencyCount,
+            transitiveDependencyCount: snapshot.transitiveDependencyCount,
+            buildDependencyCount: snapshot.buildDependencyCount,
+            containerDependencyCount: snapshot.containerDependencyCount,
+            runtimeDependencyCount: snapshot.runtimeDependencyCount,
+            aiModelDependencyCount: snapshot.aiModelDependencyCount,
+            vulnerableComponentCount: vulnerableComponents.length,
             sourceFiles: snapshot.sourceFiles,
             comparison: previousSnapshot && comparison
               ? {
@@ -262,6 +358,14 @@ export const overview = query({
               sourceFile: component.sourceFile,
               hasKnownVulnerabilities: component.hasKnownVulnerabilities,
             })),
+            vulnerablePreview: vulnerableComponents.slice(0, 3).map((component) => ({
+              name: component.name,
+              version: component.version,
+              ecosystem: component.ecosystem,
+              layer: component.layer,
+              sourceFile: component.sourceFile,
+              hasKnownVulnerabilities: component.hasKnownVulnerabilities,
+            })),
           },
         }
       }),
@@ -269,6 +373,12 @@ export const overview = query({
 
     const workflows = await ctx.db
       .query('workflowRuns')
+      .withIndex('by_tenant_and_started_at', (q) => q.eq('tenantId', tenant._id))
+      .order('desc')
+      .take(5)
+
+    const exploitValidationRuns = await ctx.db
+      .query('exploitValidationRuns')
       .withIndex('by_tenant_and_started_at', (q) => q.eq('tenantId', tenant._id))
       .order('desc')
       .take(5)
@@ -306,11 +416,28 @@ export const overview = query({
       .order('desc')
       .first()
 
+    const advisorySyncRuns = await ctx.db
+      .query('advisorySyncRuns')
+      .withIndex('by_tenant_and_started_at', (q) => q.eq('tenantId', tenant._id))
+      .order('desc')
+      .take(6)
+
     const disclosureRows = await ctx.db
       .query('breachDisclosures')
       .withIndex('by_published_at')
       .order('desc')
       .take(4)
+
+    const recentDisclosureRows = (
+      await ctx.db
+        .query('breachDisclosures')
+        .withIndex('by_published_at')
+        .order('desc')
+        .take(40)
+    ).filter(
+      (disclosure) =>
+        disclosure.repositoryId && repositoryIds.has(disclosure.repositoryId),
+    )
 
     const disclosures = await Promise.all(
       disclosureRows.map(async (disclosure) => {
@@ -343,12 +470,93 @@ export const overview = query({
       }),
     )
 
+    const syncRepositories = await Promise.all(
+      advisorySyncRuns.map(async (run) => {
+        const repository = await ctx.db.get(run.repositoryId)
+
+        return {
+          _id: run._id,
+          repositoryName: repository?.name ?? 'Unknown repository',
+          triggerType: run.triggerType,
+          status: run.status,
+          packageCount: run.packageCount,
+          githubFetched: run.githubFetched,
+          githubImported: run.githubImported,
+          osvFetched: run.osvFetched,
+          osvImported: run.osvImported,
+          startedAt: run.startedAt,
+          completedAt: run.completedAt,
+          reason: run.reason,
+        }
+      }),
+    )
+
+    const sourceCoverageMap = new Map<
+      string,
+      {
+        sourceType: string
+        sourceName: string
+        sourceTier: string
+        disclosureCount: number
+        matchedCount: number
+        lastPublishedAt?: number
+      }
+    >()
+
+    for (const disclosure of recentDisclosureRows) {
+      const key = [
+        disclosure.sourceType,
+        disclosure.sourceName,
+        disclosure.sourceTier,
+      ].join(':')
+      const existing = sourceCoverageMap.get(key) ?? {
+        sourceType: disclosure.sourceType,
+        sourceName: disclosure.sourceName,
+        sourceTier: disclosure.sourceTier,
+        disclosureCount: 0,
+        matchedCount: 0,
+        lastPublishedAt: undefined,
+      }
+
+      existing.disclosureCount += 1
+      if (disclosure.matchStatus === 'matched') {
+        existing.matchedCount += 1
+      }
+      existing.lastPublishedAt = Math.max(
+        existing.lastPublishedAt ?? 0,
+        disclosure.publishedAt,
+      )
+
+      sourceCoverageMap.set(key, existing)
+    }
+
     const activeWorkflows = workflows.filter(
       (workflow) => workflow.status === 'queued' || workflow.status === 'running',
     ).length
 
     const openFindings = allFindings.filter(
       (finding) => finding.status === 'open' || finding.status === 'pr_opened',
+    )
+    const semanticFindings = allFindings.filter(
+      (finding) => finding.source === 'semantic_fingerprint',
+    )
+    const validationRuns = await Promise.all(
+      exploitValidationRuns.map(async (run) => {
+        const repository = await ctx.db.get(run.repositoryId)
+        const finding = await ctx.db.get(run.findingId)
+
+        return {
+          _id: run._id,
+          repositoryName: repository?.name ?? 'Unknown repository',
+          findingTitle: finding?.title ?? 'Unknown finding',
+          status: run.status,
+          outcome: run.outcome,
+          validationConfidence: run.validationConfidence,
+          startedAt: run.startedAt,
+          completedAt: run.completedAt,
+          evidenceSummary: run.evidenceSummary,
+        }
+      }),
     )
 
     const validatedFindings = allFindings.filter(
@@ -373,6 +581,61 @@ export const overview = query({
         criticalFindings,
         activeWorkflows,
         sbomComponents: latestSnapshot?.totalComponents ?? 0,
+      },
+      advisoryAggregator: {
+        lastCompletedAt: advisorySyncRuns.find((run) => run.status === 'completed')
+          ?.completedAt,
+        recentImportedDisclosures: recentDisclosureRows.filter(
+          (disclosure) =>
+            disclosure.sourceType === 'github_security_advisory' ||
+            disclosure.sourceType === 'osv',
+        ).length,
+        recentMatchedDisclosures: recentDisclosureRows.filter(
+          (disclosure) => disclosure.matchStatus === 'matched',
+        ).length,
+        recentRuns: syncRepositories,
+        sourceCoverage: [...sourceCoverageMap.values()].sort((left, right) => {
+          return right.disclosureCount - left.disclosureCount
+        }),
+      },
+      semanticFingerprint: {
+        openCandidateCount: semanticFindings.filter(
+          (finding) =>
+            finding.status === 'open' || finding.status === 'pr_opened',
+        ).length,
+        pendingValidationCount: semanticFindings.filter(
+          (finding) => finding.validationStatus === 'pending',
+        ).length,
+        recentFindings: semanticFindings.slice(0, 4).map((finding) => {
+          const repository = repositories.find(
+            (repository) => repository._id === finding.repositoryId,
+          )
+
+          return {
+            _id: finding._id,
+            title: finding.title,
+            vulnClass: finding.vulnClass,
+            repositoryName: repository?.name ?? 'Unknown repository',
+            severity: finding.severity,
+            confidence: finding.confidence,
+            validationStatus: finding.validationStatus,
+            createdAt: finding.createdAt,
+          }
+        }),
+      },
+      exploitValidation: {
+        pendingCount: allFindings.filter(
+          (finding) =>
+            finding.validationStatus === 'pending' &&
+            (finding.status === 'open' || finding.status === 'pr_opened'),
+        ).length,
+        validatedCount: allFindings.filter(
+          (finding) => finding.validationStatus === 'validated',
+        ).length,
+        likelyExploitableCount: allFindings.filter(
+          (finding) => finding.validationStatus === 'likely_exploitable',
+        ).length,
+        recentRuns: validationRuns,
       },
       repositories: repositoriesWithSnapshots.map(
         ({ repository, latestSnapshot }) => ({

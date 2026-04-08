@@ -21,21 +21,26 @@ Current focus: `Phase 0 - foundation implementation underway`
 - [x] Expand SBOM parsing to additional ecosystems and lockfiles
 - [x] Add SBOM snapshot diffing and richer repository drilldown views
 - [x] Broaden breach-disclosure normalization with feed adapters and version-aware matching
+- [x] Wire live advisory ingestion paths for GitHub Security Advisories and OSV into the routed event layer
+- [x] Extend SBOM parsing to `pnpm-lock.yaml`, `yarn.lock`, and `bun.lock`
+- [x] Extend SBOM parsing to container-native inventory inputs
+- [x] Deepen repository inventory drilldowns beyond the dashboard card summaries
+- [x] Initialize Convex locally and regenerate backend types from a live deployment
+- [x] Wire GitHub webhook delivery into the routed ingestion layer
+- [x] Expand advisory ingest from ID-based live imports into scheduled or bulk feed sync
+- [x] Add Breach Intel Aggregator MVP
+- [x] Add Semantic Fingerprinting MVP
+- [x] Add Exploit Validation MVP
 
 ## Next Up
 
-- [ ] Extend SBOM parsing to remaining ecosystem sources like `pnpm-lock.yaml`, `yarn.lock`, `bun.lock`, and container-native inventory inputs
-- [ ] Deepen repository inventory drilldowns beyond the dashboard card summaries
-- [ ] Wire live advisory ingestion paths for GitHub Security Advisories and OSV into the routed event layer
+- [ ] Exercise the first real GitHub webhook delivery against the Convex HTTP endpoint
+- [ ] Exercise the first live advisory bulk-sync run against the hosted Convex deployment
+- [ ] Exercise the first live GitHub-backed repository scan path end to end
+- [ ] Add CI/CD Gate Enforcement MVP
 
 ## Later
 
-- [ ] Initialize Convex locally and regenerate backend types from a live deployment
-- [ ] Wire GitHub webhook delivery into the routed ingestion layer
-- [ ] Add Breach Intel Aggregator MVP
-- [ ] Add Semantic Fingerprinting MVP
-- [ ] Add Exploit Validation MVP
-- [ ] Add CI/CD Gate Enforcement MVP
 - [ ] Add PR Generation MVP
 - [ ] Add dashboard and public API v1
 

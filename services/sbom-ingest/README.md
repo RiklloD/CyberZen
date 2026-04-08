@@ -11,8 +11,20 @@ The first implementation starts here as a small Python worker and currently supp
 
 - `package.json`
 - `package-lock.json`
+- `pnpm-lock.yaml`
+- `yarn.lock`
+- `bun.lock`
 - `requirements.txt`
 - `pyproject.toml`
+- `Pipfile.lock`
+- `poetry.lock`
+- `go.mod`
+- `go.sum`
+- `Cargo.toml`
+- `Cargo.lock`
+- `Dockerfile`
+- `docker-compose.yml` / `docker-compose.yaml`
+- Kubernetes-style image manifests under paths like `k8s/`, `helm/`, and `infra/`
 
 Current entrypoint:
 

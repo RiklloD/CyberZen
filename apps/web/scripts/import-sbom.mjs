@@ -3,6 +3,34 @@ import { fileURLToPath } from "node:url";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../convex/_generated/api.js";
 
+async function streamLikeToText(value) {
+	if (value === undefined || value === null) {
+		return "";
+	}
+
+	if (typeof value === "string") {
+		return value;
+	}
+
+	if (typeof value.text === "function") {
+		return await value.text();
+	}
+
+	if (typeof value.arrayBuffer === "function") {
+		return new TextDecoder().decode(await value.arrayBuffer());
+	}
+
+	if (value instanceof ArrayBuffer) {
+		return new TextDecoder().decode(value);
+	}
+
+	if (ArrayBuffer.isView(value)) {
+		return new TextDecoder().decode(value);
+	}
+
+	return String(value);
+}
+
 function parseArgs(argv) {
 	let repoPath = "";
 	let dryRun = false;
@@ -119,14 +147,14 @@ async function runSbomWorker(repoPath) {
 					.nothrow();
 
 	if (shellResult.exitCode !== 0) {
-		const stderr = await shellResult.stderr.text();
-		const stdout = await shellResult.text();
+		const stderr = await streamLikeToText(shellResult.stderr);
+		const stdout = await streamLikeToText(shellResult.stdout);
 		throw new Error(
 			`SBOM worker failed with code ${shellResult.exitCode}.\n${stderr || stdout}`,
 		);
 	}
 
-	const stdout = await shellResult.text();
+	const stdout = await streamLikeToText(shellResult.stdout);
 	return JSON.parse(stdout);
 }
 

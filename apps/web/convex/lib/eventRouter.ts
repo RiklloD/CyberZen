@@ -151,6 +151,15 @@ export function buildGithubPushWorkflow(args: {
         detail: `Prepare behavioral matching across ${classification.codeFiles.length} code paths and ${classification.securityFiles.length} security-sensitive files.`,
       }),
     )
+
+    tasks.push(
+      createTask(tasks.length, {
+        agent: 'exploit_validation_agent',
+        stage: 'validation',
+        title: 'Stage exploit-first validation evidence',
+        detail: `Prepare a reproducible validation plan for ${classification.securityFiles.length > 0 ? 'security-sensitive' : 'changed'} code before policy decisions are finalized.`,
+      }),
+    )
   }
 
   if (classification.ciFiles.length > 0 || classification.securityFiles.length > 0) {

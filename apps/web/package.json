@@ -14,6 +14,8 @@
     "lint": "biome lint",
     "check": "biome check",
     "sbom:import": "bun scripts/import-sbom.mjs",
+    "advisory:import": "bun scripts/import-advisory.mjs",
+    "advisory:sync": "bun scripts/sync-advisories.mjs",
     "convex:dev": "bunx --bun convex dev --typecheck disable",
     "convex:codegen": "bunx --bun convex codegen --typecheck disable"
   },

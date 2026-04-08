@@ -97,6 +97,13 @@ export const seedBaseline = mutation({
       workflowType: seededPush.workflowType,
       status: 'completed',
       externalRef: 'gh-delivery-44391',
+      branch: 'main',
+      commitSha: '9e24a44',
+      changedFiles: [
+        'services/auth/jwt.py',
+        'requirements.txt',
+        'infra/github/workflows/scan.yml',
+      ],
       summary: seededPush.eventSummary,
       receivedAt: now - 85 * 60 * 1000,
     })
@@ -122,7 +129,8 @@ export const seedBaseline = mutation({
       status: 'completed',
       priority: seededPush.priority,
       currentStage: 'policy',
-      summary: 'Completed full scan after dependency drift on the main branch.',
+      summary:
+        'Semantic fingerprinting escalated auth-sensitive drift into exploit-first validation and refreshed gate posture on the main branch.',
       totalTaskCount: seededPush.tasks.length,
       completedTaskCount: seededPush.tasks.length,
       startedAt: now - 82 * 60 * 1000,
@@ -136,10 +144,11 @@ export const seedBaseline = mutation({
       workflowType: seededDisclosure.workflowType,
       status: 'running',
       priority: seededDisclosure.priority,
-      currentStage: 'validation',
-      summary: 'Triaging package disclosure and preparing validation evidence.',
+      currentStage: 'decision',
+      summary:
+        'Exploit validation confirmed upstream breach exposure and handed the workflow to gate recalculation.',
       totalTaskCount: seededDisclosure.tasks.length,
-      completedTaskCount: 2,
+      completedTaskCount: 3,
       startedAt: now - 24 * 60 * 1000,
     })
 
@@ -152,6 +161,10 @@ export const seedBaseline = mutation({
         detail:
           index === 1
             ? 'Detected dependency drift in lockfiles and rebuilt the repository inventory.'
+            : index === 2
+              ? 'Semantic fingerprinting matched auth-sensitive drift in JWT handling paths and queued a candidate finding.'
+              : index === 3
+                ? 'Exploit validation staged a reproducible auth-path replay plan and marked the candidate likely exploitable.'
             : task.detail,
         startedAt: now - (82 - index * 2) * 60 * 1000,
         completedAt: now - (81 - index * 2) * 60 * 1000,
@@ -161,14 +174,14 @@ export const seedBaseline = mutation({
         tenantId,
         ...task,
         status:
-          index < 2 ? ('completed' as const) : index === 2 ? ('running' as const) : ('queued' as const),
+          index < 3 ? ('completed' as const) : ('queued' as const),
         detail:
           index === 2
-            ? 'Waiting on the sandbox-ready path before opening or blocking a PR.'
+            ? 'Local exploit validation confirmed a reproducible path from the matched dependency disclosure.'
             : task.detail,
         startedAt:
-          index < 2 || index === 2 ? now - (24 - index * 5) * 60 * 1000 : undefined,
-        completedAt: index < 2 ? now - (19 - index * 4) * 60 * 1000 : undefined,
+          index < 3 ? now - (24 - index * 5) * 60 * 1000 : undefined,
+        completedAt: index < 3 ? now - (19 - index * 4) * 60 * 1000 : undefined,
       })),
     ]
 
@@ -316,14 +329,14 @@ export const seedBaseline = mutation({
         'The current auth gateway uses a wrapper around token validation that may bypass the newly disclosed audience-check hardening path.',
       confidence: 0.88,
       severity: 'high',
-      validationStatus: 'pending',
+      validationStatus: 'validated',
       status: 'open',
       businessImpactScore: 84,
       blastRadiusSummary:
         'A bypass would affect API token acceptance in the public payments entrypoint and downstream settlement jobs.',
       prUrl: undefined,
       reasoningLogUrl: 'artifact://reasoning/breach-ghsa-77m4',
-      pocArtifactUrl: undefined,
+      pocArtifactUrl: 'artifact://poc/breach-ghsa-77m4',
       affectedServices: ['payments-api', 'auth-gateway'],
       affectedFiles: [
         'services/auth/jwt.py',
@@ -337,6 +350,69 @@ export const seedBaseline = mutation({
 
     await ctx.db.patch('breachDisclosures', disclosureId, {
       findingId,
+    })
+
+    const semanticFindingId = await ctx.db.insert('findings', {
+      tenantId,
+      repositoryId: paymentsApiId,
+      workflowRunId: scanWorkflowId,
+      source: 'semantic_fingerprint',
+      vulnClass: 'jwt_validation_bypass',
+      title: 'Authentication flow drift may need semantic validation in payments-api',
+      summary:
+        'payments-api changed authentication-sensitive paths that overlap with known token-validation failure patterns and should be queued for exploit-first validation.',
+      confidence: 0.82,
+      severity: 'high',
+      validationStatus: 'likely_exploitable',
+      status: 'open',
+      businessImpactScore: 78,
+      blastRadiusSummary:
+        'payments-api changed auth-sensitive paths that can affect token issuance and request authorization.',
+      prUrl: undefined,
+      reasoningLogUrl: 'artifact://reasoning/svf-auth-001-scan',
+      pocArtifactUrl: undefined,
+      affectedServices: ['payments-api', 'auth-gateway'],
+      affectedFiles: ['services/auth/jwt.py'],
+      affectedPackages: ['pyjwt'],
+      regulatoryImplications: [],
+      createdAt: now - 73 * 60 * 1000,
+      resolvedAt: undefined,
+    })
+
+    await ctx.db.insert('exploitValidationRuns', {
+      tenantId,
+      repositoryId: paymentsApiId,
+      workflowRunId: breachWorkflowId,
+      findingId,
+      status: 'completed',
+      outcome: 'validated',
+      validationConfidence: 0.93,
+      sandboxSummary:
+        'Reconstructed a local validation plan for the payments API auth gateway and matched the vulnerable dependency context.',
+      evidenceSummary:
+        'Upstream exploit intelligence was available for GHSA-77m4-fm8m-6h7p and the affected package version was present in live inventory.',
+      reproductionHint:
+        'Replay the audience-check bypass against services/auth/jwt.py before accepting a patched build.',
+      startedAt: now - 16 * 60 * 1000,
+      completedAt: now - 15 * 60 * 1000,
+    })
+
+    await ctx.db.insert('exploitValidationRuns', {
+      tenantId,
+      repositoryId: paymentsApiId,
+      workflowRunId: scanWorkflowId,
+      findingId: semanticFindingId,
+      status: 'completed',
+      outcome: 'likely_exploitable',
+      validationConfidence: 0.82,
+      sandboxSummary:
+        'Prepared a reproducible auth-path replay plan centered on the payments-api token router.',
+      evidenceSummary:
+        'The changed JWT handling path aligned with a high-signal semantic fingerprint and remained likely exploitable pending live sandbox confirmation.',
+      reproductionHint:
+        'Start with services/auth/jwt.py and exercise token issuance through the auth gateway.',
+      startedAt: now - 71 * 60 * 1000,
+      completedAt: now - 69 * 60 * 1000,
     })
 
     await ctx.db.insert('findings', {
@@ -376,9 +452,49 @@ export const seedBaseline = mutation({
       actorType: 'agent',
       actorId: 'gate-policy-v1',
       justification:
-        'High-severity disclosure matched a live dependency and validation is still pending.',
+        'High-severity disclosure matched a live dependency and exploit validation produced a reproducible path.',
       expiresAt: now + 24 * hour,
       createdAt: now - 11 * 60 * 1000,
+    })
+
+    await ctx.db.insert('advisorySyncRuns', {
+      tenantId,
+      repositoryId: paymentsApiId,
+      triggerType: 'scheduled',
+      status: 'completed',
+      packageCount: 4,
+      lookbackHours: 72,
+      githubQueried: 1,
+      githubFetched: 1,
+      githubImported: 1,
+      githubDeduped: 0,
+      osvQueried: 1,
+      osvFetched: 1,
+      osvImported: 0,
+      osvDeduped: 1,
+      reason: undefined,
+      startedAt: now - 35 * 60 * 1000,
+      completedAt: now - 34 * 60 * 1000,
+    })
+
+    await ctx.db.insert('advisorySyncRuns', {
+      tenantId,
+      repositoryId: operatorConsoleId,
+      triggerType: 'manual',
+      status: 'skipped',
+      packageCount: 0,
+      lookbackHours: 72,
+      githubQueried: 0,
+      githubFetched: 0,
+      githubImported: 0,
+      githubDeduped: 0,
+      osvQueried: 0,
+      osvFetched: 0,
+      osvImported: 0,
+      osvDeduped: 0,
+      reason: 'Skipped advisory sync because the repository has no imported SBOM snapshot yet.',
+      startedAt: now - 16 * 60 * 1000,
+      completedAt: now - 16 * 60 * 1000,
     })
 
     return {

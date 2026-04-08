@@ -1,5 +1,9 @@
 import { ConvexError, v } from 'convex/values'
-import { mutation, type MutationCtx } from './_generated/server'
+import {
+  internalMutation,
+  mutation,
+  type MutationCtx,
+} from './_generated/server'
 import type { Doc, Id } from './_generated/dataModel'
 import {
   buildBreachDisclosureWorkflow,
@@ -21,6 +25,8 @@ import {
   normalizeOsvAdvisory,
   type NormalizedDisclosure,
 } from './lib/breachFeeds'
+import { assessExploitValidation } from './lib/exploitValidation'
+import { matchSemanticFingerprints } from './lib/semanticFingerprint'
 
 const lifecycleStatus = v.union(
   v.literal('queued'),
@@ -37,9 +43,21 @@ const severity = v.union(
   v.literal('informational'),
 )
 
+const validationOutcome = v.union(
+  v.literal('validated'),
+  v.literal('likely_exploitable'),
+  v.literal('unexploitable'),
+)
+
 type RepositoryContext = {
   tenant: Doc<'tenants'>
   repository: Doc<'repositories'>
+}
+
+type GithubPushIngestInput = {
+  branch: string
+  commitSha: string
+  changedFiles: string[]
 }
 
 type SnapshotInventory = {
@@ -155,6 +173,34 @@ async function getRepositoryContext(
   }
 }
 
+async function getRepositoryContextByProviderAndFullName(
+  ctx: MutationCtx,
+  provider: Doc<'repositories'>['provider'],
+  repositoryFullName: string,
+): Promise<RepositoryContext> {
+  const repository = await ctx.db
+    .query('repositories')
+    .withIndex('by_provider_and_full_name', (q) =>
+      q.eq('provider', provider).eq('fullName', repositoryFullName),
+    )
+    .unique()
+
+  if (!repository) {
+    throw new ConvexError('Repository not found')
+  }
+
+  const tenant = await ctx.db.get(repository.tenantId)
+
+  if (!tenant) {
+    throw new ConvexError('Tenant not found for repository')
+  }
+
+  return {
+    tenant,
+    repository,
+  }
+}
+
 async function loadLatestSnapshotInventory(
   ctx: MutationCtx,
   repositoryId: Id<'repositories'>,
@@ -182,6 +228,372 @@ async function loadLatestSnapshotInventory(
   return {
     latestSnapshot,
     latestComponents,
+  }
+}
+
+async function ingestGithubPushForRepository(
+  ctx: MutationCtx,
+  repositoryContext: RepositoryContext,
+  args: GithubPushIngestInput,
+) {
+  const { tenant, repository } = repositoryContext
+  const routedWorkflow = buildGithubPushWorkflow({
+    tenantSlug: tenant.slug,
+    repositoryFullName: repository.fullName,
+    branch: args.branch,
+    commitSha: args.commitSha,
+    changedFiles: args.changedFiles,
+  })
+  const existingEvent = await ctx.db
+    .query('ingestionEvents')
+    .withIndex('by_dedupe_key', (q) =>
+      q.eq('dedupeKey', routedWorkflow.dedupeKey),
+    )
+    .unique()
+
+  if (existingEvent) {
+    const existingWorkflowRun = await ctx.db
+      .query('workflowRuns')
+      .withIndex('by_event', (q) => q.eq('eventId', existingEvent._id))
+      .unique()
+
+    if (!existingWorkflowRun) {
+      throw new ConvexError('Existing workflow run missing for deduped event')
+    }
+
+    return {
+      eventId: existingEvent._id,
+      workflowRunId: existingWorkflowRun._id,
+      deduped: true,
+    }
+  }
+
+  const now = Date.now()
+  const eventId = await ctx.db.insert('ingestionEvents', {
+    tenantId: tenant._id,
+    repositoryId: repository._id,
+    dedupeKey: routedWorkflow.dedupeKey,
+    kind: routedWorkflow.kind,
+    source: routedWorkflow.source,
+    workflowType: routedWorkflow.workflowType,
+    status: 'queued',
+    externalRef: `${repository.provider}:${args.commitSha}`,
+    branch: args.branch,
+    commitSha: args.commitSha,
+    changedFiles: args.changedFiles,
+    summary: routedWorkflow.eventSummary,
+    receivedAt: now,
+  })
+
+  const workflowRunId = await ctx.db.insert('workflowRuns', {
+    tenantId: tenant._id,
+    repositoryId: repository._id,
+    eventId,
+    workflowType: routedWorkflow.workflowType,
+    status: 'queued',
+    priority: routedWorkflow.priority,
+    currentStage: routedWorkflow.currentStage,
+    summary: routedWorkflow.workflowSummary,
+    totalTaskCount: routedWorkflow.tasks.length,
+    completedTaskCount: 0,
+    startedAt: now,
+    completedAt: undefined,
+  })
+
+  await insertWorkflowTasks(
+    ctx,
+    tenant._id,
+    workflowRunId,
+    routedWorkflow.tasks,
+  )
+
+  await ctx.db.patch('repositories', repository._id, {
+    latestCommitSha: args.commitSha,
+    lastScannedAt: now,
+  })
+
+  return { eventId, workflowRunId, deduped: false }
+}
+
+function semanticFingerprintSummary(args: {
+  repositoryName: string
+  changedFiles: string[]
+  matchCount: number
+  createdFindingCount: number
+}) {
+  if (args.matchCount === 0) {
+    return `Semantic fingerprinting reviewed ${args.changedFiles.length} changed file path(s) for ${args.repositoryName} and found no candidate behavior matches.`
+  }
+
+  return `Semantic fingerprinting matched ${args.matchCount} candidate pattern(s) across ${args.changedFiles.length} changed file path(s) in ${args.repositoryName} and created ${args.createdFindingCount} finding(s).`
+}
+
+async function runSemanticFingerprintForWorkflowInternal(
+  ctx: MutationCtx,
+  workflowRunId: Id<'workflowRuns'>,
+) {
+  const workflowRun = await ctx.db.get(workflowRunId)
+
+  if (!workflowRun) {
+    throw new ConvexError('Workflow run not found')
+  }
+
+  const repository = await ctx.db.get(workflowRun.repositoryId)
+  if (!repository) {
+    throw new ConvexError('Repository not found')
+  }
+
+  const event = await ctx.db.get(workflowRun.eventId)
+  if (!event) {
+    throw new ConvexError('Ingestion event not found')
+  }
+
+  const tasks = await ctx.db
+    .query('workflowTasks')
+    .withIndex('by_workflow_run_and_order', (q) =>
+      q.eq('workflowRunId', workflowRunId),
+    )
+    .collect()
+
+  const analysisTask = tasks.find((task) => task.stage === 'analysis')
+  if (!analysisTask) {
+    const syncedState = await syncWorkflowState(ctx, workflowRunId)
+    return {
+      ...syncedState,
+      matchCount: 0,
+      createdFindingCount: 0,
+    }
+  }
+
+  for (const task of tasks.filter(
+    (task) => task.order < analysisTask.order && task.status === 'queued',
+  )) {
+    await updateWorkflowTask(
+      ctx,
+      workflowRunId,
+      task.order,
+      'completed',
+      task.stage === 'intake'
+        ? `Normalized stored push metadata for ${repository.name} on ${event.branch ?? 'unknown branch'}.`
+        : task.stage === 'inventory'
+          ? `Reused the latest imported SBOM snapshot for ${repository.name} while the live repository scan path is still being staged.`
+          : task.detail,
+    )
+  }
+
+  const snapshotInventory = await loadLatestSnapshotInventory(
+    ctx,
+    repository._id,
+  )
+  const changedFiles = event.changedFiles ?? []
+  const matches = matchSemanticFingerprints({
+    repositoryName: repository.name,
+    changedFiles,
+    inventoryComponents: snapshotInventory.latestComponents.map((component) => ({
+      name: component.name,
+      sourceFile: component.sourceFile,
+      dependents: component.dependents,
+    })),
+  })
+
+  const existingFindings = await ctx.db
+    .query('findings')
+    .withIndex('by_workflow_run_and_source', (q) =>
+      q.eq('workflowRunId', workflowRunId).eq('source', 'semantic_fingerprint'),
+    )
+    .collect()
+
+  const existingClasses = new Set(
+    existingFindings.map((finding) => finding.vulnClass),
+  )
+
+  let createdFindingCount = 0
+  const now = Date.now()
+
+  for (const match of matches) {
+    if (existingClasses.has(match.vulnClass)) {
+      continue
+    }
+
+    await ctx.db.insert('findings', {
+      tenantId: workflowRun.tenantId,
+      repositoryId: repository._id,
+      workflowRunId,
+      breachDisclosureId: undefined,
+      source: 'semantic_fingerprint',
+      vulnClass: match.vulnClass,
+      title: match.title,
+      summary: match.summary,
+      confidence: match.confidence,
+      severity: match.severity,
+      validationStatus: 'pending',
+      status: 'open',
+      businessImpactScore: businessImpactScoreForSeverity(
+        match.severity,
+        true,
+        false,
+      ),
+      blastRadiusSummary: match.blastRadiusSummary,
+      prUrl: undefined,
+      reasoningLogUrl: `artifact://reasoning/${match.fingerprintId.toLowerCase()}-${workflowRunId}`,
+      pocArtifactUrl: undefined,
+      affectedServices: match.affectedServices,
+      affectedFiles: match.matchedFiles,
+      affectedPackages: match.affectedPackages,
+      regulatoryImplications: [],
+      createdAt: now,
+      resolvedAt: undefined,
+    })
+
+    existingClasses.add(match.vulnClass)
+    createdFindingCount += 1
+  }
+
+  await updateWorkflowTask(
+    ctx,
+    workflowRunId,
+    analysisTask.order,
+    'completed',
+    semanticFingerprintSummary({
+      repositoryName: repository.name,
+      changedFiles,
+      matchCount: matches.length,
+      createdFindingCount,
+    }),
+  )
+
+  const syncedState = await syncWorkflowState(ctx, workflowRunId)
+
+  return {
+    ...syncedState,
+    matchCount: matches.length,
+    createdFindingCount,
+  }
+}
+
+async function runExploitValidationForFindingInternal(
+  ctx: MutationCtx,
+  findingId: Id<'findings'>,
+) {
+  const finding = await ctx.db.get(findingId)
+
+  if (!finding) {
+    throw new ConvexError('Finding not found')
+  }
+
+  const workflowRun = await ctx.db.get(finding.workflowRunId)
+  if (!workflowRun) {
+    throw new ConvexError('Workflow run not found for finding')
+  }
+
+  const repository = await ctx.db.get(finding.repositoryId)
+  if (!repository) {
+    throw new ConvexError('Repository not found for finding')
+  }
+
+  const tasks = await ctx.db
+    .query('workflowTasks')
+    .withIndex('by_workflow_run_and_order', (q) =>
+      q.eq('workflowRunId', workflowRun._id),
+    )
+    .collect()
+
+  const validationTask = tasks.find((task) => task.stage === 'validation')
+
+  if (validationTask) {
+    for (const task of tasks.filter(
+      (task) => task.order < validationTask.order && task.status === 'queued',
+    )) {
+      await updateWorkflowTask(
+        ctx,
+        workflowRun._id,
+        task.order,
+        'completed',
+        task.stage === 'analysis'
+          ? `Promoted the ${finding.vulnClass.replace(/_/g, ' ')} candidate into exploit-first validation for ${repository.name}.`
+          : task.detail,
+      )
+    }
+  }
+
+  const disclosure = finding.breachDisclosureId
+    ? await ctx.db.get(finding.breachDisclosureId)
+    : null
+  const assessment = assessExploitValidation({
+    repositoryName: repository.name,
+    findingId,
+    finding: {
+      source: finding.source,
+      vulnClass: finding.vulnClass,
+      severity: finding.severity,
+      confidence: finding.confidence,
+      affectedFiles: finding.affectedFiles,
+      affectedPackages: finding.affectedPackages,
+      affectedServices: finding.affectedServices,
+    },
+    disclosure: disclosure
+      ? {
+          sourceRef: disclosure.sourceRef,
+          exploitAvailable: disclosure.exploitAvailable,
+          matchStatus: disclosure.matchStatus,
+          fixVersion: disclosure.fixVersion,
+        }
+      : undefined,
+  })
+
+  const startedAt = Date.now()
+  const validationRunId = await ctx.db.insert('exploitValidationRuns', {
+    tenantId: finding.tenantId,
+    repositoryId: finding.repositoryId,
+    workflowRunId: workflowRun._id,
+    findingId: finding._id,
+    status: 'running',
+    outcome: undefined,
+    validationConfidence: finding.confidence,
+    sandboxSummary: `Preparing local-first validation evidence for ${repository.name}.`,
+    evidenceSummary: `Queued exploit-first validation for ${finding.title}.`,
+    reproductionHint: `Start with ${finding.affectedFiles[0] ?? 'the affected code path'}.`,
+    startedAt,
+    completedAt: undefined,
+  })
+
+  const completedAt = Date.now()
+
+  await ctx.db.patch('exploitValidationRuns', validationRunId, {
+    status: 'completed',
+    outcome: assessment.outcome,
+    validationConfidence: assessment.validationConfidence,
+    sandboxSummary: assessment.sandboxSummary,
+    evidenceSummary: assessment.evidenceSummary,
+    reproductionHint: assessment.reproductionHint,
+    completedAt,
+  })
+
+  await ctx.db.patch('findings', finding._id, {
+    validationStatus: assessment.outcome,
+    status: assessment.outcome === 'unexploitable' ? 'resolved' : finding.status,
+    reasoningLogUrl: assessment.reasoningLogUrl,
+    pocArtifactUrl: assessment.pocArtifactUrl ?? finding.pocArtifactUrl,
+    resolvedAt: assessment.outcome === 'unexploitable' ? completedAt : undefined,
+  })
+
+  if (validationTask) {
+    await updateWorkflowTask(
+      ctx,
+      workflowRun._id,
+      validationTask.order,
+      'completed',
+      assessment.evidenceSummary,
+    )
+  }
+
+  const syncedState = await syncWorkflowState(ctx, workflowRun._id)
+
+  return {
+    ...syncedState,
+    findingId: finding._id,
+    validationRunId,
+    outcome: assessment.outcome,
   }
 }
 
@@ -600,93 +1012,175 @@ export const ingestGithubPush = mutation({
     deduped: v.boolean(),
   }),
   handler: async (ctx, args) => {
+    const repositoryContext = await getRepositoryContext(
+      ctx,
+      args.tenantSlug,
+      args.repositoryFullName,
+    )
+
+    return ingestGithubPushForRepository(ctx, repositoryContext, {
+      branch: args.branch,
+      commitSha: args.commitSha,
+      changedFiles: args.changedFiles,
+    })
+  },
+})
+
+export const ingestGithubPushFromWebhook = internalMutation({
+  args: {
+    repositoryFullName: v.string(),
+    branch: v.string(),
+    commitSha: v.string(),
+    changedFiles: v.array(v.string()),
+  },
+  returns: v.object({
+    eventId: v.id('ingestionEvents'),
+    workflowRunId: v.id('workflowRuns'),
+    deduped: v.boolean(),
+  }),
+  handler: async (ctx, args) => {
+    const repositoryContext = await getRepositoryContextByProviderAndFullName(
+      ctx,
+      'github',
+      args.repositoryFullName,
+    )
+
+    return ingestGithubPushForRepository(ctx, repositoryContext, {
+      branch: args.branch,
+      commitSha: args.commitSha,
+      changedFiles: args.changedFiles,
+    })
+  },
+})
+
+export const runSemanticFingerprintForWorkflow = mutation({
+  args: {
+    workflowRunId: v.id('workflowRuns'),
+  },
+  returns: v.object({
+    workflowRunId: v.id('workflowRuns'),
+    workflowStatus: lifecycleStatus,
+    currentStage: v.optional(v.string()),
+    completedTaskCount: v.number(),
+    totalTaskCount: v.number(),
+    matchCount: v.number(),
+    createdFindingCount: v.number(),
+  }),
+  handler: async (ctx, args) => {
+    return await runSemanticFingerprintForWorkflowInternal(
+      ctx,
+      args.workflowRunId,
+    )
+  },
+})
+
+export const runLatestSemanticFingerprint = mutation({
+  args: {
+    tenantSlug: v.string(),
+  },
+  returns: v.union(
+    v.null(),
+    v.object({
+      workflowRunId: v.id('workflowRuns'),
+      workflowStatus: lifecycleStatus,
+      currentStage: v.optional(v.string()),
+      completedTaskCount: v.number(),
+      totalTaskCount: v.number(),
+      matchCount: v.number(),
+      createdFindingCount: v.number(),
+    }),
+  ),
+  handler: async (ctx, args) => {
     const tenant = await ctx.db
       .query('tenants')
       .withIndex('by_slug', (q) => q.eq('slug', args.tenantSlug))
       .unique()
 
     if (!tenant) {
-      throw new ConvexError('Tenant not found')
+      return null
     }
 
-    const repository = await ctx.db
-      .query('repositories')
-      .withIndex('by_tenant_and_full_name', (q) =>
-        q.eq('tenantId', tenant._id).eq('fullName', args.repositoryFullName),
-      )
-      .unique()
+    const workflows = await ctx.db
+      .query('workflowRuns')
+      .withIndex('by_tenant_and_started_at', (q) => q.eq('tenantId', tenant._id))
+      .order('desc')
+      .take(10)
 
-    if (!repository) {
-      throw new ConvexError('Repository not found')
-    }
-
-    const routedWorkflow = buildGithubPushWorkflow(args)
-    const existingEvent = await ctx.db
-      .query('ingestionEvents')
-      .withIndex('by_dedupe_key', (q) =>
-        q.eq('dedupeKey', routedWorkflow.dedupeKey),
-      )
-      .unique()
-
-    if (existingEvent) {
-      const existingWorkflowRun = await ctx.db
-        .query('workflowRuns')
-        .withIndex('by_event', (q) => q.eq('eventId', existingEvent._id))
-        .unique()
-
-      if (!existingWorkflowRun) {
-        throw new ConvexError('Existing workflow run missing for deduped event')
-      }
-
-      return {
-        eventId: existingEvent._id,
-        workflowRunId: existingWorkflowRun._id,
-        deduped: true,
-      }
-    }
-
-    const now = Date.now()
-    const eventId = await ctx.db.insert('ingestionEvents', {
-      tenantId: tenant._id,
-      repositoryId: repository._id,
-      dedupeKey: routedWorkflow.dedupeKey,
-      kind: routedWorkflow.kind,
-      source: routedWorkflow.source,
-      workflowType: routedWorkflow.workflowType,
-      status: 'queued',
-      externalRef: `${repository.provider}:${args.commitSha}`,
-      summary: routedWorkflow.eventSummary,
-      receivedAt: now,
-    })
-
-    const workflowRunId = await ctx.db.insert('workflowRuns', {
-      tenantId: tenant._id,
-      repositoryId: repository._id,
-      eventId,
-      workflowType: routedWorkflow.workflowType,
-      status: 'queued',
-      priority: routedWorkflow.priority,
-      currentStage: routedWorkflow.currentStage,
-      summary: routedWorkflow.workflowSummary,
-      totalTaskCount: routedWorkflow.tasks.length,
-      completedTaskCount: 0,
-      startedAt: now,
-      completedAt: undefined,
-    })
-
-    await insertWorkflowTasks(
-      ctx,
-      tenant._id,
-      workflowRunId,
-      routedWorkflow.tasks,
+    const targetWorkflow = workflows.find(
+      (workflow) => workflow.workflowType === 'full_scan',
     )
 
-    await ctx.db.patch('repositories', repository._id, {
-      latestCommitSha: args.commitSha,
-      lastScannedAt: now,
-    })
+    if (!targetWorkflow) {
+      return null
+    }
 
-    return { eventId, workflowRunId, deduped: false }
+    return await runSemanticFingerprintForWorkflowInternal(ctx, targetWorkflow._id)
+  },
+})
+
+export const runExploitValidationForFinding = mutation({
+  args: {
+    findingId: v.id('findings'),
+  },
+  returns: v.object({
+    workflowRunId: v.id('workflowRuns'),
+    workflowStatus: lifecycleStatus,
+    currentStage: v.optional(v.string()),
+    completedTaskCount: v.number(),
+    totalTaskCount: v.number(),
+    findingId: v.id('findings'),
+    validationRunId: v.id('exploitValidationRuns'),
+    outcome: validationOutcome,
+  }),
+  handler: async (ctx, args) => {
+    return await runExploitValidationForFindingInternal(ctx, args.findingId)
+  },
+})
+
+export const runLatestExploitValidation = mutation({
+  args: {
+    tenantSlug: v.string(),
+  },
+  returns: v.union(
+    v.null(),
+    v.object({
+      workflowRunId: v.id('workflowRuns'),
+      workflowStatus: lifecycleStatus,
+      currentStage: v.optional(v.string()),
+      completedTaskCount: v.number(),
+      totalTaskCount: v.number(),
+      findingId: v.id('findings'),
+      validationRunId: v.id('exploitValidationRuns'),
+      outcome: validationOutcome,
+    }),
+  ),
+  handler: async (ctx, args) => {
+    const tenant = await ctx.db
+      .query('tenants')
+      .withIndex('by_slug', (q) => q.eq('slug', args.tenantSlug))
+      .unique()
+
+    if (!tenant) {
+      return null
+    }
+
+    const candidateFindings = await ctx.db
+      .query('findings')
+      .withIndex('by_tenant_and_created_at', (q) => q.eq('tenantId', tenant._id))
+      .order('desc')
+      .take(25)
+
+    const targetFinding = candidateFindings.find(
+      (finding) =>
+        finding.validationStatus === 'pending' &&
+        (finding.status === 'open' || finding.status === 'pr_opened'),
+    )
+
+    if (!targetFinding) {
+      return null
+    }
+
+    return await runExploitValidationForFindingInternal(ctx, targetFinding._id)
   },
 })
 
