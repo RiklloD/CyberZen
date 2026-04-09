@@ -27,6 +27,7 @@ import {
 } from './lib/breachFeeds'
 import { assessExploitValidation } from './lib/exploitValidation'
 import { matchSemanticFingerprints } from './lib/semanticFingerprint'
+import { runGateEvaluationForWorkflow } from './gateEnforcement'
 
 const lifecycleStatus = v.union(
   v.literal('queued'),
@@ -1288,6 +1289,72 @@ export const simulateLatestWorkflowStep = mutation({
       ...syncedState,
       advancedTaskTitle: taskToAdvance.title,
     }
+  },
+})
+
+export const runGateEvaluationForWorkflowMutation = mutation({
+  args: { workflowRunId: v.id('workflowRuns') },
+  returns: v.object({
+    workflowRunId: v.id('workflowRuns'),
+    overallDecision: v.union(v.literal('approved'), v.literal('blocked')),
+    blockCount: v.number(),
+    totalEvaluated: v.number(),
+    newDecisionCount: v.number(),
+    summary: v.string(),
+  }),
+  handler: async (ctx, args) => {
+    return runGateEvaluationForWorkflow(ctx, args.workflowRunId)
+  },
+})
+
+export const runLatestGateEvaluation = mutation({
+  args: { tenantSlug: v.string() },
+  returns: v.union(
+    v.null(),
+    v.object({
+      workflowRunId: v.id('workflowRuns'),
+      overallDecision: v.union(v.literal('approved'), v.literal('blocked')),
+      blockCount: v.number(),
+      totalEvaluated: v.number(),
+      newDecisionCount: v.number(),
+      summary: v.string(),
+    }),
+  ),
+  handler: async (ctx, args) => {
+    const tenant = await ctx.db
+      .query('tenants')
+      .withIndex('by_slug', (q) => q.eq('slug', args.tenantSlug))
+      .unique()
+
+    if (!tenant) return null
+
+    // Find the most recent workflow run that has a policy stage task.
+    const recentWorkflows = await ctx.db
+      .query('workflowRuns')
+      .withIndex('by_tenant_and_started_at', (q) => q.eq('tenantId', tenant._id))
+      .order('desc')
+      .take(10)
+
+    let targetWorkflowId: Id<'workflowRuns'> | null = null
+
+    for (const workflow of recentWorkflows) {
+      const tasks = await ctx.db
+        .query('workflowTasks')
+        .withIndex('by_workflow_run_and_order', (q) =>
+          q.eq('workflowRunId', workflow._id),
+        )
+        .collect()
+
+      const hasPolicyTask = tasks.some((t) => t.stage === 'policy')
+      if (hasPolicyTask) {
+        targetWorkflowId = workflow._id
+        break
+      }
+    }
+
+    if (!targetWorkflowId) return null
+
+    return runGateEvaluationForWorkflow(ctx, targetWorkflowId)
   },
 })
 

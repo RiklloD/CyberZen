@@ -5,7 +5,7 @@ import {
 	AlertTriangle,
 	Boxes,
 	FlaskConical,
-	RadioTower,
+	GitMerge,
 	ShieldCheck,
 	Sparkles,
 	Waypoints,
@@ -23,7 +23,9 @@ type OverviewData = NonNullable<
 type OverviewFinding = OverviewData["findings"][number];
 type OverviewWorkflow = OverviewData["workflows"][number];
 type OverviewWorkflowTask = OverviewWorkflow["tasks"][number];
-type OverviewGateDecision = OverviewData["gateDecisions"][number];
+type OverviewCiGateEnforcement = OverviewData["ciGateEnforcement"];
+type OverviewGateDecision =
+	OverviewCiGateEnforcement["recentDecisions"][number];
 type OverviewRepository = OverviewData["repositories"][number];
 type OverviewDisclosure = OverviewData["disclosures"][number];
 type OverviewAdvisoryAggregator = OverviewData["advisoryAggregator"];
@@ -46,7 +48,7 @@ const implementationTrack = [
 	"Exercise the first real GitHub webhook delivery against the Convex HTTP endpoint",
 	"Run the first live advisory bulk-sync pass against the hosted Convex deployment",
 	"Exercise the first live end-to-end repository scan path",
-	"Begin the CI/CD Gate Enforcement MVP",
+	"Begin the PR Generation MVP once live validation evidence exists",
 ];
 
 const loadingSkeletonIds = [
@@ -226,6 +228,9 @@ function ConfiguredDashboard() {
 	const runLatestExploitValidation = useMutation(
 		api.events.runLatestExploitValidation,
 	);
+	const runLatestGateEvaluation = useMutation(
+		api.events.runLatestGateEvaluation,
+	);
 	const [isPending, startTransition] = useTransition();
 
 	async function handleSeed() {
@@ -269,6 +274,12 @@ function ConfiguredDashboard() {
 			void runLatestExploitValidation({
 				tenantSlug: "atlas-fintech",
 			});
+		});
+	}
+
+	function runGateEvaluation() {
+		startTransition(() => {
+			void runLatestGateEvaluation({ tenantSlug: "atlas-fintech" });
 		});
 	}
 
@@ -390,6 +401,14 @@ function ConfiguredDashboard() {
 								disabled={isPending}
 							>
 								Run exploit validation
+							</button>
+							<button
+								type="button"
+								onClick={runGateEvaluation}
+								className="signal-button secondary-button"
+								disabled={isPending}
+							>
+								Run gate evaluation
 							</button>
 						</div>
 					</div>
@@ -553,37 +572,87 @@ function ConfiguredDashboard() {
 					<article className="panel rounded-[1.75rem] p-6">
 						<div className="flex items-center justify-between gap-3">
 							<div>
-								<p className="island-kicker mb-2">Gate history</p>
+								<p className="island-kicker mb-2">CI/CD gate enforcement</p>
 								<h2 className="text-2xl font-semibold text-[var(--sea-ink)]">
-									Decision log
+									Policy-driven blocking now records auditable decisions for
+									each finding.
 								</h2>
 							</div>
-							<RadioTower className="text-[var(--signal)]" size={18} />
+							<GitMerge className="text-[var(--signal)]" size={18} />
+						</div>
+						<div className="mt-4 flex flex-wrap gap-2">
+							<StatusPill
+								label={`${overview.ciGateEnforcement.blockedCount} blocked`}
+								tone={
+									overview.ciGateEnforcement.blockedCount > 0
+										? "danger"
+										: "success"
+								}
+							/>
+							<StatusPill
+								label={`${overview.ciGateEnforcement.approvedCount} approved`}
+								tone="success"
+							/>
+							{overview.ciGateEnforcement.overrideCount > 0 ? (
+								<StatusPill
+									label={`${overview.ciGateEnforcement.overrideCount} overridden`}
+									tone="warning"
+								/>
+							) : null}
+							<StatusPill label="local-first MVP" tone="neutral" />
 						</div>
 						<div className="mt-5 space-y-4">
-							{overview.gateDecisions.map((decision: OverviewGateDecision) => (
-								<div key={decision._id} className="signal-row">
-									<div className="flex flex-wrap items-center gap-2">
-										<StatusPill
-											label={decision.decision}
-											tone={
-												decision.decision === "blocked"
-													? "danger"
-													: decision.decision === "approved"
-														? "success"
-														: "warning"
-											}
-										/>
-										<StatusPill label={decision.stage} tone="neutral" />
-									</div>
-									<p className="mt-3 text-sm text-[var(--sea-ink-soft)]">
-										{decision.justification || "No justification captured."}
-									</p>
-									<p className="mt-2 text-sm text-[var(--sea-ink-soft)]">
-										{decision.actorType} / {formatTimestamp(decision.createdAt)}
+							{overview.ciGateEnforcement.recentDecisions.length > 0 ? (
+								overview.ciGateEnforcement.recentDecisions.map(
+									(decision: OverviewGateDecision) => (
+										<div key={decision._id} className="signal-row">
+											<div className="flex flex-wrap items-center gap-2">
+												<StatusPill
+													label={decision.decision}
+													tone={
+														decision.decision === "blocked"
+															? "danger"
+															: decision.decision === "approved"
+																? "success"
+																: "warning"
+													}
+												/>
+												<StatusPill
+													label={decision.stage.replace("_", " ")}
+													tone="neutral"
+												/>
+												<StatusPill
+													label={decision.actorId.replace(/_/g, " ")}
+													tone="info"
+												/>
+											</div>
+											<h3 className="mt-3 text-base font-semibold text-[var(--sea-ink)]">
+												{decision.findingTitle}
+											</h3>
+											<p className="mt-1 text-sm text-[var(--sea-ink-soft)]">
+												{decision.repositoryName} /{" "}
+												{formatTimestamp(decision.createdAt)}
+											</p>
+											<p className="mt-2 text-sm text-[var(--sea-ink-soft)]">
+												{decision.justification ?? "No justification recorded."}
+											</p>
+											{decision.expiresAt ? (
+												<p className="mt-1 text-sm text-[var(--sea-ink-soft)]">
+													Expires: {formatTimestamp(decision.expiresAt)}
+												</p>
+											) : null}
+										</div>
+									),
+								)
+							) : (
+								<div className="signal-row">
+									<p className="text-sm text-[var(--sea-ink-soft)]">
+										No gate decisions recorded yet. Queue a sample push, run
+										semantic fingerprinting and exploit validation, then trigger
+										a gate evaluation to see policy-driven blocking in action.
 									</p>
 								</div>
-							))}
+							)}
 						</div>
 					</article>
 

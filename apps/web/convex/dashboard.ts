@@ -238,16 +238,45 @@ const overviewValidator = v.object({
       exploitAvailable: v.boolean(),
     }),
   ),
-  gateDecisions: v.array(
-    v.object({
-      _id: v.id('gateDecisions'),
-      stage: v.string(),
-      decision: v.string(),
-      actorType: v.string(),
-      createdAt: v.number(),
-      justification: v.optional(v.string()),
-    }),
-  ),
+  ciGateEnforcement: v.object({
+    blockedCount: v.number(),
+    approvedCount: v.number(),
+    overrideCount: v.number(),
+    recentDecisions: v.array(
+      v.object({
+        _id: v.id('gateDecisions'),
+        repositoryName: v.string(),
+        findingTitle: v.string(),
+        stage: v.string(),
+        decision: v.string(),
+        actorType: v.string(),
+        actorId: v.string(),
+        justification: v.optional(v.string()),
+        expiresAt: v.optional(v.number()),
+        createdAt: v.number(),
+      }),
+    ),
+  }),
+  prGeneration: v.object({
+    draftCount: v.number(),
+    openCount: v.number(),
+    mergedCount: v.number(),
+    failedCount: v.number(),
+    recentProposals: v.array(
+      v.object({
+        _id: v.id('prProposals'),
+        repositoryName: v.string(),
+        findingTitle: v.string(),
+        status: v.string(),
+        fixType: v.string(),
+        fixSummary: v.string(),
+        prUrl: v.optional(v.string()),
+        prNumber: v.optional(v.number()),
+        githubError: v.optional(v.string()),
+        createdAt: v.number(),
+      }),
+    ),
+  }),
   latestSnapshot: v.union(
     v.null(),
     v.object({
@@ -404,11 +433,11 @@ export const overview = query({
       .order('desc')
       .collect()
 
-    const gateDecisions = await ctx.db
+    const allGateDecisions = await ctx.db
       .query('gateDecisions')
       .withIndex('by_tenant_and_created_at', (q) => q.eq('tenantId', tenant._id))
       .order('desc')
-      .take(4)
+      .take(20)
 
     const latestSnapshot = await ctx.db
       .query('sbomSnapshots')
@@ -421,6 +450,12 @@ export const overview = query({
       .withIndex('by_tenant_and_started_at', (q) => q.eq('tenantId', tenant._id))
       .order('desc')
       .take(6)
+
+    const prProposalRows = await ctx.db
+      .query('prProposals')
+      .withIndex('by_tenant_and_created_at', (q) => q.eq('tenantId', tenant._id))
+      .order('desc')
+      .take(8)
 
     const disclosureRows = await ctx.db
       .query('breachDisclosures')
@@ -529,6 +564,48 @@ export const overview = query({
 
       sourceCoverageMap.set(key, existing)
     }
+
+    const enrichedGateDecisions = await Promise.all(
+      allGateDecisions.slice(0, 6).map(async (decision) => {
+        const decisionRepository = await ctx.db.get(decision.repositoryId)
+        const decisionFinding = await ctx.db.get(decision.findingId)
+        return {
+          _id: decision._id,
+          repositoryName: decisionRepository?.name ?? 'Unknown repository',
+          findingTitle: decisionFinding?.title ?? 'Unknown finding',
+          stage: decision.stage,
+          decision: decision.decision,
+          actorType: decision.actorType,
+          actorId: decision.actorId,
+          justification: decision.justification,
+          expiresAt: decision.expiresAt,
+          createdAt: decision.createdAt,
+        }
+      }),
+    )
+
+    const blockedCount = allGateDecisions.filter((d) => d.decision === 'blocked').length
+    const approvedCount = allGateDecisions.filter((d) => d.decision === 'approved').length
+    const overrideCount = allGateDecisions.filter((d) => d.decision === 'overridden').length
+
+    const enrichedPrProposals = await Promise.all(
+      prProposalRows.map(async (proposal) => {
+        const proposalRepository = await ctx.db.get(proposal.repositoryId)
+        const proposalFinding = await ctx.db.get(proposal.findingId)
+        return {
+          _id: proposal._id,
+          repositoryName: proposalRepository?.name ?? 'Unknown repository',
+          findingTitle: proposalFinding?.title ?? 'Unknown finding',
+          status: proposal.status,
+          fixType: proposal.fixType,
+          fixSummary: proposal.fixSummary,
+          prUrl: proposal.prUrl,
+          prNumber: proposal.prNumber,
+          githubError: proposal.githubError,
+          createdAt: proposal.createdAt,
+        }
+      }),
+    )
 
     const activeWorkflows = workflows.filter(
       (workflow) => workflow.status === 'queued' || workflow.status === 'running',
@@ -679,14 +756,19 @@ export const overview = query({
         })),
       })),
       disclosures,
-      gateDecisions: gateDecisions.map((decision) => ({
-        _id: decision._id,
-        stage: decision.stage,
-        decision: decision.decision,
-        actorType: decision.actorType,
-        createdAt: decision.createdAt,
-        justification: decision.justification,
-      })),
+      ciGateEnforcement: {
+        blockedCount,
+        approvedCount,
+        overrideCount,
+        recentDecisions: enrichedGateDecisions,
+      },
+      prGeneration: {
+        draftCount: prProposalRows.filter((p) => p.status === 'draft').length,
+        openCount: prProposalRows.filter((p) => p.status === 'open').length,
+        mergedCount: prProposalRows.filter((p) => p.status === 'merged').length,
+        failedCount: prProposalRows.filter((p) => p.status === 'failed').length,
+        recentProposals: enrichedPrProposals,
+      },
       latestSnapshot: latestSnapshot
         ? {
             _id: latestSnapshot._id,

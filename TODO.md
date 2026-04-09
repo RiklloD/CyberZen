@@ -31,17 +31,18 @@ Current focus: `Phase 0 - foundation implementation underway`
 - [x] Add Breach Intel Aggregator MVP
 - [x] Add Semantic Fingerprinting MVP
 - [x] Add Exploit Validation MVP
+- [x] Add CI/CD Gate Enforcement MVP
+- [x] Add PR Generation MVP
 
 ## Next Up
 
-- [ ] Exercise the first real GitHub webhook delivery against the Convex HTTP endpoint
-- [ ] Exercise the first live advisory bulk-sync run against the hosted Convex deployment
+- [ ] Set `GITHUB_WEBHOOK_SECRET` in Convex and exercise the first live webhook delivery using the simulate-github-push.mjs script
+- [ ] Set `GITHUB_TOKEN` in Convex and run the first live advisory bulk-sync pass
 - [ ] Exercise the first live GitHub-backed repository scan path end to end
-- [ ] Add CI/CD Gate Enforcement MVP
+- [ ] Deepen PR generation: implement actual version-bump file modification (requirements.txt, package.json) so PRs contain a real diff
 
 ## Later
 
-- [ ] Add PR Generation MVP
 - [ ] Add dashboard and public API v1
 
 ## Rule

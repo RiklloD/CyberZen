@@ -296,7 +296,32 @@ export default defineSchema({
     createdAt: v.number(),
   })
     .index('by_tenant_and_created_at', ['tenantId', 'createdAt'])
-    .index('by_repository_and_stage', ['repositoryId', 'stage']),
+    .index('by_repository_and_stage', ['repositoryId', 'stage'])
+    .index('by_workflow_run', ['workflowRunId']),
+
+  gatePolicies: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.optional(v.id('repositories')),
+    blockOnSeverities: v.array(
+      v.union(
+        v.literal('critical'),
+        v.literal('high'),
+        v.literal('medium'),
+        v.literal('low'),
+      ),
+    ),
+    blockOnValidationStatuses: v.array(
+      v.union(
+        v.literal('validated'),
+        v.literal('likely_exploitable'),
+        v.literal('pending'),
+      ),
+    ),
+    requireExplicitApprovalForCritical: v.boolean(),
+    isActive: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index('by_tenant', ['tenantId']),
 
   advisorySyncRuns: defineTable({
     tenantId: v.id('tenants'),
@@ -320,4 +345,41 @@ export default defineSchema({
     .index('by_tenant_and_started_at', ['tenantId', 'startedAt'])
     .index('by_repository_and_started_at', ['repositoryId', 'startedAt'])
     .index('by_status', ['status']),
+
+  prProposals: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    workflowRunId: v.id('workflowRuns'),
+    findingId: v.id('findings'),
+    status: v.union(
+      v.literal('draft'),
+      v.literal('open'),
+      v.literal('merged'),
+      v.literal('closed'),
+      v.literal('failed'),
+    ),
+    fixType: v.union(
+      v.literal('version_bump'),
+      v.literal('patch'),
+      v.literal('config_change'),
+      v.literal('manual'),
+    ),
+    proposedBranch: v.string(),
+    prTitle: v.string(),
+    prBody: v.string(),
+    fixSummary: v.string(),
+    targetPackage: v.optional(v.string()),
+    targetEcosystem: v.optional(v.string()),
+    currentVersion: v.optional(v.string()),
+    fixVersion: v.optional(v.string()),
+    prUrl: v.optional(v.string()),
+    prNumber: v.optional(v.number()),
+    githubError: v.optional(v.string()),
+    createdAt: v.number(),
+    submittedAt: v.optional(v.number()),
+    mergedAt: v.optional(v.number()),
+  })
+    .index('by_finding', ['findingId'])
+    .index('by_repository_and_status', ['repositoryId', 'status'])
+    .index('by_tenant_and_created_at', ['tenantId', 'createdAt']),
 })
