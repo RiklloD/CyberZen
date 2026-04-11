@@ -44,6 +44,29 @@ type OverviewVulnerableComponent =
 type OverviewUpdatedComponent = OverviewComparison["updatedPreview"][number];
 type OverviewDiffComponent = OverviewComparison["addedPreview"][number];
 
+type RecentScansData = FunctionReturnType<
+	typeof api.promptIntelligence.recentScans
+>;
+type RecentScan = RecentScansData[number];
+type SupplyChainResult = NonNullable<
+	FunctionReturnType<typeof api.promptIntelligence.supplyChainAnalysis>
+>;
+type FlaggedSupplyChainComponent =
+	SupplyChainResult["flaggedComponents"][number];
+
+type BlastRadiusSummary = NonNullable<
+	FunctionReturnType<
+		typeof api.blastRadiusIntel.blastRadiusSummaryForRepository
+	>
+>;
+type BlastRadiusTopFinding = BlastRadiusSummary["topFindings"][number];
+
+type AttackSurfaceDashboard = NonNullable<
+	FunctionReturnType<typeof api.attackSurfaceIntel.getAttackSurfaceDashboard>
+>;
+type AttackSurfaceSnapshot = AttackSurfaceDashboard["snapshot"];
+type AttackSurfaceHistoryEntry = AttackSurfaceDashboard["history"][number];
+
 const implementationTrack = [
 	"Exercise the first real GitHub webhook delivery against the Convex HTTP endpoint",
 	"Run the first live advisory bulk-sync pass against the hosted Convex deployment",
@@ -173,6 +196,1004 @@ function formatLayerLabel(layer: string) {
 	return layer.replace("_", " ");
 }
 
+function injectionRiskTone(
+	riskLevel: string,
+): "success" | "warning" | "danger" | "neutral" {
+	if (riskLevel === "confirmed_injection" || riskLevel === "likely_injection") {
+		return "danger";
+	}
+	if (riskLevel === "suspicious") {
+		return "warning";
+	}
+	return "success";
+}
+
+function supplyChainRiskTone(
+	riskLevel: string,
+): "success" | "warning" | "danger" | "neutral" {
+	if (riskLevel === "critical" || riskLevel === "high") {
+		return "danger";
+	}
+	if (riskLevel === "medium") {
+		return "warning";
+	}
+	return "success";
+}
+
+function blastTierTone(
+	riskTier: string,
+): "success" | "warning" | "danger" | "neutral" {
+	if (riskTier === "critical") return "danger";
+	if (riskTier === "high") return "warning";
+	if (riskTier === "medium") return "neutral";
+	return "success";
+}
+
+/**
+ * Shows the latest blast radius snapshot for a single finding:
+ * risk tier pill, reachable services list, attack path depth,
+ * and business impact score.
+ */
+function FindingBlastRadiusPanel({
+	findingId,
+}: {
+	findingId: OverviewFinding["_id"];
+}) {
+	const snapshot = useQuery(api.blastRadiusIntel.getBlastRadius, { findingId });
+
+	if (snapshot === undefined || snapshot === null) return null;
+
+	return (
+		<div className="mt-3 rounded-2xl border border-[color:var(--line)]/70 bg-[var(--surface)]/60 p-4">
+			<div className="flex flex-wrap items-center gap-2">
+				<p className="tiny-label">Blast radius</p>
+				<StatusPill
+					label={snapshot.riskTier}
+					tone={blastTierTone(snapshot.riskTier)}
+				/>
+				<StatusPill
+					label={`impact ${snapshot.businessImpactScore}`}
+					tone="neutral"
+				/>
+				<StatusPill
+					label={`depth ${snapshot.attackPathDepth}`}
+					tone="neutral"
+				/>
+			</div>
+			{snapshot.reachableServices.length > 0 ? (
+				<div className="mt-2 flex flex-wrap gap-2">
+					{snapshot.reachableServices.slice(0, 6).map((svc) => (
+						<StatusPill key={svc} label={svc} tone="neutral" />
+					))}
+					{snapshot.reachableServices.length > 6 ? (
+						<StatusPill
+							label={`+${snapshot.reachableServices.length - 6} more`}
+							tone="neutral"
+						/>
+					) : null}
+				</div>
+			) : null}
+			{snapshot.exposedDataLayers.length > 0 ? (
+				<p className="mt-2 text-xs text-[var(--sea-ink-soft)]">
+					Layers: {snapshot.exposedDataLayers.join(", ")}
+				</p>
+			) : null}
+			<p className="mt-2 text-xs text-[var(--sea-ink-soft)]">
+				{snapshot.summary}
+			</p>
+		</div>
+	);
+}
+
+/**
+ * Shows the repository-level blast radius aggregate:
+ * max risk tier, total unique reachable services, and the top 3 findings
+ * by business impact score.
+ */
+function RepositoryBlastRadiusSummary({
+	tenantSlug,
+	repositoryFullName,
+}: {
+	tenantSlug: string;
+	repositoryFullName: string;
+}) {
+	const summary = useQuery(
+		api.blastRadiusIntel.blastRadiusSummaryForRepository,
+		{ tenantSlug, repositoryFullName },
+	);
+
+	if (summary === undefined || summary === null) return null;
+	if (
+		summary.maxRiskTier === "low" &&
+		summary.totalReachableServices.length === 0 &&
+		summary.topFindings.length === 0
+	) {
+		return null;
+	}
+
+	return (
+		<div className="mb-3 rounded-2xl border border-[color:var(--line)]/70 bg-[var(--surface-strong)]/60 p-3">
+			<div className="flex flex-wrap items-center gap-2">
+				<p className="tiny-label">Blast radius</p>
+				<StatusPill
+					label={`max risk: ${summary.maxRiskTier}`}
+					tone={blastTierTone(summary.maxRiskTier)}
+				/>
+				{summary.totalReachableServices.length > 0 ? (
+					<StatusPill
+						label={`${summary.totalReachableServices.length} reachable service${summary.totalReachableServices.length === 1 ? "" : "s"}`}
+						tone="neutral"
+					/>
+				) : null}
+			</div>
+			{summary.topFindings.length > 0 ? (
+				<div className="mt-2 space-y-1">
+					{summary.topFindings.map((f: BlastRadiusTopFinding) => (
+						<div
+							key={f.findingId}
+							className="flex flex-wrap items-center gap-2"
+						>
+							<StatusPill label={f.riskTier} tone={blastTierTone(f.riskTier)} />
+							<StatusPill
+								label={`score ${f.businessImpactScore}`}
+								tone="neutral"
+							/>
+							<span className="text-xs text-[var(--sea-ink-soft)]">
+								{f.title}
+							</span>
+						</div>
+					))}
+				</div>
+			) : null}
+		</div>
+	);
+}
+
+function RepositoryIntelligencePanel({
+	tenantSlug,
+	repositoryFullName,
+}: {
+	tenantSlug: string;
+	repositoryFullName: string;
+}) {
+	const scans = useQuery(api.promptIntelligence.recentScans, {
+		tenantSlug,
+		repositoryFullName,
+		limit: 5,
+	});
+	const supplyChain = useQuery(api.promptIntelligence.supplyChainAnalysis, {
+		tenantSlug,
+		repositoryFullName,
+	});
+
+	// Both queries still loading — render nothing rather than a blank panel.
+	if (scans === undefined && supplyChain === undefined) return null;
+
+	const hasInjectionData = scans !== undefined && scans.length > 0;
+	const hasSupplyChainData = supplyChain !== undefined && supplyChain !== null;
+
+	if (!hasInjectionData && !hasSupplyChainData) return null;
+
+	return (
+		<div className="mt-3 space-y-3">
+			{/* ── Supply chain analysis ── */}
+			{hasSupplyChainData ? (
+				<div className="rounded-2xl border border-[color:var(--line)]/70 bg-[var(--surface)]/60 p-4">
+					<div className="flex flex-wrap items-center gap-2">
+						<p className="tiny-label">Supply chain</p>
+						<StatusPill
+							label={supplyChain.riskLevel}
+							tone={supplyChainRiskTone(supplyChain.riskLevel)}
+						/>
+						<StatusPill
+							label={`score ${supplyChain.overallRiskScore.toFixed(0)}`}
+							tone="neutral"
+						/>
+						{supplyChain.typosquatCandidates.length > 0 ? (
+							<StatusPill
+								label={`${supplyChain.typosquatCandidates.length} typosquat candidate${supplyChain.typosquatCandidates.length === 1 ? "" : "s"}`}
+								tone="danger"
+							/>
+						) : null}
+					</div>
+					<p className="mt-2 text-sm text-[var(--sea-ink-soft)]">
+						{supplyChain.summary}
+					</p>
+					{supplyChain.flaggedComponents.length > 0 ? (
+						<div className="mt-3 space-y-2">
+							{supplyChain.flaggedComponents
+								.slice(0, 3)
+								.map((component: FlaggedSupplyChainComponent) => (
+									<div
+										key={`${component.name}-${component.version}`}
+										className="flex flex-wrap items-center gap-2"
+									>
+										<StatusPill
+											label={`${component.name}@${component.version}`}
+											tone={supplyChainRiskTone(component.riskLevel)}
+										/>
+										<StatusPill
+											label={component.isDirect ? "direct" : "transitive"}
+											tone="neutral"
+										/>
+										<span className="text-xs text-[var(--sea-ink-soft)]">
+											{component.summary}
+										</span>
+									</div>
+								))}
+						</div>
+					) : null}
+				</div>
+			) : null}
+
+			{/* ── Recent prompt injection scans ── */}
+			{hasInjectionData ? (
+				<div className="rounded-2xl border border-[color:var(--line)]/70 bg-[var(--surface)]/60 p-4">
+					<div className="flex flex-wrap items-center gap-2">
+						<p className="tiny-label">Injection scans</p>
+						<StatusPill label={`${scans.length} recent`} tone="neutral" />
+						{scans.some(
+							(s: RecentScan) =>
+								s.riskLevel === "confirmed_injection" ||
+								s.riskLevel === "likely_injection",
+						) ? (
+							<StatusPill label="injection detected" tone="danger" />
+						) : scans.some((s: RecentScan) => s.riskLevel === "suspicious") ? (
+							<StatusPill label="suspicious content" tone="warning" />
+						) : (
+							<StatusPill label="all clear" tone="success" />
+						)}
+					</div>
+					<div className="mt-3 space-y-2">
+						{scans.map((scan: RecentScan) => (
+							<div key={scan._id} className="flex flex-wrap items-center gap-2">
+								<StatusPill
+									label={scan.riskLevel.replace("_", " ")}
+									tone={injectionRiskTone(scan.riskLevel)}
+								/>
+								<StatusPill label={scan.contentRef} tone="neutral" />
+								<StatusPill
+									label={`score ${scan.score}`}
+									tone={
+										scan.score > 50
+											? "danger"
+											: scan.score > 20
+												? "warning"
+												: "success"
+									}
+								/>
+								{scan.categories.length > 0 ? (
+									<span className="text-xs text-[var(--sea-ink-soft)]">
+										{scan.categories.join(", ")}
+									</span>
+								) : null}
+							</div>
+						))}
+					</div>
+				</div>
+			) : null}
+		</div>
+	);
+}
+
+/**
+ * Shows the per-repository memory snapshot: dominant severity, false-positive
+ * rate, and the top 2 recurring vulnerability classes.
+ */
+function RepositoryMemoryPanel({
+	tenantSlug,
+	repositoryFullName,
+}: {
+	tenantSlug: string;
+	repositoryFullName: string;
+}) {
+	const memory = useQuery(api.agentMemory.getRepositoryMemory, {
+		tenantSlug,
+		repositoryFullName,
+	});
+
+	if (memory === undefined || memory === null) return null;
+
+	return (
+		<div className="mt-3 rounded-2xl border border-[color:var(--line)]/70 bg-[var(--surface)]/60 p-4">
+			<div className="flex flex-wrap items-center gap-2">
+				<p className="tiny-label">Agent memory</p>
+				<StatusPill
+					label={memory.dominantSeverity}
+					tone={severityTone(memory.dominantSeverity)}
+				/>
+				<StatusPill
+					label={`FP ${Math.round(memory.falsePositiveRate * 100)}%`}
+					tone={memory.falsePositiveRate > 0.3 ? "warning" : "neutral"}
+				/>
+				<StatusPill
+					label={`${memory.totalFindingsAnalyzed} analyzed`}
+					tone="neutral"
+				/>
+			</div>
+			{memory.recurringVulnClasses.length > 0 ? (
+				<div className="mt-2 space-y-1">
+					{memory.recurringVulnClasses.slice(0, 2).map((vc) => (
+						<div
+							key={vc.vulnClass}
+							className="flex flex-wrap items-center gap-2"
+						>
+							<StatusPill
+								label={vc.vulnClass.replaceAll("_", " ")}
+								tone="info"
+							/>
+							<span className="text-xs text-[var(--sea-ink-soft)]">
+								{vc.count}× / avg severity{" "}
+								{(vc.avgSeverityWeight * 100).toFixed(0)}%
+							</span>
+						</div>
+					))}
+				</div>
+			) : null}
+			<p className="mt-2 text-xs text-[var(--sea-ink-soft)]">
+				{memory.summary}
+			</p>
+		</div>
+	);
+}
+
+/**
+ * Shows the per-repository adversarial round summary:
+ * win/loss/draw record, averages, latest strategy, and exploit chains.
+ */
+function AdversarialRoundPanel({
+	tenantSlug,
+	repositoryFullName,
+}: {
+	tenantSlug: string;
+	repositoryFullName: string;
+}) {
+	const summary = useQuery(api.redBlueIntel.adversarialSummaryForRepository, {
+		tenantSlug,
+		repositoryFullName,
+	});
+	const redAgentFindingCount = useQuery(
+		api.redAgentEscalation.getRedAgentFindingCount,
+		{ tenantSlug, repositoryFullName },
+	);
+
+	if (summary === undefined || summary === null) return null;
+
+	return (
+		<div className="mt-3 rounded-2xl border border-[color:var(--line)]/70 bg-[var(--surface)]/60 p-4">
+			<div className="flex flex-wrap items-center gap-2">
+				<p className="tiny-label">Red/Blue rounds</p>
+				<StatusPill
+					label={`${summary.totalRounds} round${summary.totalRounds === 1 ? "" : "s"}`}
+					tone="neutral"
+				/>
+				{summary.redWins > 0 ? (
+					<StatusPill label={`red ${summary.redWins}W`} tone="danger" />
+				) : null}
+				{summary.blueWins > 0 ? (
+					<StatusPill label={`blue ${summary.blueWins}W`} tone="success" />
+				) : null}
+				{summary.draws > 0 ? (
+					<StatusPill label={`${summary.draws} draw`} tone="neutral" />
+				) : null}
+				{redAgentFindingCount != null && redAgentFindingCount > 0 ? (
+					<StatusPill
+						label={`${redAgentFindingCount} escalated finding${redAgentFindingCount === 1 ? "" : "s"}`}
+						tone="warning"
+					/>
+				) : null}
+			</div>
+			<div className="mt-2 flex flex-wrap gap-2">
+				<StatusPill
+					label={`coverage ${summary.avgAttackSurfaceCoverage}%`}
+					tone={summary.avgAttackSurfaceCoverage > 60 ? "warning" : "neutral"}
+				/>
+				<StatusPill
+					label={`detection ${summary.avgBlueDetectionScore}%`}
+					tone={summary.avgBlueDetectionScore > 70 ? "success" : "neutral"}
+				/>
+			</div>
+			{summary.latestRound ? (
+				<div className="mt-2 space-y-1">
+					<p className="text-xs text-[var(--sea-ink-soft)]">
+						Latest: {summary.latestRound.redStrategySummary}
+					</p>
+					{summary.latestRound.exploitChains.length > 0 ? (
+						<div className="mt-1 space-y-1">
+							{summary.latestRound.exploitChains.map((chain, i) => (
+								<p
+									// biome-ignore lint/suspicious/noArrayIndexKey: exploit chains have no stable id
+									key={i}
+									className="text-xs text-[var(--sea-ink-soft)]"
+								>
+									→ {chain}
+								</p>
+							))}
+						</div>
+					) : null}
+				</div>
+			) : null}
+		</div>
+	);
+}
+
+function attackSurfaceTone(
+	score: number,
+): "success" | "warning" | "danger" | "neutral" {
+	if (score >= 70) return "success";
+	if (score >= 40) return "warning";
+	if (score > 0) return "danger";
+	return "neutral";
+}
+
+function trendTone(
+	trend: AttackSurfaceSnapshot["trend"],
+): "success" | "warning" | "neutral" {
+	if (trend === "improving") return "success";
+	if (trend === "degrading") return "warning";
+	return "neutral";
+}
+
+function RepositoryAttackSurfacePanel({
+	tenantSlug,
+	repositoryFullName,
+}: {
+	tenantSlug: string;
+	repositoryFullName: string;
+}) {
+	const data = useQuery(api.attackSurfaceIntel.getAttackSurfaceDashboard, {
+		tenantSlug,
+		repositoryFullName,
+	});
+
+	if (data === undefined || data === null) return null;
+
+	const { snapshot, history } = data;
+
+	return (
+		<div className="mt-3 rounded-2xl border border-[color:var(--line)]/70 bg-[var(--surface)]/60 p-4">
+			<div className="flex flex-wrap items-center gap-2">
+				<p className="tiny-label">Attack surface</p>
+				<StatusPill
+					label={`score ${snapshot.score}`}
+					tone={attackSurfaceTone(snapshot.score)}
+				/>
+				<StatusPill label={snapshot.trend} tone={trendTone(snapshot.trend)} />
+				<StatusPill
+					label={`${snapshot.resolvedFindings}/${snapshot.totalFindings} resolved`}
+					tone="neutral"
+				/>
+			</div>
+
+			{snapshot.openCriticalCount > 0 || snapshot.openHighCount > 0 ? (
+				<div className="mt-2 flex flex-wrap gap-2">
+					{snapshot.openCriticalCount > 0 ? (
+						<StatusPill
+							label={`${snapshot.openCriticalCount} open critical`}
+							tone="danger"
+						/>
+					) : null}
+					{snapshot.openHighCount > 0 ? (
+						<StatusPill
+							label={`${snapshot.openHighCount} open high`}
+							tone="warning"
+						/>
+					) : null}
+					{snapshot.activeMitigationCount > 0 ? (
+						<StatusPill
+							label={`${snapshot.activeMitigationCount} PR active`}
+							tone="info"
+						/>
+					) : null}
+				</div>
+			) : null}
+
+			{history.length > 1 ? (
+				<div className="mt-3">
+					<p className="mb-1 text-xs text-[var(--sea-ink-soft)]">
+						Score history ({history.length} snapshots)
+					</p>
+					<div className="flex h-8 items-end gap-[2px]">
+						{history.map((point: AttackSurfaceHistoryEntry, i: number) => (
+							<div
+								// biome-ignore lint/suspicious/noArrayIndexKey: history points have no stable id
+								key={i}
+								className="flex-1 rounded-[2px] bg-[var(--sea-ink-soft)]/30"
+								style={{ height: `${Math.max(4, point.score)}%` }}
+								title={`Score ${point.score} — ${new Date(point.computedAt).toLocaleDateString()}`}
+							/>
+						))}
+					</div>
+				</div>
+			) : null}
+
+			<p className="mt-2 text-xs text-[var(--sea-ink-soft)]">
+				{snapshot.summary}
+			</p>
+		</div>
+	);
+}
+
+function driftLevelTone(
+	level: string,
+): "success" | "warning" | "danger" | "neutral" {
+	if (level === "non_compliant") return "danger";
+	if (level === "at_risk") return "warning";
+	if (level === "drifting") return "warning";
+	return "success";
+}
+
+function frameworkScoreTone(
+	score: number,
+): "success" | "warning" | "danger" | "neutral" {
+	if (score >= 80) return "success";
+	if (score >= 60) return "warning";
+	return "danger";
+}
+
+/**
+ * Shows the per-repository regulatory drift snapshot: overall drift level,
+ * per-framework compliance scores, and open gap counts.
+ */
+function RepositoryRegulatoryDriftPanel({
+	tenantSlug,
+	repositoryFullName,
+}: {
+	tenantSlug: string;
+	repositoryFullName: string;
+}) {
+	const snapshot = useQuery(api.regulatoryDriftIntel.getLatestRegulatoryDrift, {
+		tenantSlug,
+		repositoryFullName,
+	});
+
+	if (snapshot === undefined || snapshot === null) return null;
+
+	const frameworkScores = [
+		{ key: "soc2", label: "SOC 2", score: snapshot.soc2Score },
+		{ key: "gdpr", label: "GDPR", score: snapshot.gdprScore },
+		{ key: "hipaa", label: "HIPAA", score: snapshot.hipaaScore },
+		{ key: "pci_dss", label: "PCI-DSS", score: snapshot.pciDssScore },
+		{ key: "nis2", label: "NIS2", score: snapshot.nis2Score },
+	];
+
+	// Only surface frameworks below perfect to keep the panel compact.
+	const driftingFrameworks = frameworkScores.filter((f) => f.score < 100);
+
+	return (
+		<div className="mt-3 rounded-2xl border border-[color:var(--line)]/70 bg-[var(--surface)]/60 p-4">
+			<div className="flex flex-wrap items-center gap-2">
+				<p className="tiny-label">Regulatory drift</p>
+				<StatusPill
+					label={snapshot.overallDriftLevel.replace("_", " ")}
+					tone={driftLevelTone(snapshot.overallDriftLevel)}
+				/>
+				{snapshot.openGapCount > 0 ? (
+					<StatusPill
+						label={`${snapshot.openGapCount} open gap${snapshot.openGapCount === 1 ? "" : "s"}`}
+						tone="neutral"
+					/>
+				) : null}
+				{snapshot.criticalGapCount > 0 ? (
+					<StatusPill
+						label={`${snapshot.criticalGapCount} critical`}
+						tone="danger"
+					/>
+				) : null}
+			</div>
+			{driftingFrameworks.length > 0 ? (
+				<div className="mt-2 flex flex-wrap gap-2">
+					{driftingFrameworks.map((f) => (
+						<StatusPill
+							key={f.key}
+							label={`${f.label} ${f.score}`}
+							tone={frameworkScoreTone(f.score)}
+						/>
+					))}
+				</div>
+			) : null}
+			<p className="mt-2 text-xs text-[var(--sea-ink-soft)]">
+				{snapshot.summary}
+			</p>
+		</div>
+	);
+}
+
+// ─── Honeypot attractiveness tone helper ──────────────────────────────────────
+
+function honeypotScoreTone(
+	score: number,
+): "success" | "warning" | "danger" | "neutral" {
+	if (score >= 85) return "danger";
+	if (score >= 70) return "warning";
+	return "neutral";
+}
+
+/**
+ * Shows the per-repository honeypot plan: proposal counts by kind and the
+ * top canary placements ranked by attractiveness score.
+ */
+function RepositoryHoneypotPanel({
+	tenantSlug,
+	repositoryFullName,
+}: {
+	tenantSlug: string;
+	repositoryFullName: string;
+}) {
+	const snapshot = useQuery(api.honeypotIntel.getLatestHoneypotPlan, {
+		tenantSlug,
+		repositoryFullName,
+	});
+
+	if (snapshot === undefined || snapshot === null) return null;
+
+	// Show the top 3 proposals by attractiveness.
+	const topProposals = snapshot.proposals.slice(0, 3);
+
+	const kindLabel: Record<string, string> = {
+		endpoint: "endpoint",
+		database_field: "DB field",
+		file: "file",
+		token: "token",
+	};
+
+	return (
+		<div className="mt-3 rounded-2xl border border-[color:var(--line)]/70 bg-[var(--surface)]/60 p-4">
+			<div className="flex flex-wrap items-center gap-2">
+				<p className="tiny-label">Honeypot plan</p>
+				<StatusPill
+					label={`${snapshot.totalProposals} proposal${snapshot.totalProposals === 1 ? "" : "s"}`}
+					tone="neutral"
+				/>
+				{snapshot.endpointCount > 0 ? (
+					<StatusPill
+						label={`${snapshot.endpointCount} endpoint${snapshot.endpointCount === 1 ? "" : "s"}`}
+						tone="neutral"
+					/>
+				) : null}
+				{snapshot.databaseFieldCount > 0 ? (
+					<StatusPill
+						label={`${snapshot.databaseFieldCount} DB field${snapshot.databaseFieldCount === 1 ? "" : "s"}`}
+						tone="neutral"
+					/>
+				) : null}
+				{snapshot.fileCount > 0 ? (
+					<StatusPill
+						label={`${snapshot.fileCount} file${snapshot.fileCount === 1 ? "" : "s"}`}
+						tone="neutral"
+					/>
+				) : null}
+				{snapshot.tokenCount > 0 ? (
+					<StatusPill
+						label={`${snapshot.tokenCount} token${snapshot.tokenCount === 1 ? "" : "s"}`}
+						tone="neutral"
+					/>
+				) : null}
+			</div>
+			{topProposals.length > 0 ? (
+				<div className="mt-2 space-y-1">
+					{topProposals.map((p) => (
+						<div key={p.path} className="flex flex-wrap items-center gap-2">
+							<StatusPill label={kindLabel[p.kind] ?? p.kind} tone="neutral" />
+							<StatusPill
+								label={`score ${p.attractivenessScore}`}
+								tone={honeypotScoreTone(p.attractivenessScore)}
+							/>
+							<span className="font-mono text-xs text-[var(--sea-ink-soft)]">
+								{p.path}
+							</span>
+						</div>
+					))}
+				</div>
+			) : null}
+			<p className="mt-2 text-xs text-[var(--sea-ink-soft)]">
+				{snapshot.summary}
+			</p>
+		</div>
+	);
+}
+
+// ─── Learning profile tone helpers ───────────────────────────────────────────
+
+function learningTrendTone(
+	trend: string,
+): "success" | "warning" | "danger" | "neutral" {
+	if (trend === "improving") return "success";
+	if (trend === "degrading") return "danger";
+	return "neutral";
+}
+
+function maturityTone(
+	score: number,
+): "success" | "warning" | "danger" | "neutral" {
+	if (score >= 70) return "success";
+	if (score >= 35) return "warning";
+	return "neutral";
+}
+
+function multiplierTone(
+	m: number,
+): "success" | "warning" | "danger" | "neutral" {
+	if (m >= 1.5) return "danger"; // recurring pattern — high attention
+	return "neutral";
+}
+
+/**
+ * Shows the per-repository learning profile: vuln class patterns, exploit
+ * paths retained from red-agent wins, attack surface trend, and learning
+ * maturity score.
+ */
+function RepositoryLearningPanel({
+	tenantSlug,
+	repositoryFullName,
+}: {
+	tenantSlug: string;
+	repositoryFullName: string;
+}) {
+	const profile = useQuery(api.learningProfileIntel.getLatestLearningProfile, {
+		tenantSlug,
+		repositoryFullName,
+	});
+
+	if (profile === undefined || profile === null) return null;
+
+	// Top 3 vuln class patterns by confirmedCount.
+	const topPatterns = profile.vulnClassPatterns.slice(0, 3);
+
+	return (
+		<div className="mt-3 rounded-2xl border border-[color:var(--line)]/70 bg-[var(--surface)]/60 p-4">
+			<div className="flex flex-wrap items-center gap-2">
+				<p className="tiny-label">Learning profile</p>
+				<StatusPill
+					label={`maturity ${profile.adaptedConfidenceScore}/100`}
+					tone={maturityTone(profile.adaptedConfidenceScore)}
+				/>
+				<StatusPill
+					label={`surface ${profile.attackSurfaceTrend}`}
+					tone={learningTrendTone(profile.attackSurfaceTrend)}
+				/>
+				{profile.recurringCount > 0 ? (
+					<StatusPill
+						label={`${profile.recurringCount} recurring`}
+						tone="warning"
+					/>
+				) : null}
+				{profile.suppressedCount > 0 ? (
+					<StatusPill
+						label={`${profile.suppressedCount} suppressed`}
+						tone="neutral"
+					/>
+				) : null}
+				{profile.successfulExploitPaths.length > 0 ? (
+					<StatusPill
+						label={`${profile.successfulExploitPaths.length} exploit path${profile.successfulExploitPaths.length === 1 ? "" : "s"}`}
+						tone="danger"
+					/>
+				) : null}
+			</div>
+			{topPatterns.length > 0 ? (
+				<div className="mt-2 space-y-1">
+					{topPatterns.map((p) => (
+						<div
+							key={p.vulnClass}
+							className="flex flex-wrap items-center gap-2"
+						>
+							<StatusPill
+								label={p.vulnClass.replaceAll("_", " ")}
+								tone={multiplierTone(p.confidenceMultiplier)}
+							/>
+							<StatusPill
+								label={`×${p.confidenceMultiplier} confidence`}
+								tone={multiplierTone(p.confidenceMultiplier)}
+							/>
+							{p.isRecurring ? (
+								<span className="text-xs text-[var(--sea-ink-soft)]">
+									recurring
+								</span>
+							) : null}
+							{p.isSuppressed ? (
+								<span className="text-xs text-[var(--sea-ink-soft)]">
+									suppressed
+								</span>
+							) : null}
+						</div>
+					))}
+				</div>
+			) : null}
+			<p className="mt-2 text-xs text-[var(--sea-ink-soft)]">
+				{profile.summary}
+			</p>
+		</div>
+	);
+}
+
+// ─── Security posture tone helpers ───────────────────────────────────────────
+
+function postureLevelTone(
+	level: string,
+): "success" | "warning" | "danger" | "neutral" {
+	if (level === "critical") return "danger";
+	if (level === "at_risk") return "warning";
+	if (level === "fair") return "warning";
+	if (level === "good") return "success";
+	return "success"; // excellent
+}
+
+function postureScoreTone(
+	score: number,
+): "success" | "warning" | "danger" | "neutral" {
+	if (score >= 80) return "success";
+	if (score >= 50) return "warning";
+	return "danger";
+}
+
+/**
+ * Shows the unified security posture score for a repository — the leading
+ * summary card an operator sees before drilling into detail panels.
+ */
+function RepositoryPosturePanel({
+	tenantSlug,
+	repositoryFullName,
+}: {
+	tenantSlug: string;
+	repositoryFullName: string;
+}) {
+	const report = useQuery(api.securityPosture.getSecurityPostureReport, {
+		tenantSlug,
+		repositoryFullName,
+	});
+
+	if (report === undefined || report === null) return null;
+
+	return (
+		<div className="mb-3 rounded-2xl border border-[color:var(--line)]/70 bg-[var(--surface)]/60 p-4">
+			<div className="flex flex-wrap items-center gap-2">
+				<p className="tiny-label">Security posture</p>
+				<StatusPill
+					label={`${report.overallScore}/100`}
+					tone={postureScoreTone(report.overallScore)}
+				/>
+				<StatusPill
+					label={report.postureLevel.replace("_", " ")}
+					tone={postureLevelTone(report.postureLevel)}
+				/>
+			</div>
+			{report.topActions.length > 0 ? (
+				<ul className="mt-2 space-y-0.5">
+					{report.topActions.map((action) => (
+						<li
+							key={action}
+							className="text-xs text-[var(--sea-ink-soft)] before:mr-1.5 before:content-['→']"
+						>
+							{action}
+						</li>
+					))}
+				</ul>
+			) : null}
+		</div>
+	);
+}
+
+// ---------------------------------------------------------------------------
+// WebhookSettingsPanel — outbound event delivery overview
+// ---------------------------------------------------------------------------
+
+function deliveryTone(success: boolean): "info" | "danger" {
+	return success ? "info" : "danger";
+}
+
+function endpointCountTone(count: number): "info" | "neutral" {
+	return count > 0 ? "info" : "neutral";
+}
+
+function eventTypeTone(
+	eventType: string,
+): "info" | "warning" | "danger" | "neutral" {
+	if (eventType.startsWith("gate.")) return "warning";
+	if (eventType.startsWith("regulatory.")) return "warning";
+	if (eventType.startsWith("attack_surface.")) return "danger";
+	if (eventType.startsWith("finding.validated")) return "info";
+	return "info";
+}
+
+function WebhookSettingsPanel({ tenantSlug }: { tenantSlug: string }) {
+	const endpoints = useQuery(api.webhooks.listEndpoints, { tenantSlug });
+	const deliveries = useQuery(api.webhooks.listRecentDeliveries, {
+		tenantSlug,
+		limit: 10,
+	});
+
+	if (endpoints === undefined) return null;
+
+	return (
+		<article className="panel rounded-[1.75rem] p-6">
+			<div className="flex flex-wrap items-center justify-between gap-2">
+				<div>
+					<p className="island-kicker mb-2">Outbound webhooks</p>
+					<h2 className="text-2xl font-semibold text-[var(--sea-ink)]">
+						Sentinel delivers signed event payloads to your SIEM, Slack, or
+						PagerDuty as findings and gate decisions are made.
+					</h2>
+				</div>
+				<StatusPill
+					label={`${endpoints.length} endpoint${endpoints.length === 1 ? "" : "s"}`}
+					tone={endpointCountTone(endpoints.length)}
+				/>
+			</div>
+
+			{endpoints.length === 0 ? (
+				<div className="mt-5 rounded-xl border border-dashed border-[color:var(--line)] p-4">
+					<p className="text-sm text-[var(--sea-ink-soft)]">
+						No endpoints registered. Register via the REST API:
+					</p>
+					<pre className="mt-2 overflow-x-auto rounded bg-[var(--surface)] p-3 text-xs text-[var(--sea-ink)]">
+						{`POST /api/webhooks\n{ "tenantSlug": "${tenantSlug}", "url": "https://…", "secret": "…", "events": [] }`}
+					</pre>
+				</div>
+			) : (
+				<div className="mt-5 space-y-2">
+					{endpoints.map((ep) => (
+						<div
+							key={ep._id}
+							className="rounded-xl border border-[color:var(--line)]/70 bg-[var(--surface)]/60 p-3"
+						>
+							<div className="flex flex-wrap items-center gap-2">
+								<StatusPill
+									label={ep.active ? "active" : "inactive"}
+									tone={ep.active ? "success" : "neutral"}
+								/>
+								<span className="break-all text-xs font-mono text-[var(--sea-ink)]">
+									{ep.url}
+								</span>
+							</div>
+							<p className="mt-1 text-xs text-[var(--sea-ink-soft)]">
+								{ep.events.length === 0 ? "All events" : ep.events.join(" · ")}
+								{ep.lastDeliveryAt != null
+									? ` · Last delivery: ${formatTimestamp(ep.lastDeliveryAt)}`
+									: ""}
+							</p>
+						</div>
+					))}
+				</div>
+			)}
+
+			{deliveries && deliveries.length > 0 ? (
+				<div className="mt-5">
+					<p className="tiny-label mb-2">Recent deliveries</p>
+					<div className="space-y-1">
+						{deliveries.map((d) => (
+							<div
+								key={d._id}
+								className="flex flex-wrap items-center gap-2 rounded-lg px-2 py-1"
+							>
+								<StatusPill
+									label={d.success ? "ok" : "fail"}
+									tone={deliveryTone(d.success)}
+								/>
+								<StatusPill
+									label={d.eventType}
+									tone={eventTypeTone(d.eventType)}
+								/>
+								{d.statusCode != null ? (
+									<span className="text-xs text-[var(--sea-ink-soft)]">
+										HTTP {d.statusCode}
+									</span>
+								) : null}
+								<span className="text-xs text-[var(--sea-ink-soft)]">
+									{d.durationMs}ms
+								</span>
+								<span className="ml-auto text-xs text-[var(--sea-ink-soft)]">
+									{formatTimestamp(d.attemptedAt)}
+								</span>
+							</div>
+						))}
+					</div>
+				</div>
+			) : null}
+		</article>
+	);
+}
+
 function SetupState() {
 	return (
 		<main className="page-wrap px-4 pb-14 pt-10">
@@ -231,6 +1252,9 @@ function ConfiguredDashboard() {
 	const runLatestGateEvaluation = useMutation(
 		api.events.runLatestGateEvaluation,
 	);
+	const runAdversarialRound = useMutation(
+		api.redBlueIntel.runAdversarialRoundForRepository,
+	);
 	const [isPending, startTransition] = useTransition();
 
 	async function handleSeed() {
@@ -280,6 +1304,16 @@ function ConfiguredDashboard() {
 	function runGateEvaluation() {
 		startTransition(() => {
 			void runLatestGateEvaluation({ tenantSlug: "atlas-fintech" });
+		});
+	}
+
+	function runAdversarialRoundForFirstRepo() {
+		if (!overview || !overview.repositories[0]) return;
+		startTransition(() => {
+			void runAdversarialRound({
+				tenantSlug: "atlas-fintech",
+				repositoryFullName: overview.repositories[0].fullName,
+			});
 		});
 	}
 
@@ -410,6 +1444,14 @@ function ConfiguredDashboard() {
 							>
 								Run gate evaluation
 							</button>
+							<button
+								type="button"
+								onClick={runAdversarialRoundForFirstRepo}
+								className="signal-button secondary-button"
+								disabled={isPending}
+							>
+								Run adversarial round
+							</button>
 						</div>
 					</div>
 				</div>
@@ -509,6 +1551,7 @@ function ConfiguredDashboard() {
 									</span>
 									<span>Raised: {formatTimestamp(finding.createdAt)}</span>
 								</div>
+								<FindingBlastRadiusPanel findingId={finding._id} />
 							</div>
 						))}
 					</div>
@@ -811,6 +1854,14 @@ function ConfiguredDashboard() {
 					<div className="mt-5 grid gap-4 md:grid-cols-2">
 						{overview.repositories.map((repository: OverviewRepository) => (
 							<div key={repository._id} className="signal-row h-full">
+								<RepositoryPosturePanel
+									tenantSlug={overview.tenant.slug}
+									repositoryFullName={repository.fullName}
+								/>
+								<RepositoryBlastRadiusSummary
+									tenantSlug={overview.tenant.slug}
+									repositoryFullName={repository.fullName}
+								/>
 								<div className="flex items-center justify-between gap-3">
 									<div>
 										<h3 className="text-lg font-semibold text-[var(--sea-ink)]">
@@ -1022,6 +2073,34 @@ function ConfiguredDashboard() {
 										No SBOM snapshot imported for this repository yet.
 									</p>
 								)}
+								<RepositoryIntelligencePanel
+									tenantSlug={overview.tenant.slug}
+									repositoryFullName={repository.fullName}
+								/>
+								<RepositoryMemoryPanel
+									tenantSlug={overview.tenant.slug}
+									repositoryFullName={repository.fullName}
+								/>
+								<AdversarialRoundPanel
+									tenantSlug={overview.tenant.slug}
+									repositoryFullName={repository.fullName}
+								/>
+								<RepositoryAttackSurfacePanel
+									tenantSlug={overview.tenant.slug}
+									repositoryFullName={repository.fullName}
+								/>
+								<RepositoryRegulatoryDriftPanel
+									tenantSlug={overview.tenant.slug}
+									repositoryFullName={repository.fullName}
+								/>
+								<RepositoryHoneypotPanel
+									tenantSlug={overview.tenant.slug}
+									repositoryFullName={repository.fullName}
+								/>
+								<RepositoryLearningPanel
+									tenantSlug={overview.tenant.slug}
+									repositoryFullName={repository.fullName}
+								/>
 							</div>
 						))}
 					</div>
@@ -1211,6 +2290,10 @@ function ConfiguredDashboard() {
 						</div>
 					</article>
 				</div>
+			</section>
+
+			<section className="mt-8">
+				<WebhookSettingsPanel tenantSlug="atlas-fintech" />
 			</section>
 
 			<section className="mt-8 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">

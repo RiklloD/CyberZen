@@ -138,6 +138,7 @@ const overviewValidator = v.object({
     v.object({
       _id: v.id('repositories'),
       name: v.string(),
+      fullName: v.string(),
       provider: v.string(),
       primaryLanguage: v.string(),
       defaultBranch: v.string(),
@@ -718,6 +719,7 @@ export const overview = query({
         ({ repository, latestSnapshot }) => ({
           _id: repository._id,
           name: repository.name,
+          fullName: repository.fullName,
           provider: repository.provider,
           primaryLanguage: repository.primaryLanguage,
           defaultBranch: repository.defaultBranch,

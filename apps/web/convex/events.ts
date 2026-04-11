@@ -5,6 +5,7 @@ import {
   type MutationCtx,
 } from './_generated/server'
 import type { Doc, Id } from './_generated/dataModel'
+import { internal } from './_generated/api'
 import {
   buildBreachDisclosureWorkflow,
   buildGithubPushWorkflow,
@@ -578,6 +579,37 @@ async function runExploitValidationForFindingInternal(
     resolvedAt: assessment.outcome === 'unexploitable' ? completedAt : undefined,
   })
 
+  // Fire-and-forget outbound webhook for finding.validated events.
+  if (assessment.outcome !== 'unexploitable') {
+    try {
+      const tenant = await ctx.db.get(finding.tenantId)
+      if (tenant) {
+        await ctx.scheduler.runAfter(
+          0,
+          internal.webhooks.dispatchWebhookEvent,
+          {
+            tenantId: finding.tenantId,
+            tenantSlug: tenant.slug,
+            repositoryFullName: repository.fullName,
+            eventPayload: {
+              event: 'finding.validated' as const,
+              data: {
+                findingId: finding._id as string,
+                title: finding.title,
+                severity: finding.severity,
+                vulnClass: finding.vulnClass,
+                validationStatus: assessment.outcome,
+                validationConfidence: assessment.validationConfidence,
+              },
+            },
+          },
+        )
+      }
+    } catch (e) {
+      console.error('[webhooks] finding.validated dispatch failed', e)
+    }
+  }
+
   if (validationTask) {
     await updateWorkflowTask(
       ctx,
@@ -877,6 +909,80 @@ async function ingestCanonicalDisclosure(
     await ctx.db.patch('breachDisclosures', disclosureId, {
       findingId,
     })
+
+    // Fire-and-forget blast radius computation. Runs asynchronously so it
+    // never aborts or delays the ingestion path if it fails.
+    try {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.blastRadiusIntel.computeAndStoreBlastRadius,
+        { findingId },
+      )
+    } catch (e) {
+      console.error('[blast-radius] failed to schedule for finding', findingId, e)
+    }
+
+    // Fire-and-forget memory aggregation. Refreshes the repository-level
+    // learning snapshot after each new finding so adversarial rounds have
+    // up-to-date signal.
+    try {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.agentMemory.refreshRepositoryMemory,
+        { repositoryId: repositoryContext.repository._id },
+      )
+    } catch (e) {
+      console.error('[agent-memory] failed to schedule for repository', repositoryContext.repository._id, e)
+    }
+
+    // Fire-and-forget attack surface score refresh. Runs after memory so the
+    // new snapshot can benefit from the freshly-updated RepositoryMemoryRecord.
+    try {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.attackSurfaceIntel.refreshAttackSurface,
+        { repositoryId: repositoryContext.repository._id },
+      )
+    } catch (e) {
+      console.error('[attack-surface] failed to schedule for repository', repositoryContext.repository._id, e)
+    }
+
+    // Fire-and-forget regulatory drift refresh. Independent of memory/attack
+    // surface — driven purely by the finding set, so it can run in parallel.
+    try {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.regulatoryDriftIntel.refreshRegulatoryDrift,
+        { repositoryId: repositoryContext.repository._id },
+      )
+    } catch (e) {
+      console.error('[regulatory-drift] failed to schedule for repository', repositoryContext.repository._id, e)
+    }
+
+    // Fire-and-forget honeypot plan refresh. Aggregates blast radius snapshots
+    // already written by earlier steps, so safe to run after finding creation.
+    try {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.honeypotIntel.refreshHoneypotPlan,
+        { repositoryId: repositoryContext.repository._id },
+      )
+    } catch (e) {
+      console.error('[honeypot] failed to schedule for repository', repositoryContext.repository._id, e)
+    }
+
+    // Fire-and-forget learning profile refresh. Aggregates findings, red/blue
+    // rounds, and attack surface history — runs after all prior steps so it
+    // sees the most complete picture of the repository's security history.
+    try {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.learningProfileIntel.refreshLearningProfile,
+        { repositoryId: repositoryContext.repository._id },
+      )
+    } catch (e) {
+      console.error('[learning-profile] failed to schedule for repository', repositoryContext.repository._id, e)
+    }
 
     await updateWorkflowTask(
       ctx,

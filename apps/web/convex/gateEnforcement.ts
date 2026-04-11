@@ -1,6 +1,7 @@
 import { ConvexError, v } from 'convex/values'
 import { internalMutation, mutation, type MutationCtx } from './_generated/server'
 import type { Id } from './_generated/dataModel'
+import { internal } from './_generated/api'
 import {
   assessGateFinding,
   computeWorkflowGatePosture,
@@ -189,7 +190,54 @@ export const evaluateGateForWorkflow = internalMutation({
     summary: v.string(),
   }),
   handler: async (ctx, args) => {
-    return runGateEvaluationForWorkflow(ctx, args.workflowRunId)
+    const result = await runGateEvaluationForWorkflow(ctx, args.workflowRunId)
+
+    // Fire-and-forget outbound webhook for gate.blocked events.
+    if (result.overallDecision === 'blocked') {
+      try {
+        const workflowRun = await ctx.db.get(args.workflowRunId)
+        if (workflowRun) {
+          const [tenant, repository, event] = await Promise.all([
+            ctx.db.get(workflowRun.tenantId),
+            ctx.db.get(workflowRun.repositoryId),
+            ctx.db.get(workflowRun.eventId),
+          ])
+          if (tenant && repository && event) {
+            const allDecisions = await ctx.db
+              .query('gateDecisions')
+              .withIndex('by_workflow_run', (q) =>
+                q.eq('workflowRunId', args.workflowRunId),
+              )
+              .take(50)
+            const blockedReasons = allDecisions
+              .filter((d) => d.decision === 'blocked')
+              .map((d) => d.justification)
+            await ctx.scheduler.runAfter(
+              0,
+              internal.webhooks.dispatchWebhookEvent,
+              {
+                tenantId: tenant._id,
+                tenantSlug: tenant.slug,
+                repositoryFullName: repository.fullName,
+                eventPayload: {
+                  event: 'gate.blocked' as const,
+                  data: {
+                    commitSha: event.commitSha ?? 'unknown',
+                    branch: event.branch ?? repository.defaultBranch,
+                    blockedReasons,
+                    decisionPolicy: 'default',
+                  },
+                },
+              },
+            )
+          }
+        }
+      } catch (e) {
+        console.error('[webhooks] gate.blocked dispatch failed', e)
+      }
+    }
+
+    return result
   },
 })
 
@@ -233,6 +281,37 @@ export const recordManualOverride = mutation({
       expiresAt,
       createdAt: now,
     })
+
+    // Fire-and-forget outbound webhook for gate.override events.
+    try {
+      const [tenant, repository, event] = await Promise.all([
+        ctx.db.get(workflowRun.tenantId),
+        ctx.db.get(workflowRun.repositoryId),
+        ctx.db.get(workflowRun.eventId),
+      ])
+      if (tenant && repository && event) {
+        await ctx.scheduler.runAfter(
+          0,
+          internal.webhooks.dispatchWebhookEvent,
+          {
+            tenantId: tenant._id,
+            tenantSlug: tenant.slug,
+            repositoryFullName: repository.fullName,
+            eventPayload: {
+              event: 'gate.override' as const,
+              data: {
+                commitSha: event.commitSha ?? 'unknown',
+                branch: event.branch ?? repository.defaultBranch,
+                overriddenBy: args.actorId,
+                decisionPolicy: 'default',
+              },
+            },
+          },
+        )
+      }
+    } catch (e) {
+      console.error('[webhooks] gate.override dispatch failed', e)
+    }
 
     return { gateDecisionId, decision: 'overridden' as const }
   },

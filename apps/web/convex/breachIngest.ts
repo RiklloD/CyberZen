@@ -348,6 +348,32 @@ async function ingestGithubAdvisoriesForRepository(
         },
       )
 
+      // Fire-and-forget prompt injection scan on advisory text.
+      // Only runs for new advisories — deduped records were already scanned on
+      // first ingestion. Failures are logged and swallowed so a scan error
+      // never aborts a sync batch.
+      if (!result.deduped) {
+        const advisoryContent = [advisory.summary, advisory.description]
+          .filter(Boolean)
+          .join('\n\n')
+        if (advisoryContent) {
+          try {
+            await ctx.runMutation(internal.promptIntelligence.scanContentByRef, {
+              tenantSlug: target.tenantSlug,
+              repositoryFullName: target.repositoryFullName,
+              workflowRunId: result.workflowRunId,
+              contentRef: `ghsa:${advisory.ghsa_id}`,
+              content: advisoryContent,
+            })
+          } catch (err) {
+            console.warn(
+              `[sentinel] prompt injection scan failed for GHSA ${advisory.ghsa_id}:`,
+              err,
+            )
+          }
+        }
+      }
+
       ingestedResults.push({
         ...result,
         advisoryId: advisory.ghsa_id,
@@ -403,6 +429,30 @@ async function ingestOsvAdvisoriesForRepository(
         advisory: coerceOsvAdvisoryInput(advisory),
       },
     )
+
+    // Fire-and-forget prompt injection scan on advisory text.
+    // Same gating and error-swallowing as the GHSA path above.
+    if (!result.deduped) {
+      const advisoryContent = [advisory.summary, advisory.details]
+        .filter(Boolean)
+        .join('\n\n')
+      if (advisoryContent) {
+        try {
+          await ctx.runMutation(internal.promptIntelligence.scanContentByRef, {
+            tenantSlug: target.tenantSlug,
+            repositoryFullName: target.repositoryFullName,
+            workflowRunId: result.workflowRunId,
+            contentRef: `osv:${advisory.id}`,
+            content: advisoryContent,
+          })
+        } catch (err) {
+          console.warn(
+            `[sentinel] prompt injection scan failed for OSV ${advisory.id}:`,
+            err,
+          )
+        }
+      }
+    }
 
     ingestedResults.push({
       ...result,

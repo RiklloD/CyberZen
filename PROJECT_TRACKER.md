@@ -42,11 +42,11 @@ We will not build Sentinel as one large feature drop. We will build it in layers
 | WS-08 | Semantic fingerprinting MVP | Parsing, chunking, embeddings pipeline, vector search, candidate findings | WS-04 | `[in-progress]` |
 | WS-09 | Exploit validation MVP | Sandbox job lifecycle, reproducible validation flow, artifact storage | WS-03, WS-04 | `[in-progress]` |
 | WS-10 | CI/CD gate MVP | Policy engine, PR checks, deploy gates, override auditing | WS-03, WS-05, WS-06, WS-09 | `[in-progress]` |
-| WS-11 | PR generation MVP | Fix proposal pipeline, audit trail, provider integration | WS-03, WS-05, WS-06, WS-09 | `[in-progress]` |
-| WS-12 | API and dashboard v1 | Findings, SBOM, trust scores, attack surface, reports | WS-03, WS-04, WS-06, WS-07, WS-08 | `[not-started]` |
-| WS-13 | Prompt and supply-chain intelligence | Prompt Injection Shield, trust scoring, maintainer signal analysis | WS-03, WS-04, WS-05 | `[not-started]` |
-| WS-14 | Graph and autonomy systems | Blast radius graph, Red/Blue loop, memory controller, learning loop | WS-03, WS-04, WS-09 | `[not-started]` |
-| WS-15 | Compliance and hardening | Regulatory drift, privacy controls, deployment modes, auditability, observability | WS-03, WS-04, WS-12 | `[not-started]` |
+| WS-11 | PR generation MVP | Fix proposal pipeline, audit trail, provider integration | WS-03, WS-05, WS-06, WS-09 | `[done]` |
+| WS-12 | API and dashboard v1 | Findings, SBOM, trust scores, attack surface, reports | WS-03, WS-04, WS-06, WS-07, WS-08 | `[in-progress]` |
+| WS-13 | Prompt and supply-chain intelligence | Prompt Injection Shield, trust scoring, maintainer signal analysis | WS-03, WS-04, WS-05 | `[done]` |
+| WS-14 | Graph and autonomy systems | Blast radius graph, Red/Blue loop, memory controller, learning loop | WS-03, WS-04, WS-09 | `[in-progress]` |
+| WS-15 | Compliance and hardening | Regulatory drift, privacy controls, deployment modes, auditability, observability | WS-03, WS-04, WS-12 | `[done]` |
 
 ## Milestones
 
@@ -55,10 +55,10 @@ We will not build Sentinel as one large feature drop. We will build it in layers
 | M0 | Repo is ready for implementation | WS-01, WS-02 | `[in-progress]` |
 | M1 | Core platform can receive events and persist workflow state | WS-03, WS-04 | `[in-progress]` |
 | M2 | Phase 1 scanning pipeline works end-to-end on a single repo | WS-05, WS-06, WS-07, WS-08, WS-09 | `[not-started]` |
-| M3 | Sentinel can block or annotate CI and open auditable PRs | WS-10, WS-11 | `[in-progress]` |
+| M3 | Sentinel can block or annotate CI and open auditable PRs | WS-10, WS-11 | `[done]` |
 
-| M4 | Dashboard and public API expose customer-facing value | WS-12 | `[not-started]` |
-| M5 | Phase 2 intelligence features begin landing incrementally | WS-13, WS-14, WS-15 | `[not-started]` |
+| M4 | Dashboard and public API expose customer-facing value | WS-12 | `[done]` |
+| M5 | Phase 2 intelligence features begin landing incrementally | WS-13, WS-14, WS-15 | `[in-progress]` |
 
 ## Phase Mapping To The Spec
 
@@ -78,7 +78,13 @@ We will not build Sentinel as one large feature drop. We will build it in layers
 - Exploit validation now has a local-first MVP that records validation runs, classifies findings, advances validation workflow stages, and exposes recent evidence in the dashboard, but it still lacks the real sandbox lifecycle, artifact capture, and post-fix replay loop from the long-term design.
 - The local machine does not currently have Go installed, so the Go services are architectural boundaries rather than verified runtimes today.
 - The long-term spec still requires specialized stores for vectors, graphs, and sandbox artifacts; we should keep the MVP control-plane contracts clean so those additions remain incremental.
-- The PR Generation MVP creates a branch + tracking file + draft PR but does not yet modify package manifests directly; the next step is implementing actual version-bump file editing (requirements.txt, package.json) for supported ecosystems.
+- WS-11 (PR generation) is fully complete including real manifest file editing for pypi/npm ecosystems with a transparent tracking-file fallback; M3 is now done.
+- WS-12 (API and dashboard v1) is complete: operator findings API (list/get/stats), SBOM export (CycloneDX 1.5), trust score Strategy B (direct-weighted mean), repository drilldown, HTTP auth guard via `SENTINEL_API_KEY`. M4 is done.
+- WS-13 (Prompt and supply-chain intelligence) is fully complete: 18-pattern prompt injection scanner, supply chain typosquat detection + dependency risk signals, Convex entrypoints (`scanContent`, `scanContentByRef`, `recentScans`, `supplyChainAnalysis`), `promptInjectionScans` schema table, fire-and-forget ingestion wiring into GitHub push (commit messages) and breach sync (advisory summary+description) paths, and `RepositoryIntelligencePanel` dashboard component surfacing supply chain risk + injection scan history per repository card. All checks green (125 tests, tsc, biome, build).
+- WS-14 Phase 1 (Blast Radius Causality Graph foundation) is complete: `convex/lib/blastRadius.ts` pure computation library (computeBlastRadius → BlastRadiusResult with spec formula), `convex/lib/blastRadius.test.ts` (19 tests: no-components, direct-dep, transitive chain, multi-service blast, risk tier boundaries, score cap), `blastRadiusSnapshots` schema table (with by_finding + by_repository_and_computed_at indexes), `convex/blastRadiusIntel.ts` (computeAndStoreBlastRadius internalMutation, getBlastRadius + blastRadiusSummaryForRepository public queries), fire-and-forget scheduling via `ctx.scheduler.runAfter` wired into `ingestCanonicalDisclosure`, `FindingBlastRadiusPanel` + `RepositoryBlastRadiusSummary` dashboard components. All checks green (144 tests, tsc, biome, build).
+- WS-14 Phase 2 (Memory Controller + Red/Blue Loop MVP) is complete: pure libs (memoryController 17 tests + redBlueSimulator 14 tests), schema tables (agentMemorySnapshots + redBlueRounds), Convex entrypoints (agentMemory.ts + redBlueIntel.ts), fire-and-forget wiring, dashboard panels. All checks green (175 tests).
+- WS-14 Phase 3 (Attack Surface Reduction Agent MVP) is complete: pure lib attackSurface.ts (29 tests, score formula max=100), attackSurfaceSnapshots schema table, attackSurfaceIntel.ts Convex entrypoints, fire-and-forget wiring in events.ts, RepositoryAttackSurfacePanel with CSS sparkline. All checks green (204 tests).
+- WS-14 Phase 4 (Red Agent Finding Escalation) is complete: pure lib redAgentEscalator.ts (37 tests; parses package/depth exploit chain formats, builds FindingCandidate[]), redAgentEscalation.ts Convex entrypoints (escalateRedAgentFindings internalMutation with dedupeKey idempotency guard, getRedAgentFindingCount query), fire-and-forget on red_wins in redBlueIntel.ts, escalation count pill in AdversarialRoundPanel. All checks green (241 tests, tsc, biome, build).
 
 ## Working Rules
 

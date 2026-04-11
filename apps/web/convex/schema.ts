@@ -346,6 +346,247 @@ export default defineSchema({
     .index('by_repository_and_started_at', ['repositoryId', 'startedAt'])
     .index('by_status', ['status']),
 
+  promptInjectionScans: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    workflowRunId: v.optional(v.id('workflowRuns')),
+    /** Human-readable label for what was scanned, e.g. "pr_body", "commit_message", "package_readme". */
+    contentRef: v.string(),
+    /** djb2 hash of the scanned content — used to skip re-scanning identical inputs. */
+    contentHash: v.string(),
+    /** Cumulative injection likelihood score (0 = clean, 100 = confirmed). */
+    score: v.number(),
+    detectedPatterns: v.array(v.string()),
+    categories: v.array(v.string()),
+    riskLevel: v.union(
+      v.literal('clean'),
+      v.literal('suspicious'),
+      v.literal('likely_injection'),
+      v.literal('confirmed_injection'),
+    ),
+    scannedAt: v.number(),
+  })
+    .index('by_tenant_and_scanned_at', ['tenantId', 'scannedAt'])
+    .index('by_repository_and_scanned_at', ['repositoryId', 'scannedAt']),
+
+  agentMemorySnapshots: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    recurringVulnClasses: v.array(
+      v.object({
+        vulnClass: v.string(),
+        count: v.number(),
+        avgSeverityWeight: v.number(),
+      }),
+    ),
+    falsePositiveRate: v.number(),
+    highConfidenceClasses: v.array(v.string()),
+    packageRiskMap: v.record(v.string(), v.number()),
+    dominantSeverity: v.union(
+      v.literal('critical'),
+      v.literal('high'),
+      v.literal('medium'),
+      v.literal('low'),
+    ),
+    totalFindingsAnalyzed: v.number(),
+    resolvedCount: v.number(),
+    openCount: v.number(),
+    summary: v.string(),
+    computedAt: v.number(),
+  }).index('by_repository_and_computed_at', ['repositoryId', 'computedAt']),
+
+  redBlueRounds: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    roundNumber: v.number(),
+    redStrategySummary: v.string(),
+    attackSurfaceCoverage: v.number(),
+    simulatedFindingsGenerated: v.number(),
+    blueDetectionScore: v.number(),
+    exploitChains: v.array(v.string()),
+    roundOutcome: v.union(
+      v.literal('red_wins'),
+      v.literal('blue_wins'),
+      v.literal('draw'),
+    ),
+    confidenceGain: v.number(),
+    summary: v.string(),
+    ranAt: v.number(),
+  }).index('by_repository_and_ran_at', ['repositoryId', 'ranAt']),
+
+  blastRadiusSnapshots: defineTable({
+    findingId: v.id('findings'),
+    repositoryId: v.id('repositories'),
+    tenantId: v.id('tenants'),
+    reachableServices: v.array(v.string()),
+    exposedDataLayers: v.array(v.string()),
+    directExposureCount: v.number(),
+    transitiveExposureCount: v.number(),
+    attackPathDepth: v.number(),
+    businessImpactScore: v.number(),
+    riskTier: v.union(
+      v.literal('critical'),
+      v.literal('high'),
+      v.literal('medium'),
+      v.literal('low'),
+    ),
+    summary: v.string(),
+    computedAt: v.number(),
+  })
+    .index('by_finding', ['findingId'])
+    .index('by_repository_and_computed_at', ['repositoryId', 'computedAt']),
+
+  attackSurfaceSnapshots: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    /** 0–100 composite score — higher means more attack surface has been reduced. */
+    score: v.number(),
+    /** 0–1 severity-weighted fraction of findings that are resolved or mitigated. */
+    remediationRate: v.number(),
+    openCriticalCount: v.number(),
+    openHighCount: v.number(),
+    /** Count of findings currently in 'pr_opened' status (active mitigation). */
+    activeMitigationCount: v.number(),
+    totalFindings: v.number(),
+    resolvedFindings: v.number(),
+    trend: v.union(
+      v.literal('improving'),
+      v.literal('stable'),
+      v.literal('degrading'),
+    ),
+    summary: v.string(),
+    computedAt: v.number(),
+  }).index('by_repository_and_computed_at', ['repositoryId', 'computedAt']),
+
+  regulatoryDriftSnapshots: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    /** 0–100 per-framework compliance scores. Higher = more compliant. */
+    soc2Score: v.number(),
+    gdprScore: v.number(),
+    hipaaScore: v.number(),
+    pciDssScore: v.number(),
+    nis2Score: v.number(),
+    overallDriftLevel: v.union(
+      v.literal('compliant'),
+      v.literal('drifting'),
+      v.literal('at_risk'),
+      v.literal('non_compliant'),
+    ),
+    /** Total open findings mapped to at least one regulatory framework. */
+    openGapCount: v.number(),
+    /** Open critical findings mapped to at least one framework. */
+    criticalGapCount: v.number(),
+    /** Human-readable labels of frameworks with at least one open gap. */
+    affectedFrameworks: v.array(v.string()),
+    summary: v.string(),
+    computedAt: v.number(),
+  }).index('by_repository_and_computed_at', ['repositoryId', 'computedAt']),
+
+  honeypotSnapshots: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    totalProposals: v.number(),
+    endpointCount: v.number(),
+    fileCount: v.number(),
+    databaseFieldCount: v.number(),
+    tokenCount: v.number(),
+    /** Top attractiveness score across all proposals (0–100). */
+    topAttractiveness: v.number(),
+    /** Ranked canary proposals — bounded list (max ~11 items). */
+    proposals: v.array(
+      v.object({
+        kind: v.union(
+          v.literal('endpoint'),
+          v.literal('database_field'),
+          v.literal('file'),
+          v.literal('token'),
+        ),
+        path: v.string(),
+        description: v.string(),
+        rationale: v.string(),
+        targetContext: v.optional(v.string()),
+        attractivenessScore: v.number(),
+      }),
+    ),
+    summary: v.string(),
+    computedAt: v.number(),
+  }).index('by_repository_and_computed_at', ['repositoryId', 'computedAt']),
+
+  learningProfiles: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    /** Per-class learning signals (bounded: one entry per unique vuln class). */
+    vulnClassPatterns: v.array(
+      v.object({
+        vulnClass: v.string(),
+        totalCount: v.number(),
+        confirmedCount: v.number(),
+        falsePositiveCount: v.number(),
+        falsePositiveRate: v.number(),
+        isRecurring: v.boolean(),
+        isSuppressed: v.boolean(),
+        confidenceMultiplier: v.number(),
+      }),
+    ),
+    recurringCount: v.number(),
+    suppressedCount: v.number(),
+    /** Unique exploit chains retained from red-agent wins. */
+    successfulExploitPaths: v.array(v.string()),
+    attackSurfaceTrend: v.union(
+      v.literal('improving'),
+      v.literal('stable'),
+      v.literal('degrading'),
+      v.literal('unknown'),
+    ),
+    /** 0–100 learning-maturity score. */
+    adaptedConfidenceScore: v.number(),
+    /** Fraction of red/blue rounds won by the red agent (0–1). */
+    redAgentWinRate: v.number(),
+    totalFindingsAnalyzed: v.number(),
+    totalRoundsAnalyzed: v.number(),
+    summary: v.string(),
+    computedAt: v.number(),
+  }).index('by_repository_and_computed_at', ['repositoryId', 'computedAt']),
+
+  // ── Outbound webhook endpoints (spec §7.2) ─────────────────────────────────
+  // Each row represents a customer-registered HTTPS endpoint that Sentinel
+  // will POST signed event payloads to. `events` is the subscribed event-type
+  // allow-list; an empty array means "subscribe to all events".
+
+  webhookEndpoints: defineTable({
+    tenantId: v.id('tenants'),
+    /** Target URL for outbound POST requests. */
+    url: v.string(),
+    /** HMAC-SHA256 signing secret stored server-side only. */
+    secret: v.string(),
+    description: v.optional(v.string()),
+    /** Subscribed event types. Empty = wildcard (all events). */
+    events: v.array(v.string()),
+    active: v.boolean(),
+    createdAt: v.number(),
+    lastDeliveryAt: v.optional(v.number()),
+  })
+    .index('by_tenant', ['tenantId'])
+    .index('by_tenant_and_active', ['tenantId', 'active']),
+
+  // Audit log of every outbound webhook delivery attempt.
+  webhookDeliveries: defineTable({
+    tenantId: v.id('tenants'),
+    endpointId: v.id('webhookEndpoints'),
+    /** UUID included in the X-Sentinel-Delivery header for idempotency. */
+    deliveryId: v.string(),
+    eventType: v.string(),
+    repositoryFullName: v.string(),
+    success: v.boolean(),
+    statusCode: v.optional(v.number()),
+    errorMessage: v.optional(v.string()),
+    durationMs: v.number(),
+    attemptedAt: v.number(),
+  })
+    .index('by_tenant_and_attempted_at', ['tenantId', 'attemptedAt'])
+    .index('by_endpoint_and_attempted_at', ['endpointId', 'attemptedAt']),
+
   prProposals: defineTable({
     tenantId: v.id('tenants'),
     repositoryId: v.id('repositories'),

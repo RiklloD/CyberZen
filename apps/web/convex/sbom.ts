@@ -2,6 +2,7 @@ import { ConvexError, v } from 'convex/values'
 import { mutation, query } from './_generated/server'
 import { normalizePackageName } from './lib/breachMatching'
 import { compareSnapshotComponents } from './lib/sbomDiff'
+import { buildCycloneDxBom } from './lib/cyclonedx'
 
 const incomingInventoryComponent = v.object({
   name: v.string(),
@@ -275,5 +276,86 @@ export const latestRepositorySnapshot = query({
           }
         : null,
     }
+  },
+})
+
+// ---------------------------------------------------------------------------
+// exportSnapshot — CycloneDX 1.5 BOM export for a given snapshot ID
+//
+// Returns a CycloneDX JSON document with full component inventory, PURLs,
+// and Sentinel-specific property extensions.  The HTTP route at
+// /api/sbom/export?snapshotId=<id> wraps this query for direct downloads.
+// ---------------------------------------------------------------------------
+
+const cycloneDxProperty = v.object({ name: v.string(), value: v.string() })
+const cycloneDxLicense = v.object({
+  license: v.object({ id: v.string() }),
+})
+const cycloneDxComponent = v.object({
+  type: v.union(
+    v.literal('library'),
+    v.literal('container'),
+    v.literal('framework'),
+    v.literal('application'),
+  ),
+  name: v.string(),
+  version: v.string(),
+  purl: v.string(),
+  licenses: v.array(cycloneDxLicense),
+  properties: v.array(cycloneDxProperty),
+})
+
+const cycloneDxBomValidator = v.object({
+  bomFormat: v.literal('CycloneDX'),
+  specVersion: v.literal('1.5'),
+  serialNumber: v.string(),
+  version: v.literal(1),
+  metadata: v.object({
+    timestamp: v.string(),
+    tools: v.array(
+      v.object({ vendor: v.string(), name: v.string(), version: v.string() }),
+    ),
+    component: v.object({
+      type: v.literal('application'),
+      name: v.string(),
+      version: v.string(),
+    }),
+  }),
+  components: v.array(cycloneDxComponent),
+})
+
+export const exportSnapshot = query({
+  args: { snapshotId: v.id('sbomSnapshots') },
+  returns: v.union(v.null(), cycloneDxBomValidator),
+  handler: async (ctx, args) => {
+    const snapshot = await ctx.db.get(args.snapshotId)
+    if (!snapshot) return null
+
+    const repository = await ctx.db.get(snapshot.repositoryId)
+    if (!repository) return null
+
+    const components = await ctx.db
+      .query('sbomComponents')
+      .withIndex('by_snapshot', (q) => q.eq('snapshotId', snapshot._id))
+      .collect()
+
+    return buildCycloneDxBom({
+      repositoryName: repository.name,
+      commitSha: snapshot.commitSha,
+      branch: snapshot.branch,
+      capturedAt: snapshot.capturedAt,
+      snapshotId: snapshot._id,
+      components: components.map((c) => ({
+        name: c.name,
+        version: c.version,
+        ecosystem: c.ecosystem,
+        layer: c.layer,
+        isDirect: c.isDirect,
+        sourceFile: c.sourceFile,
+        license: c.license,
+        trustScore: c.trustScore,
+        hasKnownVulnerabilities: c.hasKnownVulnerabilities,
+      })),
+    })
   },
 })

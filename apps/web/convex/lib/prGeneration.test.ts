@@ -1,11 +1,15 @@
 /// <reference types="vite/client" />
 import { describe, expect, test } from 'vitest'
 import {
+  applyVersionBumpToManifest,
   buildPrProposalContent,
   detectFixType,
   generateProposedBranch,
   generatePrBody,
   generatePrTitle,
+  patchPackageJson,
+  patchPyprojectToml,
+  patchRequirementsTxt,
   type PrProposalInput,
 } from './prGeneration'
 
@@ -193,5 +197,206 @@ describe('buildPrProposalContent', () => {
     expect(result.currentVersion).toBeUndefined()
     expect(result.fixVersion).toBeUndefined()
     expect(result.fixSummary).toContain('Manual remediation')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// patchRequirementsTxt
+// ---------------------------------------------------------------------------
+
+describe('patchRequirementsTxt', () => {
+  test('pins == specifier to new version', () => {
+    const result = patchRequirementsTxt('pyjwt==2.10.1\n', 'pyjwt', '2.10.2')
+    expect(result).toBe('pyjwt==2.10.2\n')
+  })
+
+  test('replaces >= specifier with exact pin', () => {
+    const result = patchRequirementsTxt('pyjwt>=2.6.0\n', 'pyjwt', '2.10.2')
+    expect(result).toBe('pyjwt==2.10.2\n')
+  })
+
+  test('replaces ~= compatible-release specifier with exact pin', () => {
+    const result = patchRequirementsTxt('pyjwt~=2.10.0\n', 'pyjwt', '2.10.2')
+    expect(result).toBe('pyjwt==2.10.2\n')
+  })
+
+  test('handles uppercase package name (PyJWT) and preserves original casing', () => {
+    const result = patchRequirementsTxt('PyJWT==2.10.1\nrequests==2.28.0\n', 'pyjwt', '2.10.2')
+    expect(result).toBe('PyJWT==2.10.2\nrequests==2.28.0\n')
+  })
+
+  test('preserves extras in square brackets', () => {
+    const result = patchRequirementsTxt('pyjwt[crypto]>=2.8.0\n', 'pyjwt', '2.10.2')
+    expect(result).toBe('pyjwt[crypto]==2.10.2\n')
+  })
+
+  test('preserves environment markers after semicolon', () => {
+    const result = patchRequirementsTxt(
+      "pyjwt>=2.6.0 ; python_version>='3.8'\n",
+      'pyjwt',
+      '2.10.2',
+    )
+    expect(result).toBe("pyjwt==2.10.2 ; python_version>='3.8'\n")
+  })
+
+  test('preserves trailing inline comment', () => {
+    const result = patchRequirementsTxt(
+      'pyjwt==2.10.1  # CVE-2022-29217\n',
+      'pyjwt',
+      '2.10.2',
+    )
+    expect(result).toContain('pyjwt==2.10.2')
+    expect(result).toContain('# CVE-2022-29217')
+  })
+
+  test('pins a bare package name (no specifier)', () => {
+    const result = patchRequirementsTxt('pyjwt\n', 'pyjwt', '2.10.2')
+    expect(result).toBe('pyjwt==2.10.2\n')
+  })
+
+  test('returns null when package is not in the file', () => {
+    expect(patchRequirementsTxt('requests==2.28.0\n', 'pyjwt', '2.10.2')).toBeNull()
+  })
+
+  test('does not match a package whose name starts with the target name', () => {
+    const result = patchRequirementsTxt('pyjwt-extensions==1.0.0\npyjwt==2.10.1\n', 'pyjwt', '2.10.2')
+    // Only pyjwt should change; pyjwt-extensions must be left alone
+    expect(result).toContain('pyjwt-extensions==1.0.0')
+    expect(result).toContain('pyjwt==2.10.2')
+  })
+
+  test('skips comment-only lines', () => {
+    const input = '# pinned packages\npyjwt==2.10.1\n'
+    const result = patchRequirementsTxt(input, 'pyjwt', '2.10.2')
+    expect(result).toContain('# pinned packages')
+    expect(result).toContain('pyjwt==2.10.2')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// patchPackageJson
+// ---------------------------------------------------------------------------
+
+describe('patchPackageJson', () => {
+  test('bumps an exact version in dependencies', () => {
+    const pkg = JSON.stringify({ dependencies: { lodash: '4.17.20' } }, null, 2) + '\n'
+    const result = patchPackageJson(pkg, 'lodash', '4.17.21')
+    expect(result).not.toBeNull()
+    expect(JSON.parse(result!).dependencies.lodash).toBe('4.17.21')
+  })
+
+  test('preserves the ^ caret range prefix', () => {
+    const pkg = JSON.stringify({ dependencies: { lodash: '^4.17.20' } }, null, 2) + '\n'
+    const result = patchPackageJson(pkg, 'lodash', '4.17.21')
+    expect(JSON.parse(result!).dependencies.lodash).toBe('^4.17.21')
+  })
+
+  test('preserves the ~ tilde range prefix', () => {
+    const pkg = JSON.stringify({ dependencies: { lodash: '~4.17.20' } }, null, 2) + '\n'
+    const result = patchPackageJson(pkg, 'lodash', '4.17.21')
+    expect(JSON.parse(result!).dependencies.lodash).toBe('~4.17.21')
+  })
+
+  test('finds package in devDependencies', () => {
+    const pkg = JSON.stringify({ devDependencies: { jest: '29.0.0' } }, null, 2)
+    const result = patchPackageJson(pkg, 'jest', '29.1.0')
+    expect(JSON.parse(result!).devDependencies.jest).toBe('29.1.0')
+  })
+
+  test('handles scoped npm package names', () => {
+    const pkg = JSON.stringify({ dependencies: { '@scope/pkg': '1.0.0' } }, null, 2)
+    const result = patchPackageJson(pkg, '@scope/pkg', '1.0.1')
+    expect(JSON.parse(result!).dependencies['@scope/pkg']).toBe('1.0.1')
+  })
+
+  test('returns null when package is not found in any dependency field', () => {
+    const pkg = JSON.stringify({ dependencies: { react: '18.0.0' } }, null, 2)
+    expect(patchPackageJson(pkg, 'lodash', '4.17.21')).toBeNull()
+  })
+
+  test('returns null for invalid JSON', () => {
+    expect(patchPackageJson('not valid json', 'lodash', '4.17.21')).toBeNull()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// patchPyprojectToml
+// ---------------------------------------------------------------------------
+
+describe('patchPyprojectToml', () => {
+  test('handles Poetry simple specifier (caret range)', () => {
+    const content = '[tool.poetry.dependencies]\npyjwt = "^2.10.1"\n'
+    const result = patchPyprojectToml(content, 'pyjwt', '2.10.2')
+    expect(result).toContain('pyjwt = ">=2.10.2"')
+  })
+
+  test('handles PEP 517 dependency array string', () => {
+    const content = '[project]\ndependencies = [\n    "pyjwt>=2.6.0",\n]\n'
+    const result = patchPyprojectToml(content, 'pyjwt', '2.10.2')
+    expect(result).toContain('"pyjwt>=2.10.2"')
+  })
+
+  test('handles Poetry inline table with version key', () => {
+    const content =
+      '[tool.poetry.dependencies]\npyjwt = {version = "^2.10.1", extras = ["crypto"]}\n'
+    const result = patchPyprojectToml(content, 'pyjwt', '2.10.2')
+    expect(result).not.toBeNull()
+    expect(result).toContain('>=2.10.2"')
+    expect(result).toContain('extras = ["crypto"]')
+  })
+
+  test('handles uppercase PyPI name via normalization', () => {
+    const content = '[tool.poetry.dependencies]\nPyJWT = "^2.10.1"\n'
+    const result = patchPyprojectToml(content, 'pyjwt', '2.10.2')
+    expect(result).not.toBeNull()
+    expect(result).toContain('>=2.10.2')
+  })
+
+  test('returns null when package is not found', () => {
+    const content = '[tool.poetry.dependencies]\nrequests = "^2.28.0"\n'
+    expect(patchPyprojectToml(content, 'pyjwt', '2.10.2')).toBeNull()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// applyVersionBumpToManifest
+// ---------------------------------------------------------------------------
+
+describe('applyVersionBumpToManifest', () => {
+  test('dispatches to patchPackageJson for package.json', () => {
+    const content = JSON.stringify({ dependencies: { lodash: '4.17.20' } }, null, 2) + '\n'
+    const result = applyVersionBumpToManifest('package.json', content, 'lodash', '4.17.21')
+    expect(result).not.toBeNull()
+    expect(JSON.parse(result!).dependencies.lodash).toBe('4.17.21')
+  })
+
+  test('dispatches to patchRequirementsTxt for requirements.txt', () => {
+    const result = applyVersionBumpToManifest(
+      'requirements.txt',
+      'pyjwt==2.10.1\n',
+      'pyjwt',
+      '2.10.2',
+    )
+    expect(result).toBe('pyjwt==2.10.2\n')
+  })
+
+  test('dispatches to patchRequirementsTxt for nested requirements path', () => {
+    const result = applyVersionBumpToManifest(
+      'requirements/base.txt',
+      'pyjwt>=2.6.0\n',
+      'pyjwt',
+      '2.10.2',
+    )
+    expect(result).toBe('pyjwt==2.10.2\n')
+  })
+
+  test('dispatches to patchPyprojectToml for pyproject.toml', () => {
+    const content = '[tool.poetry.dependencies]\npyjwt = "^2.10.1"\n'
+    const result = applyVersionBumpToManifest('pyproject.toml', content, 'pyjwt', '2.10.2')
+    expect(result).toContain('>=2.10.2')
+  })
+
+  test('returns null for an unrecognised manifest filename', () => {
+    expect(applyVersionBumpToManifest('custom.lock', 'pyjwt==2.10.1\n', 'pyjwt', '2.10.2')).toBeNull()
   })
 })

@@ -7,7 +7,11 @@ import {
 } from './_generated/server'
 import { internal } from './_generated/api'
 import type { Id } from './_generated/dataModel'
-import { buildPrProposalContent } from './lib/prGeneration'
+import {
+  applyVersionBumpToManifest,
+  buildPrProposalContent,
+  ECOSYSTEM_MANIFEST_PATHS,
+} from './lib/prGeneration'
 
 // ---------------------------------------------------------------------------
 // Shared validators (avoid repeating literal unions)
@@ -64,6 +68,107 @@ async function safeReadBody(response: Response): Promise<string> {
     return (await response.text()).slice(0, 400)
   } catch {
     return 'No response body was available.'
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Base64 helpers — chunk-safe, no stack overflow on large manifest files
+// ---------------------------------------------------------------------------
+
+/** Encode a UTF-8 string to base64, chunking to avoid call-stack limits. */
+function encodeBase64(text: string): string {
+  const bytes = new TextEncoder().encode(text)
+  const chunkSize = 8192
+  let binary = ''
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize))
+  }
+  return btoa(binary)
+}
+
+/** Decode a base64 string (with embedded newlines) back to UTF-8 text. */
+function decodeBase64(encoded: string): string {
+  const binaryStr = atob(encoded.replace(/\n/g, ''))
+  const bytes = new Uint8Array(binaryStr.length)
+  for (let i = 0; i < binaryStr.length; i++) {
+    bytes[i] = binaryStr.charCodeAt(i)
+  }
+  return new TextDecoder().decode(bytes)
+}
+
+// ---------------------------------------------------------------------------
+// GitHub Contents API: fetch and update individual repository files
+// ---------------------------------------------------------------------------
+
+type GithubFileContent = { content: string; blobSha: string }
+
+/**
+ * Fetch a file's decoded text content and blob SHA from the GitHub Contents API.
+ * Returns null for 404 (file not found). Throws on other error statuses.
+ */
+async function fetchGithubFile(
+  owner: string,
+  repo: string,
+  path: string,
+  ref: string,
+): Promise<GithubFileContent | null> {
+  const response = await fetch(
+    `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${encodeURIComponent(ref)}`,
+    { headers: githubPrHeaders() },
+  )
+
+  if (response.status === 404) return null
+
+  if (!response.ok) {
+    const body = await safeReadBody(response)
+    throw new Error(`GitHub get-contents failed for ${path} (${response.status}): ${body}`)
+  }
+
+  const data = (await response.json()) as {
+    type?: string
+    content?: string
+    sha?: string
+    encoding?: string
+  }
+
+  // Skip directories and submodule entries
+  if (data.type !== 'file' || !data.content || !data.sha) return null
+
+  return { content: decodeBase64(data.content), blobSha: data.sha }
+}
+
+/**
+ * Commit an updated file to a branch via the GitHub Contents API.
+ * `blobSha` must be the existing file's blob SHA as returned by fetchGithubFile.
+ */
+async function commitGithubFile(params: {
+  owner: string
+  repo: string
+  path: string
+  content: string
+  blobSha: string
+  message: string
+  branch: string
+}): Promise<void> {
+  const response = await fetch(
+    `https://api.github.com/repos/${params.owner}/${params.repo}/contents/${params.path}`,
+    {
+      method: 'PUT',
+      headers: { ...githubPrHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: params.message,
+        content: encodeBase64(params.content),
+        sha: params.blobSha,
+        branch: params.branch,
+      }),
+    },
+  )
+
+  if (!response.ok) {
+    const body = await safeReadBody(response)
+    throw new Error(
+      `GitHub update-file failed for ${params.path} (${response.status}): ${body}`,
+    )
   }
 }
 
@@ -165,10 +270,66 @@ async function openGithubPullRequest(params: {
   title: string
   body: string
   fixSummary: string
+  // Manifest editing — all optional; if all three are present we attempt a real file edit
+  ecosystem?: string
+  packageName?: string
+  fixVersion?: string
 }): Promise<GithubPrResult> {
   const baseSha = await getBaseBranchSha(params.owner, params.repo, params.baseBranch)
   await createBranch(params.owner, params.repo, params.headBranch, baseSha)
-  await createTrackingFile(params.owner, params.repo, params.headBranch, params.fixSummary)
+
+  // --- Real manifest editing (best-effort; falls back to tracking placeholder) -----------
+  let manifestPatched = false
+
+  if (params.ecosystem && params.packageName && params.fixVersion) {
+    const candidates = ECOSYSTEM_MANIFEST_PATHS[params.ecosystem.toLowerCase()] ?? []
+
+    try {
+      for (const manifestPath of candidates) {
+        const file = await fetchGithubFile(
+          params.owner,
+          params.repo,
+          manifestPath,
+          params.baseBranch,
+        )
+        if (!file) continue
+
+        const patched = applyVersionBumpToManifest(
+          manifestPath,
+          file.content,
+          params.packageName,
+          params.fixVersion,
+        )
+        if (!patched) continue
+
+        await commitGithubFile({
+          owner: params.owner,
+          repo: params.repo,
+          path: manifestPath,
+          content: patched,
+          blobSha: file.blobSha,
+          message: `fix(deps): bump ${params.packageName} to ${params.fixVersion} (security)`,
+          branch: params.headBranch,
+        })
+
+        manifestPatched = true
+        break // stop at the first successfully patched manifest
+      }
+    } catch (err) {
+      // Log but do not fail — a real diff is a best-effort enhancement.
+      // The PR will still be opened with the tracking placeholder below.
+      console.warn(
+        `[sentinel] Manifest patching failed for ${params.ecosystem}/${params.packageName}:`,
+        err instanceof Error ? err.message : String(err),
+      )
+    }
+  }
+
+  // Fallback: tracking placeholder ensures the branch is at least one commit ahead of base.
+  if (!manifestPatched) {
+    await createTrackingFile(params.owner, params.repo, params.headBranch, params.fixSummary)
+  }
+  // --------------------------------------------------------------------------------------
 
   const response = await fetch(
     `https://api.github.com/repos/${params.owner}/${params.repo}/pulls`,
@@ -204,6 +365,7 @@ async function openGithubPullRequest(params: {
 // ---------------------------------------------------------------------------
 
 const proposalContextValidator = v.object({
+  tenantSlug: v.string(),
   finding: v.object({
     _id: v.id('findings'),
     title: v.string(),
@@ -243,11 +405,15 @@ export const getProposalContext = internalQuery({
     const repository = await ctx.db.get(finding.repositoryId)
     if (!repository) return null
 
+    const tenant = await ctx.db.get(repository.tenantId)
+    if (!tenant) return null
+
     const disclosure = finding.breachDisclosureId
       ? await ctx.db.get(finding.breachDisclosureId)
       : null
 
     return {
+      tenantSlug: tenant.slug,
       finding: {
         _id: finding._id,
         title: finding.title,
@@ -424,7 +590,7 @@ export const proposeFix = action({
       throw new ConvexError('Finding or repository not found for PR proposal.')
     }
 
-    const { finding, repository, disclosure } = context
+    const { tenantSlug, finding, repository, disclosure } = context
 
     // Prefer the disclosure's primary package; fall back to the first affected package.
     const primaryPackage = disclosure?.packageName ?? finding.affectedPackages[0]
@@ -505,6 +671,9 @@ export const proposeFix = action({
         title: content.prTitle,
         body: content.prBody,
         fixSummary: content.fixSummary,
+        ecosystem: content.targetEcosystem,
+        packageName: content.targetPackage,
+        fixVersion: content.fixVersion,
       })
 
       await ctx.runMutation(internal.prGeneration.recordPrOpened, {
@@ -513,6 +682,32 @@ export const proposeFix = action({
         prUrl,
         prNumber,
       })
+
+      // Fire-and-forget outbound webhook for finding.pr_opened events.
+      try {
+        await ctx.scheduler.runAfter(
+          0,
+          internal.webhooks.dispatchWebhookEvent,
+          {
+            tenantId: repository.tenantId,
+            tenantSlug,
+            repositoryFullName: repository.fullName,
+            eventPayload: {
+              event: 'finding.pr_opened' as const,
+              data: {
+                findingId: args.findingId as string,
+                title: finding.title,
+                severity: finding.severity,
+                prUrl,
+                prTitle: content.prTitle,
+                proposedBranch: content.proposedBranch,
+              },
+            },
+          },
+        )
+      } catch (e) {
+        console.error('[webhooks] finding.pr_opened dispatch failed', e)
+      }
 
       return {
         proposalId,

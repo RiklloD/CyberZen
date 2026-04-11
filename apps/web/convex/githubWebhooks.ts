@@ -5,7 +5,11 @@ import { v } from 'convex/values'
 import { internal } from './_generated/api'
 import type { Id } from './_generated/dataModel'
 import { internalAction } from './_generated/server'
-import { normalizeGithubPushPayload, type GithubPushPayload } from './lib/githubWebhooks'
+import {
+  collectCommitMessages,
+  normalizeGithubPushPayload,
+  type GithubPushPayload,
+} from './lib/githubWebhooks'
 
 type WebhookRouteResult = {
   status: 'processed' | 'ignored' | 'rejected'
@@ -108,6 +112,26 @@ export const verifyAndRouteGithubWebhook = internalAction({
       commitSha: normalizedPush.commitSha,
       changedFiles: normalizedPush.changedFiles,
     })
+
+    // Fire-and-forget prompt injection scan on commit messages.
+    // Runs only for new (non-deduped) events so we don't re-scan identical
+    // pushes. Failures are logged and swallowed — a scan error must never
+    // prevent a successful webhook acknowledgement.
+    if (!result.deduped) {
+      const commitMessages = collectCommitMessages(payload.commits, payload.head_commit)
+      if (commitMessages) {
+        try {
+          await ctx.runMutation(internal.promptIntelligence.scanContentByRef, {
+            repositoryFullName: normalizedPush.repositoryFullName,
+            workflowRunId: result.workflowRunId,
+            contentRef: 'push_commit_messages',
+            content: commitMessages,
+          })
+        } catch (err) {
+          console.warn('[sentinel] prompt injection scan failed for push event:', err)
+        }
+      }
+    }
 
     return {
       status: 'processed',

@@ -5,10 +5,14 @@ export type GithubPushPayload = {
   repository?: {
     full_name?: string
   }
+  head_commit?: {
+    message?: string
+  }
   commits?: Array<{
     added?: string[]
     modified?: string[]
     removed?: string[]
+    message?: string
   }>
 }
 
@@ -39,6 +43,35 @@ function normalizeRefBranch(ref: string | undefined) {
   }
 
   return ref.slice('refs/heads/'.length)
+}
+
+/**
+ * Collect all unique commit messages from a push payload.
+ * head_commit.message is preferred as the canonical lead message; per-commit
+ * messages are appended de-duplicated. Returns an empty string when no
+ * messages are present (caller should skip the scan in that case).
+ */
+export function collectCommitMessages(
+  commits: GithubPushPayload['commits'] = [],
+  headCommit?: GithubPushPayload['head_commit'],
+): string {
+  const seen = new Set<string>()
+  const messages: string[] = []
+
+  const push = (msg: string | null | undefined) => {
+    const trimmed = msg?.trim()
+    if (trimmed && !seen.has(trimmed)) {
+      seen.add(trimmed)
+      messages.push(trimmed)
+    }
+  }
+
+  push(headCommit?.message)
+  for (const commit of commits) {
+    push(commit?.message)
+  }
+
+  return messages.join('\n\n')
 }
 
 export function collectChangedFiles(
