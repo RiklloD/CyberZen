@@ -1,5 +1,6 @@
-import { v } from 'convex/values'
-import { query } from './_generated/server'
+import { ConvexError, v } from 'convex/values'
+import { mutation, query } from './_generated/server'
+import { internal } from './_generated/api'
 
 // ---------------------------------------------------------------------------
 // Shared validators
@@ -492,6 +493,186 @@ export const stats = query({
           (f.severity === 'critical' || f.severity === 'high') &&
           (f.status === 'open' || f.status === 'pr_opened'),
       ),
+    }
+  },
+})
+
+// ---------------------------------------------------------------------------
+// findings.updateFindingStatus — operator-facing status transition (spec §7.1)
+//
+// Allows operators to move a finding through its lifecycle via the REST API.
+// The only write constraint is that a `resolved` finding can only be re-opened
+// with explicit justification; all other transitions are permitted so operators
+// retain full control.
+// ---------------------------------------------------------------------------
+
+export const updateFindingStatus = mutation({
+  args: {
+    findingId: v.id('findings'),
+    newStatus: findingStatus,
+    /** Human-readable reason — required when accepting risk or resolving manually. */
+    reason: v.optional(v.string()),
+  },
+  returns: v.object({
+    findingId: v.id('findings'),
+    previousStatus: findingStatus,
+    newStatus: findingStatus,
+  }),
+  handler: async (ctx, args) => {
+    const finding = await ctx.db.get(args.findingId)
+    if (!finding) throw new ConvexError(`Finding not found: ${args.findingId}`)
+
+    // Require a reason when accepting risk to ensure audit trail.
+    if (args.newStatus === 'accepted_risk' && !args.reason) {
+      throw new ConvexError('A reason is required when setting status to accepted_risk.')
+    }
+
+    const previousStatus = finding.status
+    const now = Date.now()
+
+    await ctx.db.patch(args.findingId, {
+      status: args.newStatus,
+      resolvedAt:
+        args.newStatus === 'resolved' || args.newStatus === 'accepted_risk'
+          ? now
+          : undefined,
+    })
+
+    // Fire-and-forget finding.resolved webhook when an operator resolves a finding.
+    if (args.newStatus === 'resolved' && previousStatus !== 'resolved') {
+      try {
+        const repository = await ctx.db.get(finding.repositoryId)
+        const tenant = repository ? await ctx.db.get(repository.tenantId) : null
+        if (tenant && repository) {
+          await ctx.scheduler.runAfter(
+            0,
+            internal.webhooks.dispatchWebhookEvent,
+            {
+              tenantId: repository.tenantId,
+              tenantSlug: tenant.slug,
+              repositoryFullName: repository.fullName,
+              eventPayload: {
+                event: 'finding.resolved' as const,
+                data: {
+                  findingId: finding._id as string,
+                  title: finding.title,
+                  severity: finding.severity,
+                  resolvedAt: now,
+                },
+              },
+            },
+          )
+        }
+      } catch (e) {
+        console.error('[webhooks] finding.resolved dispatch failed', e)
+      }
+    }
+
+    return {
+      findingId: args.findingId,
+      previousStatus,
+      newStatus: args.newStatus,
+    }
+  },
+})
+
+// ---------------------------------------------------------------------------
+// findings.getPocArtifact — return PoC artifact URL + metadata for a finding.
+//
+// PoC artifacts are stored as URLs pointing to secured object storage.
+// The URL is present only after an exploit validation run completes with
+// a validated or likely_exploitable outcome (spec §7.1).
+// ---------------------------------------------------------------------------
+
+export const getPocArtifact = query({
+  args: { findingId: v.id('findings') },
+  returns: v.union(
+    v.null(),
+    v.object({
+      findingId: v.id('findings'),
+      title: v.string(),
+      severity,
+      validationStatus,
+      pocArtifactUrl: v.optional(v.string()),
+      hasArtifact: v.boolean(),
+    }),
+  ),
+  handler: async (ctx, args) => {
+    const finding = await ctx.db.get(args.findingId)
+    if (!finding) return null
+
+    return {
+      findingId: finding._id,
+      title: finding.title,
+      severity: finding.severity,
+      validationStatus: finding.validationStatus,
+      pocArtifactUrl: finding.pocArtifactUrl,
+      hasArtifact: finding.pocArtifactUrl !== undefined,
+    }
+  },
+})
+
+// ---------------------------------------------------------------------------
+// findings.getReasoningLog — return reasoning log URL + validation evidence.
+//
+// Reasoning logs capture the exploit validation agent's chain-of-thought,
+// sandbox observation summary, and reproduction hint (spec §7.1).
+// ---------------------------------------------------------------------------
+
+export const getReasoningLog = query({
+  args: { findingId: v.id('findings') },
+  returns: v.union(
+    v.null(),
+    v.object({
+      findingId: v.id('findings'),
+      title: v.string(),
+      severity,
+      validationStatus,
+      reasoningLogUrl: v.optional(v.string()),
+      hasLog: v.boolean(),
+      validationRuns: v.array(
+        v.object({
+          status: v.string(),
+          outcome: v.optional(v.string()),
+          validationConfidence: v.number(),
+          sandboxSummary: v.string(),
+          evidenceSummary: v.string(),
+          reproductionHint: v.string(),
+          startedAt: v.number(),
+          completedAt: v.optional(v.number()),
+        }),
+      ),
+    }),
+  ),
+  handler: async (ctx, args) => {
+    const finding = await ctx.db.get(args.findingId)
+    if (!finding) return null
+
+    const validationRuns = await ctx.db
+      .query('exploitValidationRuns')
+      .withIndex('by_finding_and_started_at', (q) =>
+        q.eq('findingId', finding._id),
+      )
+      .order('desc')
+      .take(10)
+
+    return {
+      findingId: finding._id,
+      title: finding.title,
+      severity: finding.severity,
+      validationStatus: finding.validationStatus,
+      reasoningLogUrl: finding.reasoningLogUrl,
+      hasLog: finding.reasoningLogUrl !== undefined,
+      validationRuns: validationRuns.map((run) => ({
+        status: run.status,
+        outcome: run.outcome,
+        validationConfidence: run.validationConfidence,
+        sandboxSummary: run.sandboxSummary,
+        evidenceSummary: run.evidenceSummary,
+        reproductionHint: run.reproductionHint,
+        startedAt: run.startedAt,
+        completedAt: run.completedAt,
+      })),
     }
   },
 })

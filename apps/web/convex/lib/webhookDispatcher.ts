@@ -13,6 +13,7 @@ export type WebhookEventType =
   | 'finding.pr_opened'
   | 'finding.resolved'
   | 'trust_score.degraded'
+  | 'trust_score.compromised'
   | 'honeypot.triggered'
   | 'gate.blocked'
   | 'gate.override'
@@ -25,6 +26,7 @@ export const ALL_WEBHOOK_EVENT_TYPES: WebhookEventType[] = [
   'finding.pr_opened',
   'finding.resolved',
   'trust_score.degraded',
+  'trust_score.compromised',
   'honeypot.triggered',
   'gate.blocked',
   'gate.override',
@@ -68,6 +70,15 @@ export type TrustScoreDegradedData = {
   previousScore: number
   newScore: number
   delta: number
+}
+
+export type TrustScoreCompromisedData = {
+  packageName: string
+  ecosystem: string
+  /** Current trust score — always below the compromised threshold. */
+  score: number
+  /** The absolute threshold that was breached (e.g. 30). */
+  threshold: number
 }
 
 export type HoneypotTriggeredData = {
@@ -119,6 +130,7 @@ export type WebhookEventPayload =
   | { event: 'finding.pr_opened'; data: FindingPrOpenedData }
   | { event: 'finding.resolved'; data: FindingResolvedData }
   | { event: 'trust_score.degraded'; data: TrustScoreDegradedData }
+  | { event: 'trust_score.compromised'; data: TrustScoreCompromisedData }
   | { event: 'honeypot.triggered'; data: HoneypotTriggeredData }
   | { event: 'gate.blocked'; data: GateBlockedData }
   | { event: 'gate.override'; data: GateOverrideData }

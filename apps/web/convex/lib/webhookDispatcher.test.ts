@@ -315,4 +315,31 @@ describe('WebhookEnvelope shapes', () => {
     expect(parsed.data.delta).toBe(-17)
     expect(parsed.data.trend).toBe('degrading')
   })
+
+  it('trust_score.compromised envelope serialises correctly', async () => {
+    const env: WebhookEnvelope = {
+      event: 'trust_score.compromised',
+      tenantSlug: 'acme',
+      repositoryFullName: 'acme/api',
+      timestamp: 1700000000000,
+      deliveryId: 'del-ts-1',
+      data: {
+        packageName: 'lodaash',
+        ecosystem: 'npm',
+        score: 15,
+        threshold: 30,
+      },
+    }
+    const { body } = await buildSignedPayload(env, 'secret')
+    const parsed = JSON.parse(body)
+    expect(parsed.event).toBe('trust_score.compromised')
+    expect(parsed.data.score).toBe(15)
+    expect(parsed.data.threshold).toBe(30)
+  })
+
+  it('ALL_WEBHOOK_EVENT_TYPES contains all 11 spec events', () => {
+    expect(ALL_WEBHOOK_EVENT_TYPES).toHaveLength(11)
+    expect(ALL_WEBHOOK_EVENT_TYPES).toContain('trust_score.degraded')
+    expect(ALL_WEBHOOK_EVENT_TYPES).toContain('trust_score.compromised')
+  })
 })

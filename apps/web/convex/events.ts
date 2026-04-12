@@ -910,6 +910,23 @@ async function ingestCanonicalDisclosure(
       findingId,
     })
 
+    // Fire-and-forget trust score refresh. Re-scores all components in the
+    // latest snapshot now that hasKnownVulnerabilities has been patched —
+    // this ensures the CVE signal propagates into trustScore immediately and
+    // that trust_score.degraded / trust_score.compromised webhooks fire if
+    // the new disclosure pushes any package below a threshold.
+    if (snapshotInventory.latestSnapshot) {
+      try {
+        await ctx.scheduler.runAfter(
+          0,
+          internal.trustScoreIntel.refreshComponentTrustScores,
+          { snapshotId: snapshotInventory.latestSnapshot._id },
+        )
+      } catch (e) {
+        console.error('[trust-score] failed to schedule after disclosure match', e)
+      }
+    }
+
     // Fire-and-forget blast radius computation. Runs asynchronously so it
     // never aborts or delays the ingestion path if it fails.
     try {

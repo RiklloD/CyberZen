@@ -7,6 +7,9 @@
 //
 //   blastRadiusSummaryForRepository — public query: aggregate stats across all open
 //       findings for a repository (max riskTier, total reachable services, top 3).
+//
+//   architecturalGraph — public query: full graph of blast radius nodes + edges for
+//       all open findings in a repository (spec §7.1 GET /blast-radius/graph).
 
 import { v } from 'convex/values'
 import { internalMutation, query } from './_generated/server'
@@ -221,6 +224,112 @@ export const blastRadiusSummaryForRepository = query({
       maxRiskTier,
       totalReachableServices: [...serviceSet],
       topFindings,
+    }
+  },
+})
+
+// ---------------------------------------------------------------------------
+// architecturalGraph — full blast radius graph for a repository.
+//
+// Returns graph nodes (services / data layers) and edges (finding→service links)
+// suitable for rendering a dependency visualization or feeding into a graph DB.
+// Bounded to the 50 most recent blast radius snapshots across all findings.
+// ---------------------------------------------------------------------------
+
+export const architecturalGraph = query({
+  args: {
+    tenantSlug: v.string(),
+    repositoryFullName: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const tenant = await ctx.db
+      .query('tenants')
+      .withIndex('by_slug', (q) => q.eq('slug', args.tenantSlug))
+      .unique()
+    if (!tenant) return null
+
+    const repository = await ctx.db
+      .query('repositories')
+      .withIndex('by_tenant_and_full_name', (q) =>
+        q.eq('tenantId', tenant._id).eq('fullName', args.repositoryFullName),
+      )
+      .unique()
+    if (!repository) return null
+
+    // Load the most recent blast radius snapshot per finding (bounded to 50)
+    const snapshots = await ctx.db
+      .query('blastRadiusSnapshots')
+      .withIndex('by_repository_and_computed_at', (q) =>
+        q.eq('repositoryId', repository._id),
+      )
+      .order('desc')
+      .take(50)
+
+    // Build node set (services + data layers) and edge list (finding → node)
+    const nodeMap = new Map<
+      string,
+      { id: string; kind: 'service' | 'data_layer'; label: string; maxRiskTier: string }
+    >()
+
+    const edges: Array<{
+      findingId: string
+      target: string
+      riskTier: string
+      businessImpactScore: number
+    }> = []
+
+    // Deduplicate: keep only the latest snapshot per findingId
+    const latestByFinding = new Map<string, (typeof snapshots)[number]>()
+    for (const snap of snapshots) {
+      const key = snap.findingId as string
+      if (!latestByFinding.has(key)) {
+        latestByFinding.set(key, snap)
+      }
+    }
+
+    for (const snap of latestByFinding.values()) {
+      for (const svc of snap.reachableServices) {
+        const id = `service:${svc}`
+        const existing = nodeMap.get(id)
+        if (
+          !existing ||
+          (RISK_TIER_ORDER[snap.riskTier] ?? 0) > (RISK_TIER_ORDER[existing.maxRiskTier] ?? 0)
+        ) {
+          nodeMap.set(id, { id, kind: 'service', label: svc, maxRiskTier: snap.riskTier })
+        }
+        edges.push({
+          findingId: snap.findingId as string,
+          target: id,
+          riskTier: snap.riskTier,
+          businessImpactScore: snap.businessImpactScore,
+        })
+      }
+      for (const layer of snap.exposedDataLayers) {
+        const id = `data_layer:${layer}`
+        const existing = nodeMap.get(id)
+        if (
+          !existing ||
+          (RISK_TIER_ORDER[snap.riskTier] ?? 0) > (RISK_TIER_ORDER[existing.maxRiskTier] ?? 0)
+        ) {
+          nodeMap.set(id, { id, kind: 'data_layer', label: layer, maxRiskTier: snap.riskTier })
+        }
+        edges.push({
+          findingId: snap.findingId as string,
+          target: id,
+          riskTier: snap.riskTier,
+          businessImpactScore: snap.businessImpactScore,
+        })
+      }
+    }
+
+    return {
+      repositoryFullName: repository.fullName,
+      computedAt: Date.now(),
+      nodeCount: nodeMap.size,
+      edgeCount: edges.length,
+      findingCount: latestByFinding.size,
+      nodes: [...nodeMap.values()],
+      edges,
     }
   },
 })

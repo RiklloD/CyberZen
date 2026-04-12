@@ -61,6 +61,11 @@ type BlastRadiusSummary = NonNullable<
 >;
 type BlastRadiusTopFinding = BlastRadiusSummary["topFindings"][number];
 
+type TrustScoreSummary = NonNullable<
+	FunctionReturnType<typeof api.trustScoreIntel.getRepositoryTrustScoreSummary>
+>;
+type TrustScoreBreakdownEntry = TrustScoreSummary["breakdown"][number];
+
 type AttackSurfaceDashboard = NonNullable<
 	FunctionReturnType<typeof api.attackSurfaceIntel.getAttackSurfaceDashboard>
 >;
@@ -1003,6 +1008,164 @@ function RepositoryLearningPanel({
 			<p className="mt-2 text-xs text-[var(--sea-ink-soft)]">
 				{profile.summary}
 			</p>
+		</div>
+	);
+}
+
+// ─── Trust score tone helpers ────────────────────────────────────────────────
+
+function trustScoreTone(
+	score: number,
+): "success" | "warning" | "danger" | "neutral" {
+	if (score >= 80) return "success";
+	if (score >= 60) return "warning";
+	if (score > 0) return "danger";
+	return "neutral";
+}
+
+function trustTierTone(
+	tier: string,
+): "success" | "warning" | "danger" | "neutral" {
+	if (tier === "trusted") return "success";
+	if (tier === "acceptable") return "neutral";
+	if (tier === "at_risk") return "warning";
+	if (tier === "compromised") return "danger";
+	return "neutral";
+}
+
+/**
+ * TrustScoreTierBar — horizontal stacked bar visualising the 4 trust tiers.
+ *
+ * Each segment's width is proportional to tier.count / totalComponents.
+ *
+ * Tier colour guide:
+ *   trusted     (≥80) → success green   bg-[var(--success)] / #22c55e
+ *   acceptable  (60–79) → muted blue   bg-[var(--signal)]  / #3b82f6
+ *   at_risk     (30–59) → amber        bg-amber-400         / #fb923c
+ *   compromised (<30)  → danger red    bg-[var(--danger)]  / #ef4444
+ *
+ * Return null when totalComponents is 0 (nothing to display).
+ * Keep it compact — the bar lives inside a panel row at most ~24px tall.
+ *
+ * Trade-offs to consider:
+ *   - Show segment labels (count/pct) only when the segment is wide enough?
+ *   - Add a `title` tooltip for accessibility / hover detail?
+ *   - Fully transparent segments for tiers with count === 0, or skip them?
+ */
+function TrustScoreTierBar({
+	breakdown,
+	totalComponents,
+}: {
+	breakdown: TrustScoreBreakdownEntry[];
+	totalComponents: number;
+}) {
+	if (totalComponents === 0) return null;
+
+	const TIER_COLORS: Record<string, string> = {
+		trusted: "bg-[var(--success)]",
+		acceptable: "bg-[var(--accent)]",
+		at_risk: "bg-[var(--warning)]",
+		compromised: "bg-[var(--danger)]",
+	};
+
+	const segments = breakdown.filter((e) => e.count > 0);
+
+	return (
+		<div className="mt-3 flex h-2 w-full overflow-hidden rounded-full bg-[var(--surface-2)]">
+			{segments.map((entry) => (
+				<div
+					key={entry.tier}
+					className={`flex-none ${TIER_COLORS[entry.tier] ?? "bg-[var(--muted)]"}`}
+					style={{ width: `${(entry.count / totalComponents) * 100}%` }}
+					title={`${entry.label}: ${entry.count}`}
+				/>
+			))}
+		</div>
+	);
+}
+
+/**
+ * Shows the per-repository dependency trust score summary:
+ * repository composite score, direct/transitive scores, vulnerable and
+ * untrusted counts, and a 4-tier distribution bar.
+ */
+function RepositoryTrustScorePanel({
+	tenantSlug,
+	repositoryFullName,
+}: {
+	tenantSlug: string;
+	repositoryFullName: string;
+}) {
+	const summary = useQuery(api.trustScoreIntel.getRepositoryTrustScoreSummary, {
+		tenantSlug,
+		repositoryFullName,
+	});
+
+	if (summary === undefined || summary === null) return null;
+
+	const compromisedEntry = summary.breakdown.find(
+		(b) => b.tier === "compromised",
+	);
+	const atRiskEntry = summary.breakdown.find((b) => b.tier === "at_risk");
+
+	return (
+		<div className="mt-3 rounded-2xl border border-[color:var(--line)]/70 bg-[var(--surface)]/60 p-4">
+			<div className="flex flex-wrap items-center gap-2">
+				<p className="tiny-label">Trust scores</p>
+				<StatusPill
+					label={`repo ${summary.repositoryScore}/100`}
+					tone={trustScoreTone(summary.repositoryScore)}
+				/>
+				{compromisedEntry && compromisedEntry.count > 0 ? (
+					<StatusPill
+						label={`${compromisedEntry.count} compromised`}
+						tone="danger"
+					/>
+				) : null}
+				{atRiskEntry && atRiskEntry.count > 0 ? (
+					<StatusPill label={`${atRiskEntry.count} at risk`} tone="warning" />
+				) : null}
+				{summary.vulnerableCount > 0 ? (
+					<StatusPill
+						label={`${summary.vulnerableCount} CVE-tagged`}
+						tone="danger"
+					/>
+				) : null}
+			</div>
+			<div className="mt-2 flex flex-wrap gap-2">
+				<StatusPill
+					label={`direct ${summary.directDepScore}`}
+					tone={trustScoreTone(summary.directDepScore)}
+				/>
+				<StatusPill
+					label={`transitive ${summary.transitiveDepScore}`}
+					tone={trustScoreTone(summary.transitiveDepScore)}
+				/>
+				{summary.untrustedCount > 0 ? (
+					<StatusPill
+						label={`${summary.untrustedCount} untrusted`}
+						tone="warning"
+					/>
+				) : null}
+			</div>
+			{/* Tier breakdown — text pills as fallback until TrustScoreTierBar is wired */}
+			{summary.totalComponents > 0 ? (
+				<div className="mt-2 flex flex-wrap gap-1">
+					{summary.breakdown
+						.filter((entry) => entry.count > 0)
+						.map((entry) => (
+							<StatusPill
+								key={entry.tier}
+								label={`${entry.count} ${entry.tier.replace("_", " ")}`}
+								tone={trustTierTone(entry.tier)}
+							/>
+						))}
+				</div>
+			) : null}
+			<TrustScoreTierBar
+				breakdown={summary.breakdown}
+				totalComponents={summary.totalComponents}
+			/>
 		</div>
 	);
 }
@@ -2073,6 +2236,10 @@ function ConfiguredDashboard() {
 										No SBOM snapshot imported for this repository yet.
 									</p>
 								)}
+								<RepositoryTrustScorePanel
+									tenantSlug={overview.tenant.slug}
+									repositoryFullName={repository.fullName}
+								/>
 								<RepositoryIntelligencePanel
 									tenantSlug={overview.tenant.slug}
 									repositoryFullName={repository.fullName}

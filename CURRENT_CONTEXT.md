@@ -100,13 +100,26 @@ This is the always-on context file for fast session recovery. Read this first at
 - Outbound Webhook System (spec §7.2) is complete: `convex/lib/webhookDispatcher.ts` (pure library — all 10 event types, HMAC-SHA256 signing via Web Crypto API, HTTP delivery, event filtering, URL/event validation; 30 tests), `webhookEndpoints` + `webhookDeliveries` schema tables (by_tenant, by_tenant_and_active, by_tenant_and_attempted_at, by_endpoint_and_attempted_at indexes), `convex/webhooks.ts` (registerEndpoint/deleteEndpoint/listEndpoints/listRecentDeliveries public entrypoints; queryActiveEndpoints internalQuery that returns secrets; recordDelivery internalMutation; dispatchWebhookEvent internalAction — fans out to all active subscribed endpoints, signs each payload, POSTs with X-Sentinel-Signature-256 header, records delivery audit row), HTTP endpoints: `POST/GET/DELETE /api/webhooks`, `GET /api/webhooks/deliveries` (all API-key-guarded in http.ts), fire-and-forget wiring for 5 event types: `finding.validated` (events.ts, after exploit validation patch), `finding.pr_opened` (prGeneration.ts, after recordPrOpened), `gate.blocked` (gateEnforcement.ts, evaluateGateForWorkflow), `gate.override` (gateEnforcement.ts, recordManualOverride), `regulatory.gap_detected` (regulatoryDriftIntel.ts, when criticalGapCount > 0), `attack_surface.increased` (attackSurfaceIntel.ts, when trend = degrading + previousSnapshot exists). All checks green (410 tests).
 - WS-15 Phase 1 (Regulatory Drift Detection) is complete: `convex/lib/regulatoryDrift.ts` (pure computeRegulatoryDrift; VULN_CLASS_FRAMEWORKS mapping for SOC 2/GDPR/HIPAA/PCI-DSS/NIS2, severity penalties critical=20/high=12/medium=6/low=2/informational=0, validation multipliers validated=1.5/likely_exploitable=1.2, pr_opened 0.5× status multiplier, score floor at 0, drift levels compliant/drifting/at_risk/non_compliant; 36 tests), `regulatoryDriftSnapshots` schema table (per-framework score columns + overallDriftLevel + openGapCount + criticalGapCount + affectedFrameworks + summary + computedAt; indexed by_repository_and_computed_at), `convex/regulatoryDriftIntel.ts` (`refreshRegulatoryDrift` internalMutation loading up to 200 findings, `refreshRegulatoryDriftForRepository` public mutation with scheduler trigger, `getLatestRegulatoryDrift` public query), fire-and-forget `refreshRegulatoryDrift` wired into `events.ts` after attack surface refresh, `RepositoryRegulatoryDriftPanel` dashboard component with drift level pill, gap count pills, per-framework score pills (only drifting ones), summary text. All checks green (277 tests, biome, build).
 
+- REST API completeness (spec §7.1) is now complete: all 24 spec-defined endpoints implemented across 28 HTTP routes in `http.ts`.
+- Trust Score Computation Pipeline is now complete (this session): `convex/lib/componentTrustScore.ts` (pure library — 7-signal penalty model: known CVE -30, extra CVEs up to -20, direct-dep surcharge -5, typosquat -25, suspicious name -15, pre-release -8, unknown version -12; score clamped 0–100; 30 tests), `convex/trustScoreIntel.ts` (`refreshComponentTrustScores` internalMutation — batch-loads breach disclosures once, computes scores for all snapshot components, patches sbomComponents.trustScore + hasKnownVulnerabilities, dispatches trust_score.degraded when delta ≥ 10 and trust_score.compromised when score newly crosses below 30; `getRepositoryTrustScoreSummary` public query with 4-tier breakdown: trusted/acceptable/at_risk/compromised), fire-and-forget wiring in `sbom.ingestRepositoryInventory` (after snapshot creation) and `events.ingestCanonicalDisclosure` (after hasKnownVulnerabilities patch), `trust_score.compromised` type + data shape added to `webhookDispatcher.ts` — 11th spec §7.2 event type.
+- Webhook event coverage (spec §7.2) is now **11/11 complete**: `finding.validated`, `finding.pr_opened`, `finding.resolved`, `trust_score.degraded`, `trust_score.compromised`, `honeypot.triggered`, `gate.blocked`, `gate.override`, `regulatory.gap_detected`, `sbom.drift_detected`, `attack_surface.increased`.
+
+## Verified Status
+
+- `bun run test` in `apps/web`: passing (442 tests, 22 files)
+- `bun run check` in `apps/web`: passing (biome clean)
+- `bun run build` in `apps/web`: passing (55 modules, 79 kB index bundle)
+- `bunx tsc --noEmit` in `apps/web`: passing — `convex/_generated/api.d.ts` updated manually to include `trustScoreIntel` + `lib/componentTrustScore` (next `convex dev` run will regenerate automatically)
+
+- Dashboard UX pass is now fully complete (this session): `RepositoryTrustScorePanel` added to `src/routes/index.tsx` — shows repo score, direct/transitive breakdown, CVE-tagged + untrusted counts, 4-tier distribution pills, and `TrustScoreTierBar` stacked-bar visualization (trusted=green/acceptable=blue/at_risk=amber/compromised=red; `overflow-hidden rounded-full` container; zero-count segments skipped; hover `title` tooltips); `TrustScoreSummary` + `TrustScoreBreakdownEntry` type aliases; `trustScoreIntel` + `lib/componentTrustScore` registered in `convex/_generated/api.d.ts`. tsc clean, biome clean, 442/442 tests.
+
 ## Immediate Next Steps
 
 1. Set `GITHUB_WEBHOOK_SECRET` in Convex: `npx convex env set GITHUB_WEBHOOK_SECRET <secret>`
 2. Test the webhook end-to-end with the simulation script: `bun scripts/simulate-github-push.mjs --url https://quick-echidna-102.eu-west-1.convex.site/webhooks/github --secret <secret>`
 3. Set `GITHUB_TOKEN` in Convex and run the first live advisory sync: `bun run advisory:sync -- --tenant atlas-fintech --repository atlas-fintech/payments-api --hours 72`
 4. Set `SENTINEL_API_KEY` in Convex env to activate the HTTP endpoint auth guard: `npx convex env set SENTINEL_API_KEY <value>`
-5. Outbound webhook system (spec §7.2) is now complete. Next: remaining missing REST API endpoints — `GET /api/findings/{id}`, `PATCH /api/findings/status`, `GET /api/attack-surface/score/history`, `GET /api/reports/compliance`, `GET /api/reports/adversarial`, `GET /api/blast-radius/{finding_id}` — and a webhook settings panel in the dashboard.
+5. Run `npx convex dev` once against a live deployment to regenerate `_generated/api.d.ts` automatically (removes the manual entry added this session)
 
 ## Roadmap Position
 
@@ -131,11 +144,11 @@ This is the always-on context file for fast session recovery. Read this first at
   - Exploit Validation MVP with validation-run persistence and workflow advancement
   - CI/CD Gate Enforcement MVP with policy engine, per-finding gate decisions, override support, and dashboard enforcement panel
   - PR Generation MVP with proposal generation, GitHub API integration (branch + draft PR), finding lifecycle advancement, and dashboard prGeneration panel
-- Recently completed (this session):
-  - WS-13 ingestion wiring: `scanContentByRef` adapter mutation; fire-and-forget injection scans on push commit messages (webhook path) and advisory summary+description text (GHSA + OSV breach sync paths)
-  - WS-13 dashboard panel: `RepositoryIntelligencePanel` per-repository sub-component surfacing supply chain risk (overall score, flagged components, typosquat candidates) and injection scan history in each repository card
-- Recently completed (this session):
-  - WS-14 Phase 2: Memory Controller + Red/Blue simulation loop MVP (memoryController + redBlueSimulator pure libs + 31 tests, schema tables, Convex entrypoints, events.ts wiring, dashboard panels)
+- Recently completed:
+  - WS-13 ingestion wiring and dashboard panel (injection scans on push + advisory intake; `RepositoryIntelligencePanel`)
+  - WS-14 Phase 2: Memory Controller + Red/Blue simulation loop MVP
+  - Trust Score Computation Pipeline: `componentTrustScore.ts` pure lib (30 tests), `trustScoreIntel.ts` Convex entrypoints, fire-and-forget wiring in sbom.ts + events.ts, `trust_score.compromised` 11th webhook event type, 11/11 webhook coverage
+  - Dashboard UX pass: `RepositoryTrustScorePanel` + `TrustScoreTierBar` fully implemented; `convex/_generated/api.d.ts` updated; tsc + biome + 442 tests all green
 
 ## Update Rule
 

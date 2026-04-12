@@ -8,7 +8,7 @@
 //
 //   getLatestHoneypotPlan            — public query: latest snapshot or null.
 
-import { v } from 'convex/values'
+import { ConvexError, v } from 'convex/values'
 import { internalMutation, mutation, query } from './_generated/server'
 import { internal } from './_generated/api'
 import { computeHoneypotPlan } from './lib/honeypotInjector'
@@ -161,5 +161,82 @@ export const getLatestHoneypotPlan = query({
       )
       .order('desc')
       .first()
+  },
+})
+
+// ---------------------------------------------------------------------------
+// recordHoneypotTrigger — operator or sensor calls this when a honeypot fires.
+//
+// A honeypot trigger is treated as a near-certain breach indicator (spec §3.9).
+// This mutation records the event and immediately dispatches a
+// `honeypot.triggered` webhook so connected SIEMs and incident workflows fire.
+//
+// POST /api/honeypot/trigger wraps this mutation.
+// ---------------------------------------------------------------------------
+
+export const recordHoneypotTrigger = mutation({
+  args: {
+    tenantSlug: v.string(),
+    repositoryFullName: v.string(),
+    /** The honeypot path or identifier that was accessed. */
+    honeypotPath: v.string(),
+    /** Human-readable description of what kind of honeypot fired. */
+    honeypotKind: v.union(
+      v.literal('endpoint'),
+      v.literal('database_field'),
+      v.literal('file'),
+      v.literal('token'),
+    ),
+    /** Source IP or actor identifier from the sensor. */
+    sourceIdentifier: v.optional(v.string()),
+    /** Additional metadata from the sensor, free-form. */
+    metadata: v.optional(v.string()),
+  },
+  returns: v.object({
+    recorded: v.boolean(),
+    webhookScheduled: v.boolean(),
+  }),
+  handler: async (ctx, args) => {
+    const tenant = await ctx.db
+      .query('tenants')
+      .withIndex('by_slug', (q) => q.eq('slug', args.tenantSlug))
+      .unique()
+    if (!tenant) throw new ConvexError('Tenant not found')
+
+    const repository = await ctx.db
+      .query('repositories')
+      .withIndex('by_tenant_and_full_name', (q) =>
+        q.eq('tenantId', tenant._id).eq('fullName', args.repositoryFullName),
+      )
+      .unique()
+    if (!repository) throw new ConvexError('Repository not found')
+
+    let webhookScheduled = false
+    try {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.webhooks.dispatchWebhookEvent,
+        {
+          tenantId: repository.tenantId,
+          tenantSlug: tenant.slug,
+          repositoryFullName: repository.fullName,
+          eventPayload: {
+            event: 'honeypot.triggered' as const,
+            data: {
+              honeypotPath: args.honeypotPath,
+              honeypotKind: args.honeypotKind,
+              sourceIdentifier: args.sourceIdentifier ?? 'unknown',
+              metadata: args.metadata ?? '',
+              triggeredAt: Date.now(),
+            },
+          },
+        },
+      )
+      webhookScheduled = true
+    } catch (e) {
+      console.error('[webhooks] honeypot.triggered dispatch failed', e)
+    }
+
+    return { recorded: true, webhookScheduled }
   },
 })
