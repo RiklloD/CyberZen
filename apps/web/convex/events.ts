@@ -314,6 +314,95 @@ async function ingestGithubPushForRepository(
     lastScannedAt: now,
   })
 
+  // Fire-and-forget: secret detection scan — scan changed file paths and the
+  // commit SHA as content items. Runs immediately on every new push. File
+  // paths can expose secrets embedded in directory/file names, and are always
+  // available in the webhook payload without an additional GitHub API call.
+  try {
+    const contentItems: Array<{ content: string; filename?: string }> = []
+    if (args.changedFiles && args.changedFiles.length > 0) {
+      // Scan as a combined string to catch cross-line patterns in paths
+      contentItems.push({ content: args.changedFiles.join('\n') })
+    }
+    if (contentItems.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.secretDetectionIntel.recordSecretScan,
+        {
+          tenantId: tenant._id,
+          repositoryId: repository._id,
+          branch: args.branch,
+          commitSha: args.commitSha,
+          contentItems,
+        },
+      )
+    }
+  } catch (e) {
+    console.error('[secret-detection] failed to schedule for repository', repository._id, e)
+  }
+
+  // ── WS-33: IaC Security Scanner ──────────────────────────────────────────
+  // Filters changed files to those with IaC-recognisable names and triggers
+  // a misconfiguration scan. File paths are passed as content for the MVP;
+  // a future integration can fetch real file bytes via the GitHub Contents API.
+  try {
+    const IAC_EXTENSIONS = /\.tf$|\.ya?ml$|Dockerfile(?:\.\w+)?$|\.dockerfile$|docker-compose/i
+    const iacFiles = args.changedFiles?.filter((f) => IAC_EXTENSIONS.test(f)) ?? []
+    if (iacFiles.length > 0) {
+      await ctx.scheduler.runAfter(0, internal.iacScanIntel.recordIacScan, {
+        tenantId: tenant._id,
+        repositoryId: repository._id,
+        branch: args.branch,
+        commitSha: args.commitSha,
+        fileItems: iacFiles.slice(0, 10).map((f) => ({ filename: f, content: f })),
+      })
+    }
+  } catch (e) {
+    console.error('[iac-scan] failed to schedule for repository', repository._id, e)
+  }
+
+  // ── WS-35: CI/CD Pipeline Security Scanner ───────────────────────────────
+  // Detects misconfigurations in GitHub Actions, GitLab CI, CircleCI, and
+  // Bitbucket Pipelines YAML files. File paths are passed as content for the
+  // MVP; a future integration can fetch real bytes via the GitHub Contents API.
+  try {
+    const CICD_PATHS =
+      /\.github[/\\]workflows[/\\].+\.ya?ml$|\.gitlab-ci\.ya?ml$|\.circleci[/\\]config\.ya?ml$|bitbucket-pipelines\.ya?ml$/i
+    const cicdFiles = args.changedFiles?.filter((f) => CICD_PATHS.test(f)) ?? []
+    if (cicdFiles.length > 0) {
+      await ctx.scheduler.runAfter(0, internal.cicdScanIntel.recordCicdScan, {
+        tenantId: tenant._id,
+        repositoryId: repository._id,
+        branch: args.branch,
+        commitSha: args.commitSha,
+        fileItems: cicdFiles.slice(0, 10).map((f) => ({ filename: f, content: f })),
+      })
+    }
+  } catch (e) {
+    console.error('[cicd-scan] failed to schedule for repository', repository._id, e)
+  }
+
+  // ── WS-37: Cryptography Weakness Detector ────────────────────────────────
+  // Detects use of broken/deprecated crypto algorithms in source code files.
+  // Covers Python, JS/TS, Java, Go, Ruby, C#, PHP, and Rust. File paths are
+  // passed as content for the MVP; real bytes via GitHub Contents API later.
+  try {
+    const SOURCE_EXTENSIONS =
+      /\.(py|js|ts|jsx|tsx|mjs|cjs|java|go|rb|cs|php|rs)$/i
+    const sourceFiles = args.changedFiles?.filter((f) => SOURCE_EXTENSIONS.test(f)) ?? []
+    if (sourceFiles.length > 0) {
+      await ctx.scheduler.runAfter(0, internal.cryptoWeaknessIntel.recordCryptoWeaknessScan, {
+        tenantId: tenant._id,
+        repositoryId: repository._id,
+        branch: args.branch,
+        commitSha: args.commitSha,
+        fileItems: sourceFiles.slice(0, 10).map((f) => ({ filename: f, content: f })),
+      })
+    }
+  } catch (e) {
+    console.error('[crypto-weakness] failed to schedule for repository', repository._id, e)
+  }
+
   return { eventId, workflowRunId, deduped: false }
 }
 
@@ -464,6 +553,18 @@ async function runSemanticFingerprintForWorkflowInternal(
     }),
   )
 
+  // Fire-and-forget: real embedding-based semantic analysis (upgrades path-aware results).
+  // If OPENAI_API_KEY is not set the action falls back to path-aware matching silently.
+  ctx.scheduler.runAfter(0, internal.semanticFingerprintIntel.analyzeCodeChange, {
+    tenantId: workflowRun.tenantId,
+    repositoryId: repository._id,
+    repositoryName: repository.name,
+    commitSha: event.commitSha ?? 'unknown',
+    branch: event.branch ?? repository.defaultBranch,
+    changedFiles,
+    packageDependencies: snapshotInventory.latestComponents.map((c) => c.name),
+  })
+
   const syncedState = await syncWorkflowState(ctx, workflowRunId)
 
   return {
@@ -559,6 +660,15 @@ async function runExploitValidationForFindingInternal(
     completedAt: undefined,
   })
 
+  // Fire-and-forget real sandbox validation.
+  // The sandbox-manager will OVERRIDE the local-first result below when it
+  // completes. If SANDBOX_MANAGER_URL is not set the action safely no-ops.
+  ctx.scheduler.runAfter(0, internal.sandboxValidation.triggerSandboxValidation, {
+    findingId: finding._id,
+    exploitValidationRunId: validationRunId,
+    targetBaseUrl: undefined, // populated from env in the action if SANDBOX_TARGET_URL is set
+  })
+
   const completedAt = Date.now()
 
   await ctx.db.patch('exploitValidationRuns', validationRunId, {
@@ -579,7 +689,7 @@ async function runExploitValidationForFindingInternal(
     resolvedAt: assessment.outcome === 'unexploitable' ? completedAt : undefined,
   })
 
-  // Fire-and-forget outbound webhook for finding.validated events.
+  // Fire-and-forget: outbound webhook + Slack alert for finding.validated events.
   if (assessment.outcome !== 'unexploitable') {
     try {
       const tenant = await ctx.db.get(finding.tenantId)
@@ -604,6 +714,46 @@ async function runExploitValidationForFindingInternal(
             },
           },
         )
+
+        // Slack alert (critical / high findings only, per SLACK_MIN_SEVERITY env)
+        ctx.scheduler.runAfter(0, internal.slack.sendSlackAlert, {
+          kind: 'finding_validated',
+          tenantSlug: tenant.slug,
+          repositoryFullName: repository.fullName,
+          severity: finding.severity,
+          title: finding.title,
+          summary: finding.summary,
+          vulnClass: finding.vulnClass,
+          blastRadiusSummary: finding.blastRadiusSummary,
+          prUrl: finding.prUrl ?? undefined,
+          findingId: finding._id as string,
+        })
+
+        // Teams alert (parallel to Slack, per TEAMS_MIN_SEVERITY env)
+        ctx.scheduler.runAfter(0, internal.teams.sendTeamsAlert, {
+          kind: 'finding_validated',
+          tenantSlug: tenant.slug,
+          repositoryFullName: repository.fullName,
+          severity: finding.severity,
+          title: finding.title,
+          summary: finding.summary,
+          vulnClass: finding.vulnClass,
+          blastRadiusSummary: finding.blastRadiusSummary,
+          prUrl: finding.prUrl ?? undefined,
+          findingId: finding._id as string,
+        })
+
+        // Opsgenie page (critical findings only, per OPSGENIE_SEVERITY_THRESHOLD env)
+        ctx.scheduler.runAfter(0, internal.opsgenie.sendOpsgenieAlert, {
+          kind: 'critical_finding',
+          tenantSlug: tenant.slug,
+          repositoryFullName: repository.fullName,
+          severity: finding.severity,
+          title: finding.title,
+          summary: finding.summary,
+          vulnClass: finding.vulnClass,
+          findingId: finding._id as string,
+        })
       }
     } catch (e) {
       console.error('[webhooks] finding.validated dispatch failed', e)
@@ -999,6 +1149,44 @@ async function ingestCanonicalDisclosure(
       )
     } catch (e) {
       console.error('[learning-profile] failed to schedule for repository', repositoryContext.repository._id, e)
+    }
+
+    // Fire-and-forget compliance evidence refresh. Runs last so it can see
+    // the full picture of findings, gate decisions, and PRs for this repo.
+    try {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.complianceEvidenceIntel.refreshComplianceEvidence,
+        { repositoryId: repositoryContext.repository._id },
+      )
+    } catch (e) {
+      console.error('[compliance-evidence] failed to schedule for repository', repositoryContext.repository._id, e)
+    }
+
+    // Fire-and-forget cross-repository impact detection. Scans all other
+    // repositories in the tenant to identify lateral package exposure from
+    // this same disclosure — e.g. the same vulnerable npm package appearing
+    // across multiple repos. Runs after all per-repo signals are written so
+    // results reflect the full current state.
+    try {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.crossRepoIntel.computeAndStoreCrossRepoImpact,
+        {
+          sourceFindingId: findingId,
+          sourceRepositoryId: repository._id,
+          tenantId: tenant._id,
+          packageName: disclosure.packageName,
+          ecosystem: normalizeEcosystem(disclosure.ecosystem),
+          severity: disclosure.severity,
+          findingTitle: disclosureFindingTitle(
+            disclosure.packageName,
+            repository.name,
+          ),
+        },
+      )
+    } catch (e) {
+      console.error('[cross-repo] failed to schedule for finding', findingId, e)
     }
 
     await updateWorkflowTask(
@@ -1546,6 +1734,18 @@ export const ingestBreachDisclosure = mutation({
         v.literal('manual'),
         v.literal('github_security_advisory'),
         v.literal('osv'),
+        v.literal('nvd'),
+        v.literal('npm_advisory'),
+        v.literal('pypi_safety'),
+        v.literal('rustsec'),
+        v.literal('go_vuln'),
+        v.literal('github_issues'),
+        v.literal('hackerone'),
+        v.literal('oss_security'),
+        v.literal('packet_storm'),
+        v.literal('paste_site'),
+        v.literal('credential_dump'),
+        v.literal('dark_web_mention'),
       ),
     ),
     sourceTier: v.optional(

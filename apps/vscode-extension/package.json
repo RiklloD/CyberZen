@@ -1,0 +1,118 @@
+{
+  "name": "sentinel-security",
+  "displayName": "Sentinel Security",
+  "description": "Autonomous cybersecurity intelligence — inline findings, dependency vulnerability indicators, and security posture at a glance.",
+  "version": "0.1.0",
+  "publisher": "sentinel",
+  "private": true,
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": ["Other", "Linters"],
+  "activationEvents": [
+    "workspaceContains:**/package.json",
+    "workspaceContains:**/requirements.txt",
+    "workspaceContains:**/go.mod",
+    "workspaceContains:**/Cargo.toml",
+    "workspaceContains:**/pom.xml",
+    "workspaceContains:**/Gemfile",
+    "onCommand:sentinel.openDashboard",
+    "onCommand:sentinel.triggerScan",
+    "onCommand:sentinel.viewFindings"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "configuration": {
+      "title": "Sentinel Security",
+      "properties": {
+        "sentinel.apiUrl": {
+          "type": "string",
+          "default": "https://api.sentinelsec.io",
+          "description": "Base URL of your Sentinel API deployment."
+        },
+        "sentinel.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Your Sentinel API key (X-Sentinel-Api-Key).",
+          "markdownDescription": "Your Sentinel API key. Set `SENTINEL_API_KEY` on your deployment and paste the value here."
+        },
+        "sentinel.tenantSlug": {
+          "type": "string",
+          "default": "",
+          "description": "Your tenant slug (e.g. atlas-fintech)."
+        },
+        "sentinel.repositoryFullName": {
+          "type": "string",
+          "default": "",
+          "description": "Repository full name as known to Sentinel (e.g. atlas-fintech/payments-api)."
+        },
+        "sentinel.minSeverity": {
+          "type": "string",
+          "enum": ["informational", "low", "medium", "high", "critical"],
+          "default": "medium",
+          "description": "Minimum severity level for inline diagnostics."
+        },
+        "sentinel.refreshIntervalSeconds": {
+          "type": "number",
+          "default": 300,
+          "minimum": 60,
+          "maximum": 3600,
+          "description": "How often (in seconds) to refresh findings from the API. Default: 300s (5 min)."
+        },
+        "sentinel.dashboardUrl": {
+          "type": "string",
+          "default": "",
+          "description": "URL to your Sentinel dashboard (opened by the 'Open Dashboard' command)."
+        },
+        "sentinel.enableCodeLens": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show vulnerability CodeLens overlays on manifest files (package.json, requirements.txt, etc.)."
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "sentinel.refresh",
+        "title": "Sentinel: Refresh Findings"
+      },
+      {
+        "command": "sentinel.triggerScan",
+        "title": "Sentinel: Trigger Repository Scan"
+      },
+      {
+        "command": "sentinel.viewFindings",
+        "title": "Sentinel: View All Findings"
+      },
+      {
+        "command": "sentinel.openDashboard",
+        "title": "Sentinel: Open Dashboard"
+      },
+      {
+        "command": "sentinel.openFinding",
+        "title": "Sentinel: Open Finding Detail"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "sentinel.viewFindings",
+          "group": "sentinel@1",
+          "when": "resourceFilename =~ /package\\.json|requirements\\.txt|go\\.mod|Cargo\\.toml/"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "build": "bun build src/extension.ts --outfile dist/extension.js --target node --external vscode --format cjs",
+    "test": "bun test src/test",
+    "typecheck": "bunx tsc --noEmit"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "bun-types": "^1.1.0",
+    "typescript": "^5.5.0"
+  }
+}

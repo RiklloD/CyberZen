@@ -230,6 +230,33 @@ export const evaluateGateForWorkflow = internalMutation({
                 },
               },
             )
+            // Slack alert for gate blocked
+            ctx.scheduler.runAfter(0, internal.slack.sendSlackAlert, {
+              kind: 'gate_blocked',
+              tenantSlug: tenant.slug,
+              repositoryFullName: repository.fullName,
+              title: `Gate blocked on ${event.branch ?? repository.defaultBranch}`,
+              summary: blockedReasons?.filter(Boolean).join('; ') ?? 'Policy violation',
+            })
+
+            // Teams alert for gate blocked (parallel to Slack)
+            ctx.scheduler.runAfter(0, internal.teams.sendTeamsAlert, {
+              kind: 'gate_blocked',
+              tenantSlug: tenant.slug,
+              repositoryFullName: repository.fullName,
+              title: `Gate blocked on ${event.branch ?? repository.defaultBranch}`,
+              summary: blockedReasons?.filter(Boolean).join('; ') ?? 'Policy violation',
+            })
+
+            // Opsgenie alert for gate blocked (severity: high by default)
+            ctx.scheduler.runAfter(0, internal.opsgenie.sendOpsgenieAlert, {
+              kind: 'gate_blocked',
+              tenantSlug: tenant.slug,
+              repositoryFullName: repository.fullName,
+              severity: 'high',
+              title: `Gate blocked on ${event.branch ?? repository.defaultBranch}`,
+              summary: blockedReasons?.filter(Boolean).join('; ') ?? 'Policy violation',
+            })
           }
         }
       } catch (e) {

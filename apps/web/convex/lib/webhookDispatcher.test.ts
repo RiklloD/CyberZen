@@ -337,9 +337,10 @@ describe('WebhookEnvelope shapes', () => {
     expect(parsed.data.threshold).toBe(30)
   })
 
-  it('ALL_WEBHOOK_EVENT_TYPES contains all 11 spec events', () => {
-    expect(ALL_WEBHOOK_EVENT_TYPES).toHaveLength(11)
+  it('ALL_WEBHOOK_EVENT_TYPES contains all 12 spec events', () => {
+    expect(ALL_WEBHOOK_EVENT_TYPES).toHaveLength(12)
     expect(ALL_WEBHOOK_EVENT_TYPES).toContain('trust_score.degraded')
     expect(ALL_WEBHOOK_EVENT_TYPES).toContain('trust_score.compromised')
+    expect(ALL_WEBHOOK_EVENT_TYPES).toContain('finding.severity_escalated')
   })
 })

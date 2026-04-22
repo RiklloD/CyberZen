@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import re
 import tomllib
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 from .models import InventoryComponent, InventorySnapshot
@@ -1105,6 +1106,464 @@ def _dedupe_components(components: list[InventoryComponent]) -> list[InventoryCo
     )
 
 
+# ── Maven pom.xml ────────────────────────────────────────────────────────────
+
+# Maven namespaces appear in some pom.xml files
+_MVN_NS = "http://maven.apache.org/POM/4.0.0"
+
+
+def _mvn_tag(tag: str) -> str:
+    """Return a namespaced or non-namespaced tag for flexible parsing."""
+    return f"{{{_MVN_NS}}}{tag}"
+
+
+def _parse_pom_xml(pom_path: Path) -> list[InventoryComponent]:
+    """Parse Maven pom.xml and extract dependency coordinates."""
+    source_file = str(pom_path)
+    components: list[InventoryComponent] = []
+
+    try:
+        tree = ET.parse(pom_path)
+        root = tree.getroot()
+    except ET.ParseError:
+        return components
+
+    # Support both namespaced and non-namespaced pom.xml
+    ns = _MVN_NS if root.tag.startswith("{") else ""
+    prefix = f"{{{ns}}}" if ns else ""
+
+    def find(node: ET.Element, *tags: str) -> ET.Element | None:
+        for tag in tags:
+            child = node.find(f"{prefix}{tag}")
+            if child is not None:
+                return child
+        return None
+
+    def findtext(node: ET.Element, *tags: str) -> str:
+        el = find(node, *tags)
+        return (el.text or "").strip() if el is not None else ""
+
+    deps_node = find(root, "dependencies")
+    if deps_node is None:
+        return components
+
+    for dep in deps_node.findall(f"{prefix}dependency"):
+        group_id = findtext(dep, "groupId")
+        artifact_id = findtext(dep, "artifactId")
+        version = findtext(dep, "version")
+        scope = findtext(dep, "scope") or "compile"
+        optional = findtext(dep, "optional").lower() == "true"
+
+        if not group_id or not artifact_id:
+            continue
+
+        # Maven coordinate format: groupId:artifactId
+        name = f"{group_id}:{artifact_id}"
+
+        # Resolve property placeholders like ${project.version}
+        if version.startswith("${"):
+            version = "unknown"
+
+        is_build = scope in ("test", "provided") or optional
+        layer = "build" if is_build else "direct"
+
+        components.append(
+            InventoryComponent(
+                name=name,
+                version=version or "unknown",
+                ecosystem="maven",
+                layer=layer,
+                is_direct=not is_build,
+                source_file=source_file,
+            )
+        )
+
+    return components
+
+
+# ── Gradle build files ────────────────────────────────────────────────────────
+#
+# Gradle files (.gradle / .gradle.kts) are Groovy/Kotlin scripts — there is no
+# reliable full parser without executing them. We use a conservative regex approach
+# that captures the most common dependency declaration forms.
+
+_GRADLE_DEP_PATTERNS = [
+    # Groovy: implementation 'group:artifact:version'
+    # Kotlin DSL: implementation("group:artifact:version")
+    re.compile(
+        r"""(?:implementation|api|runtimeOnly|testImplementation|compileOnly|annotationProcessor)\s*[\s('"]+([a-zA-Z0-9._-]+):([a-zA-Z0-9._-]+):([^'")\s]+)"""
+    ),
+    # Kotlin: implementation(group = "...", name = "...", version = "...")
+    re.compile(
+        r"""(?:implementation|api)\s*\(\s*group\s*=\s*["']([^"']+)["']\s*,\s*name\s*=\s*["']([^"']+)["']\s*,\s*version\s*=\s*["']([^"']+)["']"""
+    ),
+]
+
+_GRADLE_BUILD_SCOPES = {"testImplementation", "testRuntimeOnly", "testCompileOnly"}
+
+
+def _parse_gradle(gradle_path: Path) -> list[InventoryComponent]:
+    """Parse Gradle build file using conservative regex patterns."""
+    source_file = str(gradle_path)
+    components: list[InventoryComponent] = []
+
+    try:
+        content = gradle_path.read_text(encoding="utf-8", errors="ignore")
+    except OSError:
+        return components
+
+    seen: set[str] = set()
+
+    for line in content.splitlines():
+        line = line.strip()
+        if line.startswith("//") or line.startswith("*"):
+            continue
+
+        # Check if this is a test scope declaration
+        is_build = any(scope in line for scope in _GRADLE_BUILD_SCOPES)
+
+        for pattern in _GRADLE_DEP_PATTERNS:
+            match = pattern.search(line)
+            if match:
+                groups = match.groups()
+                if len(groups) == 3:
+                    group_id, artifact_id, version = groups
+                elif len(groups) == 2:
+                    group_id, artifact_id = groups
+                    version = "unknown"
+                else:
+                    continue
+
+                name = f"{group_id}:{artifact_id}"
+                key = f"{name}:{version}"
+                if key in seen:
+                    continue
+                seen.add(key)
+
+                components.append(
+                    InventoryComponent(
+                        name=name,
+                        version=version,
+                        ecosystem="gradle",
+                        layer="build" if is_build else "direct",
+                        is_direct=not is_build,
+                        source_file=source_file,
+                    )
+                )
+
+    return components
+
+
+# ── Ruby Gemfile.lock ─────────────────────────────────────────────────────────
+
+_GEM_SPEC_PATTERN = re.compile(r"^\s{4}([a-zA-Z0-9_.-]+)\s+\(([^)]+)\)")
+_GEM_DEPENDENCY_PATTERN = re.compile(r"^\s{2}([a-zA-Z0-9_.-]+)\s*\(([^)]*)\)")
+
+
+def _parse_gemfile_lock(gemfile_lock_path: Path) -> list[InventoryComponent]:
+    """
+    Parse Gemfile.lock to extract gem dependencies.
+
+    Gemfile.lock format:
+        GEM
+          remote: https://rubygems.org/
+          specs:
+            actioncable (7.0.8)
+            actionmailer (7.0.8)
+            ...
+        DEPENDENCIES
+          activesupport (~> 7.0)
+          ...
+    """
+    source_file = str(gemfile_lock_path)
+    components: list[InventoryComponent] = []
+
+    try:
+        content = gemfile_lock_path.read_text(encoding="utf-8", errors="ignore")
+    except OSError:
+        return components
+
+    lines = content.splitlines()
+    in_specs = False
+    in_dependencies = False
+    direct_gems: set[str] = set()
+    all_gems: dict[str, str] = {}
+
+    for line in lines:
+        stripped = line.rstrip()
+
+        if stripped.strip() in ("GEM", "PATH", "GIT"):
+            in_specs = False
+            in_dependencies = False
+            continue
+
+        if stripped.strip() == "DEPENDENCIES":
+            in_specs = False
+            in_dependencies = True
+            continue
+
+        if stripped.strip() == "specs:":
+            in_specs = True
+            in_dependencies = False
+            continue
+
+        if stripped and not stripped[0].isspace():
+            # New section
+            in_specs = False
+            in_dependencies = False
+            continue
+
+        if in_specs:
+            match = _GEM_SPEC_PATTERN.match(stripped)
+            if match:
+                name, version = match.group(1), match.group(2)
+                # Take only the base version (ignore platform qualifiers like "x86_64-darwin")
+                base_version = version.split("-")[0] if "-" in version and version[0].isdigit() else version
+                all_gems[name.lower()] = base_version
+
+        if in_dependencies:
+            # Dependencies section lists direct gems
+            dep_match = _GEM_DEPENDENCY_PATTERN.match(stripped)
+            if dep_match:
+                direct_gems.add(dep_match.group(1).lower())
+
+    # Build components from resolved specs
+    for name, version in all_gems.items():
+        is_direct = name in direct_gems
+        components.append(
+            InventoryComponent(
+                name=name,
+                version=version,
+                ecosystem="gem",
+                layer="direct" if is_direct else "transitive",
+                is_direct=is_direct,
+                source_file=source_file,
+            )
+        )
+
+    return components
+
+
+# ── Gemfile (without lock) ────────────────────────────────────────────────────
+
+_GEMFILE_GEM_PATTERN = re.compile(
+    r"""^\s*gem\s+['"]([a-zA-Z0-9_.-]+)['"]\s*(?:,\s*['"]([^'"]+)['"])?"""
+)
+
+
+def _parse_gemfile(gemfile_path: Path) -> list[InventoryComponent]:
+    """Parse bare Gemfile when Gemfile.lock is absent."""
+    source_file = str(gemfile_path)
+    components: list[InventoryComponent] = []
+
+    try:
+        content = gemfile_path.read_text(encoding="utf-8", errors="ignore")
+    except OSError:
+        return components
+
+    for line in content.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("#"):
+            continue
+        match = _GEMFILE_GEM_PATTERN.match(stripped)
+        if match:
+            name = match.group(1)
+            version = match.group(2) or "unknown"
+            components.append(
+                InventoryComponent(
+                    name=name.lower(),
+                    version=version,
+                    ecosystem="gem",
+                    layer="direct",
+                    is_direct=True,
+                    source_file=source_file,
+                )
+            )
+
+    return components
+
+
+# ── NuGet (.csproj / packages.lock.json) ─────────────────────────────────────
+
+_CSPROJ_PACKAGE_REF = re.compile(
+    r'<PackageReference\s+Include="([^"]+)"\s+Version="([^"]+)"',
+    re.IGNORECASE,
+)
+_CSPROJ_PACKAGE_REF_ALT = re.compile(
+    r'<PackageReference\s+Include="([^"]+)"[^>]*>\s*<Version>([^<]+)</Version>',
+    re.IGNORECASE | re.DOTALL,
+)
+
+
+def _parse_csproj(csproj_path: Path) -> list[InventoryComponent]:
+    """Parse .csproj file for NuGet PackageReference entries."""
+    source_file = str(csproj_path)
+    components: list[InventoryComponent] = []
+
+    try:
+        content = csproj_path.read_text(encoding="utf-8", errors="ignore")
+    except OSError:
+        return components
+
+    seen: set[str] = set()
+
+    for pattern in (_CSPROJ_PACKAGE_REF, _CSPROJ_PACKAGE_REF_ALT):
+        for match in pattern.finditer(content):
+            name = match.group(1).strip()
+            version = match.group(2).strip()
+            key = f"{name.lower()}:{version}"
+            if key in seen:
+                continue
+            seen.add(key)
+            components.append(
+                InventoryComponent(
+                    name=name,
+                    version=version,
+                    ecosystem="nuget",
+                    layer="direct",
+                    is_direct=True,
+                    source_file=source_file,
+                )
+            )
+
+    return components
+
+
+def _parse_nuget_lock(lock_path: Path) -> list[InventoryComponent]:
+    """
+    Parse packages.lock.json (NuGet lock file format).
+
+    Format:
+        {
+          "version": 2,
+          "dependencies": {
+            ".NETCoreApp,Version=v8.0": {
+              "PackageName": { "type": "Direct", "resolved": "1.2.3" },
+              ...
+            }
+          }
+        }
+    """
+    source_file = str(lock_path)
+    components: list[InventoryComponent] = []
+
+    try:
+        data = json.loads(lock_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return components
+
+    dependencies = data.get("dependencies", {})
+    seen: set[str] = set()
+
+    # dependencies can be nested by target framework
+    for framework_deps in dependencies.values():
+        if not isinstance(framework_deps, dict):
+            continue
+        for pkg_name, pkg_data in framework_deps.items():
+            if not isinstance(pkg_data, dict):
+                continue
+            version = str(pkg_data.get("resolved", "unknown"))
+            dep_type = str(pkg_data.get("type", "Transitive")).lower()
+            is_direct = dep_type == "direct"
+            layer = "direct" if is_direct else "transitive"
+
+            key = f"{pkg_name.lower()}:{version}"
+            if key in seen:
+                continue
+            seen.add(key)
+
+            components.append(
+                InventoryComponent(
+                    name=pkg_name,
+                    version=version,
+                    ecosystem="nuget",
+                    layer=layer,
+                    is_direct=is_direct,
+                    source_file=source_file,
+                )
+            )
+
+    return components
+
+
+# ── PHP Composer ───────────────────────────────────────────────────────────────
+
+def _parse_composer_json(composer_path: Path) -> list[InventoryComponent]:
+    """Parse composer.json for direct PHP dependencies."""
+    source_file = str(composer_path)
+    components: list[InventoryComponent] = []
+
+    try:
+        data = json.loads(composer_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return components
+
+    for section, is_direct, layer in [
+        ("require", True, "direct"),
+        ("require-dev", False, "build"),
+    ]:
+        deps = data.get(section, {})
+        if not isinstance(deps, dict):
+            continue
+        for pkg_name, version_constraint in deps.items():
+            # Skip PHP itself and extensions (e.g. "php", "ext-json")
+            if pkg_name == "php" or pkg_name.startswith("ext-"):
+                continue
+            components.append(
+                InventoryComponent(
+                    name=pkg_name.lower(),
+                    version=str(version_constraint),
+                    ecosystem="composer",
+                    layer=layer,
+                    is_direct=is_direct,
+                    source_file=source_file,
+                )
+            )
+
+    return components
+
+
+def _parse_composer_lock(lock_path: Path) -> list[InventoryComponent]:
+    """
+    Parse composer.lock for fully resolved PHP dependencies.
+
+    Format:
+        {
+          "packages": [ { "name": "vendor/pkg", "version": "1.2.3" }, ... ],
+          "packages-dev": [ ... ]
+        }
+    """
+    source_file = str(lock_path)
+    components: list[InventoryComponent] = []
+
+    try:
+        data = json.loads(lock_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return components
+
+    for section, is_direct, layer in [
+        ("packages", True, "direct"),
+        ("packages-dev", False, "build"),
+    ]:
+        for pkg in data.get(section, []):
+            name = pkg.get("name", "").lower()
+            version = str(pkg.get("version", "unknown"))
+            if not name:
+                continue
+            components.append(
+                InventoryComponent(
+                    name=name,
+                    version=version,
+                    ecosystem="composer",
+                    layer=layer,
+                    is_direct=is_direct,
+                    source_file=source_file,
+                )
+            )
+
+    return components
+
+
 def analyze_repository(root_path: str | Path) -> InventorySnapshot:
     root = Path(root_path).resolve()
     if not root.exists():
@@ -1128,6 +1587,12 @@ def analyze_repository(root_path: str | Path) -> InventorySnapshot:
     go_sum_path = root / "go.sum"
     cargo_toml_path = root / "Cargo.toml"
     cargo_lock_path = root / "Cargo.lock"
+    pom_xml_path = root / "pom.xml"
+    gemfile_lock_path = root / "Gemfile.lock"
+    gemfile_path = root / "Gemfile"
+    nuget_lock_path = root / "packages.lock.json"
+    composer_lock_path = root / "composer.lock"
+    composer_json_path = root / "composer.json"
 
     direct_names: set[str] = set()
     build_names: set[str] = set()
@@ -1237,6 +1702,62 @@ def analyze_repository(root_path: str | Path) -> InventorySnapshot:
         if lock_components:
             components = _replace_ecosystem_components(components, "cargo")
             components.extend(lock_components)
+
+    # ── Maven pom.xml ──────────────────────────────────────────────────────────
+    if pom_xml_path.is_file():
+        source_files.append(_relative_source_file(root, pom_xml_path))
+        components.extend(_parse_pom_xml(pom_xml_path))
+
+    # Also scan nested pom.xml files (multi-module Maven projects)
+    for nested_pom in sorted(root.rglob("pom.xml")):
+        if nested_pom.resolve() == pom_xml_path.resolve():
+            continue
+        if any(part in IGNORED_REPOSITORY_DIRS for part in nested_pom.parts):
+            continue
+        source_files.append(_relative_source_file(root, nested_pom))
+        pom_components = _parse_pom_xml(nested_pom)
+        for c in pom_components:
+            c.source_file = _relative_source_file(root, nested_pom)
+        components.extend(pom_components)
+
+    # ── Gradle build.gradle / build.gradle.kts ────────────────────────────────
+    for gradle_file in sorted(root.rglob("build.gradle")) + sorted(root.rglob("build.gradle.kts")):
+        if any(part in IGNORED_REPOSITORY_DIRS for part in gradle_file.parts):
+            continue
+        gradle_components = _parse_gradle(gradle_file)
+        if gradle_components:
+            source_files.append(_relative_source_file(root, gradle_file))
+            components.extend(gradle_components)
+
+    # ── Ruby Gemfile.lock / Gemfile ────────────────────────────────────────────
+    if gemfile_lock_path.is_file():
+        source_files.append(_relative_source_file(root, gemfile_lock_path))
+        components.extend(_parse_gemfile_lock(gemfile_lock_path))
+    elif gemfile_path.is_file():
+        source_files.append(_relative_source_file(root, gemfile_path))
+        components.extend(_parse_gemfile(gemfile_path))
+
+    # ── NuGet .csproj / packages.lock.json ────────────────────────────────────
+    if nuget_lock_path.is_file():
+        source_files.append(_relative_source_file(root, nuget_lock_path))
+        components.extend(_parse_nuget_lock(nuget_lock_path))
+    else:
+        # Scan for .csproj files in the repo
+        for csproj_file in sorted(root.rglob("*.csproj")):
+            if any(part in IGNORED_REPOSITORY_DIRS for part in csproj_file.parts):
+                continue
+            csproj_components = _parse_csproj(csproj_file)
+            if csproj_components:
+                source_files.append(_relative_source_file(root, csproj_file))
+                components.extend(csproj_components)
+
+    # ── PHP Composer ──────────────────────────────────────────────────────────
+    if composer_lock_path.is_file():
+        source_files.append(_relative_source_file(root, composer_lock_path))
+        components.extend(_parse_composer_lock(composer_lock_path))
+    elif composer_json_path.is_file():
+        source_files.append(_relative_source_file(root, composer_json_path))
+        components.extend(_parse_composer_json(composer_json_path))
 
     dockerfiles = sorted(
         [

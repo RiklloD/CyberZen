@@ -237,6 +237,56 @@ export const recordHoneypotTrigger = mutation({
       console.error('[webhooks] honeypot.triggered dispatch failed', e)
     }
 
+    // PagerDuty page — honeypots are near-certain breach indicators
+    try {
+      ctx.scheduler.runAfter(0, internal.pagerduty.pageOnHoneypotTrigger, {
+        tenantSlug: tenant.slug,
+        repositoryFullName: args.repositoryFullName,
+        honeypotPath: args.honeypotPath,
+        honeypotKind: args.honeypotKind,
+        sourceIdentifier: args.sourceIdentifier,
+      })
+    } catch (e) {
+      console.error('[pagerduty] honeypot page failed', e)
+    }
+
+    // Slack alert
+    try {
+      ctx.scheduler.runAfter(0, internal.slack.sendSlackAlert, {
+        kind: 'honeypot_triggered',
+        tenantSlug: tenant.slug,
+        repositoryFullName: args.repositoryFullName,
+        extraContext: `${args.honeypotKind}: ${args.honeypotPath}${args.sourceIdentifier ? ` (source: ${args.sourceIdentifier})` : ''}`,
+      })
+    } catch (e) {
+      console.error('[slack] honeypot alert failed', e)
+    }
+
+    // Teams alert (parallel to Slack)
+    try {
+      ctx.scheduler.runAfter(0, internal.teams.sendTeamsAlert, {
+        kind: 'honeypot_triggered',
+        tenantSlug: tenant.slug,
+        repositoryFullName: args.repositoryFullName,
+        extraContext: `${args.honeypotKind}: ${args.honeypotPath}${args.sourceIdentifier ? ` (source: ${args.sourceIdentifier})` : ''}`,
+      })
+    } catch (e) {
+      console.error('[teams] honeypot alert failed', e)
+    }
+
+    // Opsgenie — always P1 for honeypots
+    try {
+      ctx.scheduler.runAfter(0, internal.opsgenie.sendOpsgenieAlert, {
+        kind: 'honeypot_triggered',
+        tenantSlug: tenant.slug,
+        repositoryFullName: args.repositoryFullName,
+        severity: 'critical',
+        summary: `${args.honeypotKind}: ${args.honeypotPath}${args.sourceIdentifier ? ` (source: ${args.sourceIdentifier})` : ''}`,
+      })
+    } catch (e) {
+      console.error('[opsgenie] honeypot page failed', e)
+    }
+
     return { recorded: true, webhookScheduled }
   },
 })

@@ -486,5 +486,386 @@ class AnalyzeRepositoryTests(unittest.TestCase):
         self.assertTrue(all(component.is_direct for component in container_components))
 
 
+class MavenParserTests(unittest.TestCase):
+    def test_parses_pom_xml_dependencies(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            (root / "pom.xml").write_text(
+                textwrap.dedent("""\
+                    <?xml version="1.0"?>
+                    <project>
+                      <dependencies>
+                        <dependency>
+                          <groupId>org.springframework.boot</groupId>
+                          <artifactId>spring-boot-starter-web</artifactId>
+                          <version>3.2.0</version>
+                        </dependency>
+                        <dependency>
+                          <groupId>com.fasterxml.jackson.core</groupId>
+                          <artifactId>jackson-databind</artifactId>
+                          <version>2.16.1</version>
+                        </dependency>
+                        <dependency>
+                          <groupId>org.junit.jupiter</groupId>
+                          <artifactId>junit-jupiter</artifactId>
+                          <version>5.10.1</version>
+                          <scope>test</scope>
+                        </dependency>
+                      </dependencies>
+                    </project>
+                """),
+                encoding="utf-8",
+            )
+            snapshot = analyze_repository(root)
+
+        by_name = {c.name: c for c in snapshot.components}
+        self.assertIn("org.springframework.boot:spring-boot-starter-web", by_name)
+        self.assertEqual(
+            by_name["org.springframework.boot:spring-boot-starter-web"].version, "3.2.0"
+        )
+        self.assertEqual(
+            by_name["org.springframework.boot:spring-boot-starter-web"].ecosystem, "maven"
+        )
+        self.assertTrue(
+            by_name["org.springframework.boot:spring-boot-starter-web"].is_direct
+        )
+        # Test scope should produce a build-layer component
+        junit = by_name.get("org.junit.jupiter:junit-jupiter")
+        self.assertIsNotNone(junit)
+        self.assertEqual(junit.layer, "build")
+        self.assertFalse(junit.is_direct)
+
+    def test_pom_xml_with_namespace(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            (root / "pom.xml").write_text(
+                textwrap.dedent("""\
+                    <?xml version="1.0"?>
+                    <project xmlns="http://maven.apache.org/POM/4.0.0">
+                      <dependencies>
+                        <dependency>
+                          <groupId>io.jsonwebtoken</groupId>
+                          <artifactId>jjwt-api</artifactId>
+                          <version>0.12.3</version>
+                        </dependency>
+                      </dependencies>
+                    </project>
+                """),
+                encoding="utf-8",
+            )
+            snapshot = analyze_repository(root)
+
+        self.assertTrue(
+            any(c.name == "io.jsonwebtoken:jjwt-api" for c in snapshot.components)
+        )
+
+    def test_pom_xml_property_placeholder_becomes_unknown(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            (root / "pom.xml").write_text(
+                textwrap.dedent("""\
+                    <?xml version="1.0"?>
+                    <project>
+                      <dependencies>
+                        <dependency>
+                          <groupId>com.example</groupId>
+                          <artifactId>my-lib</artifactId>
+                          <version>${my.version}</version>
+                        </dependency>
+                      </dependencies>
+                    </project>
+                """),
+                encoding="utf-8",
+            )
+            snapshot = analyze_repository(root)
+
+        comp = next(c for c in snapshot.components if "my-lib" in c.name)
+        self.assertEqual(comp.version, "unknown")
+
+
+class GradleParserTests(unittest.TestCase):
+    def test_parses_gradle_groovy_dependencies(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            (root / "build.gradle").write_text(
+                textwrap.dedent("""\
+                    dependencies {
+                        implementation 'org.springframework.boot:spring-boot-starter:3.2.0'
+                        testImplementation 'org.junit.jupiter:junit-jupiter:5.10.1'
+                        api 'com.google.guava:guava:32.1.3-jre'
+                    }
+                """),
+                encoding="utf-8",
+            )
+            snapshot = analyze_repository(root)
+
+        by_name = {c.name: c for c in snapshot.components}
+        spring = by_name.get("org.springframework.boot:spring-boot-starter")
+        self.assertIsNotNone(spring)
+        self.assertEqual(spring.version, "3.2.0")
+        self.assertEqual(spring.ecosystem, "gradle")
+        self.assertTrue(spring.is_direct)
+
+        junit = by_name.get("org.junit.jupiter:junit-jupiter")
+        self.assertIsNotNone(junit)
+        self.assertEqual(junit.layer, "build")
+
+    def test_parses_gradle_kotlin_dsl(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            (root / "build.gradle.kts").write_text(
+                textwrap.dedent("""\
+                    dependencies {
+                        implementation("io.ktor:ktor-server-core:2.3.6")
+                        implementation("io.ktor:ktor-server-netty:2.3.6")
+                        runtimeOnly("org.postgresql:postgresql:42.7.1")
+                    }
+                """),
+                encoding="utf-8",
+            )
+            snapshot = analyze_repository(root)
+
+        names = {c.name for c in snapshot.components}
+        self.assertIn("io.ktor:ktor-server-core", names)
+        self.assertIn("io.ktor:ktor-server-netty", names)
+        self.assertIn("org.postgresql:postgresql", names)
+
+
+class GemfileParserTests(unittest.TestCase):
+    def test_parses_gemfile_lock(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            (root / "Gemfile.lock").write_text(
+                textwrap.dedent("""\
+                    GEM
+                      remote: https://rubygems.org/
+                      specs:
+                        rails (7.1.2)
+                        activerecord (7.1.2)
+                        actionmailer (7.1.2)
+                        rack (3.0.8)
+
+                    DEPENDENCIES
+                      rails (~> 7.1)
+                      rack (~> 3.0)
+                """),
+                encoding="utf-8",
+            )
+            snapshot = analyze_repository(root)
+
+        by_name = {c.name: c for c in snapshot.components}
+        self.assertIn("rails", by_name)
+        self.assertEqual(by_name["rails"].version, "7.1.2")
+        self.assertEqual(by_name["rails"].ecosystem, "gem")
+        self.assertTrue(by_name["rails"].is_direct)
+        # Transitive gems (not in DEPENDENCIES) should not be direct
+        activerecord = by_name.get("activerecord")
+        self.assertIsNotNone(activerecord)
+        self.assertFalse(activerecord.is_direct)
+
+    def test_parses_bare_gemfile_when_lock_absent(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            (root / "Gemfile").write_text(
+                textwrap.dedent("""\
+                    source 'https://rubygems.org'
+
+                    gem 'rails', '~> 7.1.0'
+                    gem 'pg', '>= 1.5.4'
+                    gem 'puma', '~> 6.4'
+                    # Development-only
+                    gem 'rspec-rails', '~> 6.1'
+                """),
+                encoding="utf-8",
+            )
+            snapshot = analyze_repository(root)
+
+        names = {c.name for c in snapshot.components}
+        self.assertIn("rails", names)
+        self.assertIn("pg", names)
+        self.assertIn("puma", names)
+        self.assertIn("rspec-rails", names)
+
+    def test_gemfile_lock_takes_precedence_over_gemfile(self) -> None:
+        """When both Gemfile and Gemfile.lock exist, lock takes precedence."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            (root / "Gemfile").write_text("gem 'rails'", encoding="utf-8")
+            (root / "Gemfile.lock").write_text(
+                textwrap.dedent("""\
+                    GEM
+                      specs:
+                        rails (7.1.2)
+                    DEPENDENCIES
+                      rails
+                """),
+                encoding="utf-8",
+            )
+            snapshot = analyze_repository(root)
+
+        rails_comps = [c for c in snapshot.components if c.name == "rails"]
+        # Should have exactly one entry with resolved version
+        self.assertEqual(len(rails_comps), 1)
+        self.assertEqual(rails_comps[0].version, "7.1.2")
+        self.assertTrue(rails_comps[0].source_file.endswith("Gemfile.lock"))
+
+
+class NuGetParserTests(unittest.TestCase):
+    def test_parses_csproj_package_references(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            (root / "MyApp.csproj").write_text(
+                textwrap.dedent("""\
+                    <Project Sdk="Microsoft.NET.Sdk">
+                      <ItemGroup>
+                        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.1" />
+                        <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+                        <PackageReference Include="Serilog" Version="3.1.1" />
+                      </ItemGroup>
+                    </Project>
+                """),
+                encoding="utf-8",
+            )
+            snapshot = analyze_repository(root)
+
+        by_name = {c.name: c for c in snapshot.components}
+        self.assertIn("Newtonsoft.Json", by_name)
+        self.assertEqual(by_name["Newtonsoft.Json"].version, "13.0.3")
+        self.assertEqual(by_name["Newtonsoft.Json"].ecosystem, "nuget")
+        self.assertTrue(by_name["Newtonsoft.Json"].is_direct)
+
+    def test_parses_packages_lock_json(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            (root / "packages.lock.json").write_text(
+                json.dumps({
+                    "version": 2,
+                    "dependencies": {
+                        ".NETCoreApp,Version=v8.0": {
+                            "Serilog": {"type": "Direct", "resolved": "3.1.1"},
+                            "Serilog.Sinks.Console": {"type": "Transitive", "resolved": "5.0.1"},
+                        }
+                    }
+                }),
+                encoding="utf-8",
+            )
+            snapshot = analyze_repository(root)
+
+        by_name = {c.name: c for c in snapshot.components}
+        self.assertIn("Serilog", by_name)
+        self.assertEqual(by_name["Serilog"].version, "3.1.1")
+        self.assertTrue(by_name["Serilog"].is_direct)
+
+        transitive = by_name.get("Serilog.Sinks.Console")
+        self.assertIsNotNone(transitive)
+        self.assertFalse(transitive.is_direct)
+        self.assertEqual(transitive.layer, "transitive")
+
+    def test_packages_lock_takes_precedence_over_csproj(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            (root / "MyApp.csproj").write_text(
+                '<PackageReference Include="Serilog" Version="3.0.0" />',
+                encoding="utf-8",
+            )
+            (root / "packages.lock.json").write_text(
+                json.dumps({
+                    "version": 2,
+                    "dependencies": {
+                        ".NETCoreApp,Version=v8.0": {
+                            "Serilog": {"type": "Direct", "resolved": "3.1.1"},
+                        }
+                    }
+                }),
+                encoding="utf-8",
+            )
+            snapshot = analyze_repository(root)
+
+        serilog = [c for c in snapshot.components if c.name == "Serilog"]
+        # Should use lock file version
+        self.assertEqual(len(serilog), 1)
+        self.assertEqual(serilog[0].version, "3.1.1")
+        self.assertTrue(serilog[0].source_file.endswith("packages.lock.json"))
+
+
+class ComposerParserTests(unittest.TestCase):
+    def test_parses_composer_lock(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            (root / "composer.lock").write_text(
+                json.dumps({
+                    "packages": [
+                        {"name": "symfony/http-kernel", "version": "v7.0.3"},
+                        {"name": "laravel/framework", "version": "v10.48.0"},
+                    ],
+                    "packages-dev": [
+                        {"name": "phpunit/phpunit", "version": "10.5.5"},
+                    ]
+                }),
+                encoding="utf-8",
+            )
+            snapshot = analyze_repository(root)
+
+        by_name = {c.name: c for c in snapshot.components}
+        self.assertIn("symfony/http-kernel", by_name)
+        self.assertEqual(by_name["symfony/http-kernel"].version, "v7.0.3")
+        self.assertEqual(by_name["symfony/http-kernel"].ecosystem, "composer")
+        self.assertTrue(by_name["symfony/http-kernel"].is_direct)
+
+        phpunit = by_name.get("phpunit/phpunit")
+        self.assertIsNotNone(phpunit)
+        self.assertFalse(phpunit.is_direct)
+        self.assertEqual(phpunit.layer, "build")
+
+    def test_parses_bare_composer_json(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            (root / "composer.json").write_text(
+                json.dumps({
+                    "require": {
+                        "php": "^8.2",
+                        "ext-json": "*",
+                        "guzzlehttp/guzzle": "^7.8",
+                        "monolog/monolog": "^3.5",
+                    },
+                    "require-dev": {
+                        "phpunit/phpunit": "^10.5",
+                    }
+                }),
+                encoding="utf-8",
+            )
+            snapshot = analyze_repository(root)
+
+        names = {c.name for c in snapshot.components}
+        # php and extensions should be excluded
+        self.assertNotIn("php", names)
+        self.assertNotIn("ext-json", names)
+        # Real packages should be included
+        self.assertIn("guzzlehttp/guzzle", names)
+        self.assertIn("monolog/monolog", names)
+        self.assertIn("phpunit/phpunit", names)
+
+    def test_composer_lock_takes_precedence_over_json(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            (root / "composer.json").write_text(
+                json.dumps({"require": {"guzzlehttp/guzzle": "^7.0"}}),
+                encoding="utf-8",
+            )
+            (root / "composer.lock").write_text(
+                json.dumps({
+                    "packages": [{"name": "guzzlehttp/guzzle", "version": "7.8.1"}],
+                    "packages-dev": []
+                }),
+                encoding="utf-8",
+            )
+            snapshot = analyze_repository(root)
+
+        guzzle = [c for c in snapshot.components if c.name == "guzzlehttp/guzzle"]
+        self.assertEqual(len(guzzle), 1)
+        self.assertEqual(guzzle[0].version, "7.8.1")
+        self.assertTrue(guzzle[0].source_file.endswith("composer.lock"))
+
+
 if __name__ == "__main__":
     unittest.main()

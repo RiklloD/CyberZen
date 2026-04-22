@@ -12,6 +12,7 @@
 //       all open findings in a repository (spec §7.1 GET /blast-radius/graph).
 
 import { v } from 'convex/values'
+import { internal } from './_generated/api'
 import { internalMutation, query } from './_generated/server'
 import {
   computeBlastRadius,
@@ -98,6 +99,21 @@ export const computeAndStoreBlastRadius = internalMutation({
       summary: result.summary,
       computedAt: now,
     })
+
+    // --- fire-and-forget: compute cloud blast radius in parallel ---
+    await ctx.scheduler.runAfter(
+      0,
+      internal.cloudBlastRadiusIntel.computeAndStoreCloudBlastRadius,
+      { repositoryId: finding.repositoryId },
+    )
+
+    // --- fire-and-forget: re-evaluate severity escalation now that blast
+    //     radius context has changed (new businessImpactScore available) ---
+    await ctx.scheduler.runAfter(
+      0,
+      internal.escalationIntel.checkAndEscalateFinding,
+      { findingId: finding._id },
+    )
 
     return result
   },

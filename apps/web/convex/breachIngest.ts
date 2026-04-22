@@ -8,8 +8,18 @@ import { action, internalAction, type ActionCtx } from './_generated/server'
 import {
   coerceGithubSecurityAdvisoryInput,
   coerceOsvAdvisoryInput,
+  normalizeNvdCve,
+  normalizeNpmAdvisory,
+  normalizePypiSafetyEntry,
+  normalizeRustSecAdvisory,
+  normalizeGoVulnEntry,
   type GithubSecurityAdvisoryApiResponse,
   type OsvApiVulnerabilityResponse,
+  type NvdCveItem,
+  type NpmAdvisory,
+  type PypiSafetyEntry,
+  type RustSecAdvisory,
+  type GoVulnEntry,
 } from './lib/breachFeeds'
 import {
   buildGithubAdvisoryBatches,
@@ -18,6 +28,7 @@ import {
   parseGithubNextCursor,
   type TrackedAdvisoryPackage,
 } from './lib/advisorySync'
+import { resolveGitHubConfig, githubHeaders as buildGithubApiHeaders } from './lib/githubClient'
 
 const liveIngestResult = v.object({
   eventId: v.id('ingestionEvents'),
@@ -123,21 +134,8 @@ type OsvQueryBatchResponse = {
 }
 
 function githubHeaders() {
-  const token =
-    process.env.GITHUB_SECURITY_ADVISORY_TOKEN ??
-    process.env.GITHUB_TOKEN ??
-    process.env.GH_TOKEN
-
-  const headers: Record<string, string> = {
-    Accept: 'application/vnd.github+json',
-    'User-Agent': 'CyberZen-Sentinel',
-  }
-
-  if (token) {
-    headers.Authorization = `Bearer ${token}`
-  }
-
-  return headers
+  // Delegates to shared client — respects GHES_BASE_URL / GHES_API_URL env vars
+  return buildGithubApiHeaders(resolveGitHubConfig())
 }
 
 function createEmptyProviderSummary(): SyncProviderSummary {
@@ -171,8 +169,9 @@ async function parseErrorBody(response: Response) {
 }
 
 async function fetchGithubSecurityAdvisoryById(ghsaId: string) {
+  const ghCfg = resolveGitHubConfig()
   const response = await fetch(
-    `https://api.github.com/advisories/${encodeURIComponent(ghsaId)}`,
+    `${ghCfg.baseUrl}/advisories/${encodeURIComponent(ghsaId)}`,
     {
       headers: githubHeaders(),
     },
@@ -221,7 +220,7 @@ async function fetchGithubSecurityAdvisoriesByBatch(args: {
       params.set('after', cursor)
     }
 
-    const response = await fetch(`https://api.github.com/advisories?${params.toString()}`, {
+    const response = await fetch(`${resolveGitHubConfig().baseUrl}/advisories?${params.toString()}`, {
       headers: githubHeaders(),
     })
 
@@ -735,5 +734,323 @@ export const syncRecentAdvisoriesOnSchedule = internalAction({
       osvLimit: Math.min(Math.max(args.osvLimit ?? 100, 1), 250),
       triggerType: 'scheduled',
     })
+  },
+})
+
+// ── Shared helper: NormalizedDisclosure → ingestBreachDisclosure args ────────
+
+import type { NormalizedDisclosure } from './lib/breachFeeds'
+
+function disclosureToIngestArgs(
+  tenantSlug: string,
+  repositoryFullName: string,
+  d: NormalizedDisclosure,
+) {
+  return {
+    tenantSlug,
+    repositoryFullName,
+    packageName: d.packageName,
+    sourceName: d.sourceName,
+    sourceRef: d.sourceRef,
+    summary: d.summary,
+    ecosystem: d.ecosystem,
+    sourceType: d.sourceType as
+      | 'manual'
+      | 'github_security_advisory'
+      | 'osv'
+      | 'nvd'
+      | 'npm_advisory'
+      | 'pypi_safety'
+      | 'rustsec'
+      | 'go_vuln',
+    sourceTier: d.sourceTier as 'tier_1' | 'tier_2' | 'tier_3',
+    affectedVersions: d.affectedVersions,
+    fixVersion: d.fixVersion,
+    exploitAvailable: d.exploitAvailable,
+    aliases: d.aliases,
+    publishedAt: d.publishedAt,
+    severity: d.severity,
+  }
+}
+
+// ── NVD sync ──────────────────────────────────────────────────────────────────
+//
+// Fetches recent CVEs from the NVD REST API 2.0.
+// Set NVD_API_KEY in Convex env for higher rate limits (50 req/30s vs 5 req/30s).
+// Docs: https://nvd.nist.gov/developers/vulnerabilities
+
+export const syncNvdAdvisories = action({
+  args: {
+    tenantSlug: v.string(),
+    repositoryFullName: v.string(),
+    lookbackHours: v.optional(v.number()),
+    maxResults: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const lookback = args.lookbackHours ?? 72
+    const maxResults = Math.min(args.maxResults ?? 100, 500)
+    const apiKey = process.env.NVD_API_KEY
+
+    const since = new Date(Date.now() - lookback * 3600 * 1000).toISOString().slice(0, 19)
+    const params = new URLSearchParams({
+      pubStartDate: since + '.000',
+      resultsPerPage: String(maxResults),
+    })
+
+    const headers: Record<string, string> = {
+      Accept: 'application/json',
+    }
+    if (apiKey) headers['apiKey'] = apiKey
+
+    const resp = await fetch(
+      `https://services.nvd.nist.gov/rest/json/cves/2.0?${params}`,
+      { headers },
+    )
+    if (!resp.ok) {
+      throw new ConvexError(`NVD API error: ${resp.status}`)
+    }
+
+    const data = await resp.json() as {
+      vulnerabilities?: Array<{ cve: NvdCveItem }>
+    }
+
+    const cves = data.vulnerabilities ?? []
+    let imported = 0
+    let skipped = 0
+
+    for (const { cve } of cves) {
+      // For NVD entries, we try to associate with the repo's known packages
+      // by ingesting via the canonical disclosure path
+      const disclosure = normalizeNvdCve({
+        cve,
+        packageName: 'unknown', // NVD doesn't provide package; matched later by SBOM
+        ecosystem: 'unknown',
+      })
+
+      try {
+        await ctx.runMutation(api.events.ingestBreachDisclosure,
+          disclosureToIngestArgs(args.tenantSlug, args.repositoryFullName, disclosure))
+        imported++
+      } catch {
+        skipped++
+      }
+    }
+
+    return { total: cves.length, imported, skipped }
+  },
+})
+
+// ── npm Advisory sync ─────────────────────────────────────────────────────────
+//
+// Queries the npm audit endpoint for a list of package names.
+// Body: { name: Record<string, string[]> } where values are version arrays.
+
+export const syncNpmAdvisories = action({
+  args: {
+    tenantSlug: v.string(),
+    repositoryFullName: v.string(),
+    /** Package names to query (from the repo's latest SBOM) */
+    packages: v.array(v.string()),
+  },
+  handler: async (ctx, args) => {
+    if (args.packages.length === 0) return { total: 0, imported: 0, skipped: 0 }
+
+    // Build npm audit v1 bulk query
+    const auditPayload: Record<string, { [version: string]: Record<string, unknown> }> = {}
+    for (const pkg of args.packages) {
+      auditPayload[pkg] = { '*': {} }
+    }
+
+    const resp = await fetch('https://registry.npmjs.org/-/npm/v1/security/advisories/bulk', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(auditPayload),
+    })
+
+    if (!resp.ok) {
+      throw new ConvexError(`npm advisory API error: ${resp.status}`)
+    }
+
+    const data = await resp.json() as Record<string, NpmAdvisory[]>
+    let imported = 0
+    let skipped = 0
+
+    for (const advisories of Object.values(data)) {
+      for (const advisory of advisories) {
+        const disclosure = normalizeNpmAdvisory(advisory)
+        if (!disclosure) { skipped++; continue }
+
+        try {
+          await ctx.runMutation(api.events.ingestBreachDisclosure,
+            disclosureToIngestArgs(args.tenantSlug, args.repositoryFullName, disclosure))
+          imported++
+        } catch {
+          skipped++
+        }
+      }
+    }
+
+    return { total: imported + skipped, imported, skipped }
+  },
+})
+
+// ── PyPI Safety DB sync ───────────────────────────────────────────────────────
+//
+// Safety DB is a public GitHub-hosted JSON list of known vulnerable PyPI packages.
+// Repo: https://github.com/pyupio/safety-db (CC0 license, no auth required)
+
+export const syncPypiSafetyAdvisories = action({
+  args: {
+    tenantSlug: v.string(),
+    repositoryFullName: v.string(),
+    /** Python packages to look up (from SBOM) */
+    packages: v.array(v.string()),
+  },
+  handler: async (ctx, args) => {
+    if (args.packages.length === 0) return { total: 0, imported: 0, skipped: 0 }
+
+    const resp = await fetch(
+      'https://raw.githubusercontent.com/pyupio/safety-db/master/data/insecure_full.json',
+    )
+    if (!resp.ok) {
+      throw new ConvexError(`PyPI Safety DB fetch error: ${resp.status}`)
+    }
+
+    const db = await resp.json() as Record<string, PypiSafetyEntry[]>
+    const normalizedPackages = new Set(args.packages.map((p) => p.toLowerCase()))
+
+    let imported = 0
+    let skipped = 0
+
+    for (const [pkgName, entries] of Object.entries(db)) {
+      if (!normalizedPackages.has(pkgName.toLowerCase())) continue
+
+      for (const entry of entries) {
+        const disclosure = normalizePypiSafetyEntry(entry)
+        if (!disclosure) { skipped++; continue }
+
+        try {
+          await ctx.runMutation(api.events.ingestBreachDisclosure,
+            disclosureToIngestArgs(args.tenantSlug, args.repositoryFullName, disclosure))
+          imported++
+        } catch {
+          skipped++
+        }
+      }
+    }
+
+    return { total: imported + skipped, imported, skipped }
+  },
+})
+
+// ── RustSec sync ──────────────────────────────────────────────────────────────
+//
+// RustSec advisory DB is publicly hosted at https://rustsec.org/advisories/
+// Machine-readable format: https://github.com/rustsec/advisory-db (TOML files)
+// We use the JSON export maintained at the osv.dev mirror for RustSec.
+
+export const syncRustSecAdvisories = action({
+  args: {
+    tenantSlug: v.string(),
+    repositoryFullName: v.string(),
+    /** Cargo package names from the repo's SBOM */
+    packages: v.array(v.string()),
+  },
+  handler: async (ctx, args) => {
+    if (args.packages.length === 0) return { total: 0, imported: 0, skipped: 0 }
+
+    let imported = 0
+    let skipped = 0
+
+    for (const pkg of args.packages.slice(0, 20)) {
+      const resp = await fetch(
+        `https://osv.dev/v1/query`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ package: { name: pkg, ecosystem: 'crates.io' } }),
+        },
+      )
+      if (!resp.ok) { skipped++; continue }
+
+      const data = await resp.json() as { vulns?: GoVulnEntry[] }
+      for (const vuln of data.vulns ?? []) {
+        const advisory: RustSecAdvisory = {
+          id: vuln.id,
+          package: pkg,
+          date: vuln.published?.slice(0, 10) ?? undefined,
+          title: vuln.summary ?? undefined,
+          description: vuln.details ?? undefined,
+          aliases: vuln.aliases ?? [],
+        }
+
+        const disclosure = normalizeRustSecAdvisory(advisory)
+        if (!disclosure) { skipped++; continue }
+
+        try {
+          await ctx.runMutation(api.events.ingestBreachDisclosure,
+            disclosureToIngestArgs(args.tenantSlug, args.repositoryFullName, disclosure))
+          imported++
+        } catch {
+          skipped++
+        }
+      }
+    }
+
+    return { total: imported + skipped, imported, skipped }
+  },
+})
+
+// ── Go Vulnerability DB sync ──────────────────────────────────────────────────
+//
+// Official Go Vulnerability Database: https://vuln.go.dev
+// API: GET https://vuln.go.dev/v1/query (POST with module path)
+
+export const syncGoVulnAdvisories = action({
+  args: {
+    tenantSlug: v.string(),
+    repositoryFullName: v.string(),
+    /** Go module paths from the repo's SBOM (e.g. "golang.org/x/net") */
+    modules: v.array(v.string()),
+  },
+  handler: async (ctx, args) => {
+    if (args.modules.length === 0) return { total: 0, imported: 0, skipped: 0 }
+
+    let imported = 0
+    let skipped = 0
+
+    for (const mod of args.modules.slice(0, 20)) {
+      const resp = await fetch('https://vuln.go.dev/v1/query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ module: mod }),
+      })
+      if (!resp.ok) { skipped++; continue }
+
+      const data = await resp.json() as { vulns?: GoVulnEntry[] }
+
+      for (const entry of data.vulns ?? []) {
+        // Extract affected versions for this module from the entry
+        const affected = entry.affected?.find(
+          (a) => a.package?.name?.toLowerCase() === mod.toLowerCase(),
+        )
+        const affectedVersions = affected?.versions ?? []
+        const fixVersion = affected?.ranges
+          ?.flatMap((r) => r.events ?? [])
+          .find((e) => e.fixed)?.fixed ?? undefined
+
+        const disclosure = normalizeGoVulnEntry(entry, mod, affectedVersions, fixVersion)
+
+        try {
+          await ctx.runMutation(api.events.ingestBreachDisclosure,
+            disclosureToIngestArgs(args.tenantSlug, args.repositoryFullName, disclosure))
+          imported++
+        } catch {
+          skipped++
+        }
+      }
+    }
+
+    return { total: imported + skipped, imported, skipped }
   },
 })

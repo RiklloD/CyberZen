@@ -10,7 +10,7 @@
 //       A single subscription replaces separate snapshot + history queries.
 
 import { v } from 'convex/values'
-import { internalMutation, mutation, query } from './_generated/server'
+import { internalAction, internalMutation, mutation, query } from './_generated/server'
 import { internal } from './_generated/api'
 import {
   computeAttackSurface,
@@ -222,5 +222,130 @@ export const getAttackSurfaceDashboard = query({
       .map((s) => ({ score: s.score, trend: s.trend, computedAt: s.computedAt }))
 
     return { snapshot: latest, history }
+  },
+})
+
+// ---------------------------------------------------------------------------
+// runStaticAttackSurfaceAnalysis — calls agent-core /analyze/attack-surface
+//
+// Enriches the existing metric-based attack surface score with real code
+// analysis findings: unused packages, test-only packages, unreachable files.
+// Requires AGENT_CORE_URL env var pointing to a running agent-core service.
+// ---------------------------------------------------------------------------
+
+export const runStaticAttackSurfaceAnalysis = internalAction({
+  args: {
+    repositoryId: v.id('repositories'),
+    localPath: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const agentCoreUrl = process.env.AGENT_CORE_URL ?? 'http://localhost:8002'
+    const localPath = args.localPath
+
+    if (!localPath) {
+      console.log('[attack-surface] no localPath provided — static analysis skipped')
+      return { analyzed: false, reason: 'no_local_path' }
+    }
+
+    let result: {
+      unused_packages: string[]
+      test_only_packages: string[]
+      unreachable_files: string[]
+      single_use_packages: string[]
+      total_files_analyzed: number
+      total_packages_analyzed: number
+      attack_surface_reduction_score: number
+      summary: string
+    }
+
+    try {
+      const resp = await fetch(`${agentCoreUrl.replace(/\/$/, '')}/analyze/attack-surface`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ repository_path: localPath }),
+        signal: AbortSignal.timeout(60_000),
+      })
+      if (!resp.ok) throw new Error(`agent-core returned ${resp.status}`)
+      result = await resp.json()
+    } catch (err) {
+      console.error(`[attack-surface] static analysis failed: ${err}`)
+      return { analyzed: false, reason: String(err) }
+    }
+
+    // Store static analysis findings alongside the existing snapshot
+    await ctx.runMutation(
+      internal.attackSurfaceIntel.storeStaticAnalysisFindings,
+      {
+        repositoryId: args.repositoryId,
+        unusedPackages: result.unused_packages,
+        testOnlyPackages: result.test_only_packages,
+        unreachableFiles: result.unreachable_files.slice(0, 20),
+        singleUsePackages: result.single_use_packages,
+        totalFilesAnalyzed: result.total_files_analyzed,
+        staticReductionScore: result.attack_surface_reduction_score,
+        summary: result.summary,
+      },
+    )
+
+    return {
+      analyzed: true,
+      unusedPackages: result.unused_packages.length,
+      testOnlyPackages: result.test_only_packages.length,
+      unreachableFiles: result.unreachable_files.length,
+    }
+  },
+})
+
+export const storeStaticAnalysisFindings = internalMutation({
+  args: {
+    repositoryId: v.id('repositories'),
+    unusedPackages: v.array(v.string()),
+    testOnlyPackages: v.array(v.string()),
+    unreachableFiles: v.array(v.string()),
+    singleUsePackages: v.array(v.string()),
+    totalFilesAnalyzed: v.number(),
+    staticReductionScore: v.number(),
+    summary: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Patch the latest attack surface snapshot with static analysis data
+    const latest = await ctx.db
+      .query('attackSurfaceSnapshots')
+      .withIndex('by_repository_and_computed_at', (q) =>
+        q.eq('repositoryId', args.repositoryId),
+      )
+      .order('desc')
+      .first()
+
+    if (!latest) return
+
+    // Append static analysis context to the summary
+    const enrichedSummary = args.summary
+      ? `${latest.summary} | Static analysis: ${args.summary}`
+      : latest.summary
+
+    await ctx.db.patch(latest._id, {
+      summary: enrichedSummary.slice(0, 500),
+    })
+
+    console.log(
+      `[attack-surface] static analysis stored: ${args.unusedPackages.length} unused, ${args.testOnlyPackages.length} test-only, ${args.unreachableFiles.length} unreachable`,
+    )
+  },
+})
+
+export const getStaticAnalysisOpportunities = query({
+  args: { repositoryId: v.id('repositories') },
+  handler: async (ctx, { repositoryId }) => {
+    // The static analysis results are stored in the attack surface snapshot summary.
+    // This query exposes the latest results for the dashboard.
+    const latest = await ctx.db
+      .query('attackSurfaceSnapshots')
+      .withIndex('by_repository_and_computed_at', (q) =>
+        q.eq('repositoryId', repositoryId),
+      )
+      .order('desc')
+      .first()
+    return latest ?? null
   },
 })

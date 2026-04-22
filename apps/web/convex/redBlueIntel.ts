@@ -110,6 +110,13 @@ export const runAdversarialRound = internalMutation({
       ranAt: Date.now(),
     })
 
+    // --- generate Blue Agent detection rules on red_wins ---
+    if (result.roundOutcome === 'red_wins') {
+      ctx.scheduler.runAfter(0, internal.blueAgentIntel.generateAndStoreDetectionRules, {
+        repositoryId: args.repositoryId,
+      })
+    }
+
     // --- escalate on red_wins ---
     // Fire-and-forget: exploit chains become real candidate findings that flow
     // through the full pipeline (blast radius → memory → attack surface).

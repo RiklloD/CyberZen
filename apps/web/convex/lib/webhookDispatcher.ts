@@ -12,6 +12,7 @@ export type WebhookEventType =
   | 'finding.validated'
   | 'finding.pr_opened'
   | 'finding.resolved'
+  | 'finding.severity_escalated'
   | 'trust_score.degraded'
   | 'trust_score.compromised'
   | 'honeypot.triggered'
@@ -25,6 +26,7 @@ export const ALL_WEBHOOK_EVENT_TYPES: WebhookEventType[] = [
   'finding.validated',
   'finding.pr_opened',
   'finding.resolved',
+  'finding.severity_escalated',
   'trust_score.degraded',
   'trust_score.compromised',
   'honeypot.triggered',
@@ -62,6 +64,17 @@ export type FindingResolvedData = {
   title: string
   severity: string
   resolvedAt: number
+}
+
+export type FindingSeverityEscalatedData = {
+  findingId: string
+  title: string
+  previousSeverity: string
+  newSeverity: string
+  /** Escalation trigger identifiers that fired. */
+  triggers: string[]
+  /** Human-readable rationale for the escalation. */
+  rationale: string[]
 }
 
 export type TrustScoreDegradedData = {
@@ -129,6 +142,7 @@ export type WebhookEventPayload =
   | { event: 'finding.validated'; data: FindingValidatedData }
   | { event: 'finding.pr_opened'; data: FindingPrOpenedData }
   | { event: 'finding.resolved'; data: FindingResolvedData }
+  | { event: 'finding.severity_escalated'; data: FindingSeverityEscalatedData }
   | { event: 'trust_score.degraded'; data: TrustScoreDegradedData }
   | { event: 'trust_score.compromised'; data: TrustScoreCompromisedData }
   | { event: 'honeypot.triggered'; data: HoneypotTriggeredData }

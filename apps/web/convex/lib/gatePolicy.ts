@@ -5,7 +5,7 @@ type ValidationStatus =
   | 'likely_exploitable'
   | 'unexploitable'
   | 'dismissed'
-type FindingStatus = 'open' | 'pr_opened' | 'merged' | 'resolved' | 'accepted_risk'
+type FindingStatus = 'open' | 'pr_opened' | 'merged' | 'resolved' | 'accepted_risk' | 'false_positive' | 'ignored'
 
 export type GatePolicyFinding = {
   id: string

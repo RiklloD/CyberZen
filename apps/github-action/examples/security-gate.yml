@@ -1,0 +1,41 @@
+name: Sentinel Security Gate
+
+on:
+  pull_request:
+    branches: [main, master, develop]
+  push:
+    branches: [main, master]
+
+permissions:
+  checks: write        # Required for posting check runs
+  pull-requests: read  # Required for PR context
+
+jobs:
+  sentinel-gate:
+    name: Security Gate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Sentinel Security Gate
+        uses: sentinel-sec/gate@v1
+        with:
+          sentinel-api-key: ${{ secrets.SENTINEL_API_KEY }}
+          tenant-slug: ${{ vars.SENTINEL_TENANT_SLUG }}
+          # Block the build on confirmed critical or high findings.
+          # Set to 'medium' to also block on medium severity.
+          # Set to 'none' to run in monitoring-only mode.
+          block-on-severity: high
+          # Post a detailed check run to the PR (requires checks:write permission)
+          post-check-run: true
+
+      # Optional: export outputs for subsequent steps
+      - name: Show security summary
+        if: always()
+        run: |
+          echo "Gate decision: ${{ steps.sentinel-gate.outputs.gate-decision }}"
+          echo "Critical findings: ${{ steps.sentinel-gate.outputs.critical-count }}"
+          echo "High findings: ${{ steps.sentinel-gate.outputs.high-count }}"
+          echo "Check run: ${{ steps.sentinel-gate.outputs.check-run-url }}"

@@ -42,7 +42,10 @@ export const refreshLearningProfile = internalMutation({
       vulnClass: f.vulnClass,
       severity: f.severity,
       status: f.status,
-      validationStatus: f.validationStatus,
+      // Analyst-confirmed false positives override automated validation status
+      // so per-vuln-class FP rates in the learning loop reflect human review.
+      validationStatus:
+        f.status === 'false_positive' ? 'unexploitable' : f.validationStatus,
     }))
 
     // Load up to 100 red/blue rounds, ordered by most recent.

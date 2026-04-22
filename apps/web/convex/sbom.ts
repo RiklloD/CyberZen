@@ -4,6 +4,7 @@ import { internal } from './_generated/api'
 import { normalizePackageName } from './lib/breachMatching'
 import { compareSnapshotComponents } from './lib/sbomDiff'
 import { buildCycloneDxBom } from './lib/cyclonedx'
+import { buildSpdxDocument } from './lib/spdx'
 
 const incomingInventoryComponent = v.object({
   name: v.string(),
@@ -207,6 +208,244 @@ export const ingestRepositoryInventory = mutation({
       )
     } catch (e) {
       console.error('[trust-score] failed to schedule refreshComponentTrustScores', e)
+    }
+
+    // Fire-and-forget AI/ML model supply chain scan. Runs after component
+    // insertion so the full snapshot is available for ML framework detection.
+    try {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.modelSupplyChainIntel.refreshModelSupplyChain,
+        { repositoryId: repository._id },
+      )
+    } catch (e) {
+      console.error('[model-supply-chain] failed to schedule scan', e)
+    }
+
+    // Fire-and-forget AI model provenance scan (spec §3.11.2 Layer 6).
+    // Two-phase: fast baseline (no network) then HF-enriched scan.
+    // The enriched scan supersedes the baseline once HF fetches complete.
+    try {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.modelProvenanceIntel.refreshModelProvenance,
+        { repositoryId: repository._id },
+      )
+    } catch (e) {
+      console.error('[model-provenance] failed to schedule baseline scan', e)
+    }
+    try {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.modelProvenanceIntel.enrichModelProvenanceFromHF,
+        { repositoryId: repository._id },
+      )
+    } catch (e) {
+      console.error('[model-provenance] failed to schedule HF enrichment', e)
+    }
+
+    // Fire-and-forget: license compliance scan. Evaluates every component in
+    // the new snapshot against the static license database + passed-in license
+    // fields, flags AGPL/GPL violations, and stores a compliance score.
+    try {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.licenseComplianceIntel.refreshLicenseCompliance,
+        { tenantId: tenant._id, repositoryId: repository._id },
+      )
+    } catch (e) {
+      console.error('[license-compliance] failed to schedule scan', e)
+    }
+
+    // ── WS-48: License Scan (SPDX-based risk classification) ────────────────
+    // Classifies each component's SPDX license against a 70-entry DB:
+    // strong_copyleft → critical, weak_copyleft/proprietary → high, unknown → medium.
+    try {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.licenseScanIntel.recordLicenseComplianceScan,
+        { tenantId: tenant._id, repositoryId: repository._id },
+      )
+    } catch (e) {
+      console.error('[license-scan] failed to schedule license scan', e)
+    }
+
+    // ── WS-32: SBOM Quality & Completeness Scoring ────────────────────────
+    // Evaluates version-pinning discipline, license resolution rate, freshness,
+    // and layer coverage — producing a holistic 0–100 quality grade.
+    try {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.sbomQualityIntel.computeAndStoreSbomQuality,
+        { tenantId: tenant._id, repositoryId: repository._id },
+      )
+    } catch (e) {
+      console.error('[sbom-quality] failed to schedule quality check', e)
+    }
+
+    // ── WS-38: Dependency & Runtime End-of-Life (EOL) Detection ──────────
+    // Checks every SBOM component against a static EOL database to flag
+    // runtimes and packages that are no longer receiving security patches.
+    try {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.eolDetectionIntel.recordEolScan,
+        { tenantId: tenant._id, repositoryId: repository._id },
+      )
+    } catch (e) {
+      console.error('[eol-detection] failed to schedule EOL scan', e)
+    }
+
+    // Checks every SBOM component against a curated database of abandoned,
+    // archived, deprecated, and supply-chain-compromised packages.
+    try {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.abandonmentScanIntel.recordAbandonmentScan,
+        { tenantId: tenant._id, repositoryId: repository._id },
+      )
+    } catch (e) {
+      console.error('[abandonment-detection] failed to schedule abandonment scan', e)
+    }
+
+    // ── WS-40: SBOM Attestation ───────────────────────────────────────────
+    // Generate a SHA-256 content fingerprint + tenant-scoped attestation hash
+    // for the new snapshot.  Stored immediately so future re-verification can
+    // detect any tampering of the persisted component list.
+    try {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.sbomAttestationIntel.recordSbomAttestation,
+        { tenantId: tenant._id, repositoryId: repository._id },
+      )
+    } catch (e) {
+      console.error('[sbom-attestation] failed to schedule attestation', e)
+    }
+
+    // ── WS-41: Dependency Confusion Attack Detector ───────────────────────
+    // Examines version numbers and package name patterns to detect classic
+    // "Alex Birsan" dependency confusion attacks — malicious public packages
+    // published at inflated version numbers to hijack private-registry packages.
+    try {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.confusionAttackIntel.recordConfusionScan,
+        { tenantId: tenant._id, repositoryId: repository._id },
+      )
+    } catch (e) {
+      console.error('[confusion-attack] failed to schedule confusion scan', e)
+    }
+
+    // ── WS-42: Malicious Package Detection ───────────────────────────────
+    // Detects typosquatting, homoglyph substitution, numeric-suffix fakes,
+    // scope squatting, and packages confirmed malicious in our curated DB.
+    try {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.maliciousPackageIntel.recordMaliciousScan,
+        { tenantId: tenant._id, repositoryId: repository._id },
+      )
+    } catch (e) {
+      console.error('[malicious-pkg] failed to schedule malicious package scan', e)
+    }
+
+    // ── WS-43: Known CVE Version Range Scanner ────────────────────────────
+    // Checks installed component versions against an offline database of ~30
+    // high-impact CVEs (Log4Shell, Spring4Shell, Text4Shell, minimist, vm2,
+    // werkzeug, etc.) using pure semver comparison. No network calls.
+    try {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.cveVersionScanIntel.recordCveScan,
+        { tenantId: tenant._id, repositoryId: repository._id },
+      )
+    } catch (e) {
+      console.error('[cve-scanner] failed to schedule CVE version scan', e)
+    }
+
+    // ── WS-44: Supply Chain Posture Score ─────────────────────────────────
+    // Aggregates EOL, Abandonment, CVE, Malicious Package, and Dependency
+    // Confusion scanner outputs plus SBOM attestation status into a single
+    // 0–100 posture score and A–F grade. Sub-scanners run inline so the
+    // score is always based on the freshest component data regardless of
+    // whether the individual scan-result tables have been written yet.
+    try {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.supplyChainPostureIntel.recordSupplyChainPosture,
+        { tenantId: tenant._id, repositoryId: repository._id },
+      )
+    } catch (e) {
+      console.error('[posture-scorer] failed to schedule supply chain posture score', e)
+    }
+
+    // ── WS-45: Container Image Security Analyzer ───────────────────────────
+    // Detects EOL/near-EOL/outdated/unpinned container base images declared
+    // in SBOM components with ecosystem 'docker', 'container', or 'oci'.
+    try {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.containerImageIntel.recordContainerImageScan,
+        { tenantId: tenant._id, repositoryId: repository._id },
+      )
+    } catch (e) {
+      console.error('[container-image] failed to schedule container image scan', e)
+    }
+
+    // ── WS-46: Compliance Attestation Report Generator ─────────────────────
+    // Reads the latest result from each of 12 scanners and maps signals to
+    // per-framework regulatory compliance status (SOC2/GDPR/PCI-DSS/HIPAA/NIS2).
+    // Delayed 5 s so concurrent scanner mutations have time to write first.
+    try {
+      await ctx.scheduler.runAfter(
+        5000,
+        internal.complianceAttestationIntel.recordComplianceAttestation,
+        { tenantId: tenant._id, repositoryId: repository._id },
+      )
+    } catch (e) {
+      console.error('[compliance-attestation] failed to schedule compliance attestation', e)
+    }
+
+    // ── WS-47: Compliance Gap Remediation Planner ──────────────────────────
+    // Reads the WS-46 attestation and maps each control gap to a concrete,
+    // step-by-step remediation playbook with root-cause-deduplicated effort.
+    // Delayed 7 s so WS-46 (scheduled at 5 s) has had time to write first.
+    try {
+      await ctx.scheduler.runAfter(
+        7000,
+        internal.complianceRemediationIntel.recordComplianceRemediationPlan,
+        { tenantId: tenant._id, repositoryId: repository._id },
+      )
+    } catch (e) {
+      console.error('[compliance-remediation] failed to schedule remediation plan', e)
+    }
+
+    // ── WS-49: Repository Security Health Score ─────────────────────────
+    // Master synthesis layer that reads all scanner result tables and produces
+    // a single weighted 0–100 health score with an A–F grade.
+    // Delayed 9 s so the full cascade (0 s → 5 s → 7 s) has settled.
+    try {
+      await ctx.scheduler.runAfter(
+        9000,
+        internal.repositoryHealthIntel.recordRepositoryHealthScore,
+        { tenantId: tenant._id, repositoryId: repository._id },
+      )
+    } catch (e) {
+      console.error('[health-score] failed to schedule health score computation', e)
+    }
+
+    // ── WS-50: Dependency Update Recommendations ────────────────────────
+    // Reads latest CVE, EOL, and abandonment findings to produce concrete
+    // "upgrade X from vA → vB" recommendations.
+    // Delayed 11 s so all three source scanners have written results.
+    try {
+      await ctx.scheduler.runAfter(
+        11000,
+        internal.dependencyUpdateIntel.recordDependencyUpdateRecommendations,
+        { tenantId: tenant._id, repositoryId: repository._id },
+      )
+    } catch (e) {
+      console.error('[dependency-updates] failed to schedule update recommendations', e)
     }
 
     return { snapshotId, componentCount }
@@ -847,6 +1086,41 @@ export const exportSnapshot = query({
       branch: snapshot.branch,
       capturedAt: snapshot.capturedAt,
       snapshotId: snapshot._id,
+      components: components.map((c) => ({
+        name: c.name,
+        version: c.version,
+        ecosystem: c.ecosystem,
+        layer: c.layer,
+        isDirect: c.isDirect,
+        sourceFile: c.sourceFile,
+        license: c.license,
+        trustScore: c.trustScore,
+        hasKnownVulnerabilities: c.hasKnownVulnerabilities,
+      })),
+    })
+  },
+})
+
+export const exportSnapshotAsSpdx = query({
+  args: { snapshotId: v.id('sbomSnapshots') },
+  handler: async (ctx, args) => {
+    const snapshot = await ctx.db.get(args.snapshotId)
+    if (!snapshot) return null
+
+    const repository = await ctx.db.get(snapshot.repositoryId)
+    if (!repository) return null
+
+    const components = await ctx.db
+      .query('sbomComponents')
+      .withIndex('by_snapshot', (q) => q.eq('snapshotId', snapshot._id))
+      .collect()
+
+    return buildSpdxDocument({
+      repositoryFullName: repository.fullName,
+      repositoryName: repository.name,
+      commitSha: snapshot.commitSha,
+      branch: snapshot.branch,
+      capturedAt: snapshot.capturedAt,
       components: components.map((c) => ({
         name: c.name,
         version: c.version,

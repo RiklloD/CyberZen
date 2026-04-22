@@ -73,6 +73,41 @@ export const verifyAndRouteGithubWebhook = internalAction({
       }
     }
 
+    // Route pull_request events (merged PRs trigger post-fix validation)
+    if (args.event === 'pull_request') {
+      type PrPayload = {
+        action?: string
+        pull_request?: {
+          number?: number
+          html_url?: string
+          merged?: boolean
+          merged_at?: string | null
+          base?: { repo?: { full_name?: string } }
+        }
+      }
+      const prPayload = JSON.parse(args.body) as PrPayload
+      if (
+        prPayload.action === 'closed' &&
+        prPayload.pull_request?.merged === true
+      ) {
+        const pr = prPayload.pull_request
+        const repoFullName = pr.base?.repo?.full_name
+        if (repoFullName && pr.html_url && pr.number) {
+          ctx.scheduler.runAfter(0, internal.postFixValidation.handlePrMerged, {
+            repositoryFullName: repoFullName,
+            prNumber: pr.number,
+            prUrl: pr.html_url,
+            mergedAt: pr.merged_at ? Date.parse(pr.merged_at) : Date.now(),
+          })
+        }
+      }
+      return {
+        status: 'processed' as const,
+        reason: 'pull_request event routed',
+        httpStatus: 200,
+      }
+    }
+
     if (args.event !== 'push') {
       return {
         status: 'ignored',

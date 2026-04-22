@@ -20,6 +20,8 @@ const findingStatus = v.union(
   v.literal('merged'),
   v.literal('resolved'),
   v.literal('accepted_risk'),
+  v.literal('false_positive'),
+  v.literal('ignored'),
 )
 
 const validationStatus = v.union(

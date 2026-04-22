@@ -1,0 +1,20 @@
+Metadata-Version: 2.4
+Name: sentinel-agent-core
+Version: 0.1.0
+Summary: Python orchestration scaffold for the Sentinel agent core.
+Requires-Python: >=3.12
+Description-Content-Type: text/markdown
+Requires-Dist: fastapi<1.0,>=0.117
+Requires-Dist: pydantic<3.0,>=2.11
+Requires-Dist: uvicorn<1.0,>=0.37
+
+# Agent Core
+
+Planned Python service for:
+
+- workflow planning and orchestration
+- semantic fingerprinting adapters
+- breach-intel extraction agents
+- future exploit-validation coordination
+
+This service will consume normalized events from the control plane and emit structured workflow progress back into Convex.
