@@ -131,6 +131,9 @@ Current focus: `Phase 0 - foundation implementation underway`
   - NuGet: csproj regex + packages.lock.json; Composer: composer.lock + bare composer.json
   - 6 new Python tests → 22 total sbom-ingest tests
 
+## Session 46 additions
+- [x] WS-55: Commit Message Security Analyzer — `convex/lib/commitMessageAnalyzer.ts` (pure library: 8 rules — SECURITY_BYPASS/REVERT_SECURITY_FIX/FORCE_MERGE_BYPASS/CVE_ACKNOWLEDGED/TODO_SECURITY_DEBT/DEBUG_MODE_ENABLED/EMERGENCY_DEPLOYMENT/SENSITIVE_DATA_REFERENCE; 65 tests; riskScore 0–100 with per-severity caps; 120-char message truncation); `commitMessageScanResults` schema table (analyzedMessages[], 2 indexes); `convex/commitMessageIntel.ts` (6 entrypoints: recordCommitMessageScan/triggerCommitMessageScan/getLatestCommitMessageScan/getLatestCommitMessageScanBySlug/getCommitMessageScanHistory/getCommitMessageSummaryByTenant); optional commitMessages[] arg added to ingestGithubPush + ingestGithubPushFromWebhook; fire-and-forget wiring in events.ts; `GET /api/repository/commit-messages` HTTP route; `api.d.ts` registration; `RepositoryCommitMessagePanel` dashboard component. All checks green (2823/2823 tests, 0 TS errors, biome clean, build 1.08s).
+
 ## Session 45 additions
 - [x] WS-54: Sensitive File Commit Detector — `convex/lib/sensitiveFileDetector.ts` (pure library: 16 path-pattern rules across 4 categories — private_key/credentials/app_config/debug; 66 tests; riskScore 0–100 with per-severity caps); `sensitiveFileResults` schema table; `convex/sensitiveFileIntel.ts` (6 entrypoints); fire-and-forget in events.ts on all changedFiles; `GET /api/repository/sensitive-files` HTTP route; `RepositorySensitiveFilePanel` dashboard component. All checks green (2758/2758 tests, 0 TS errors, biome clean, build 1.20s).
 
