@@ -4535,6 +4535,116 @@ function RepositoryBranchProtectionPanel({
 	);
 }
 
+// RepositorySensitiveFilePanel — WS-54
+// ---------------------------------------------------------------------------
+
+function sensitiveFileRiskTone(
+	level: string,
+): "success" | "warning" | "danger" | "neutral" {
+	if (level === "none") return "success";
+	if (level === "low") return "neutral";
+	if (level === "medium") return "warning";
+	return "danger";
+}
+
+function sensitiveFileCategoryLabel(cat: string): string {
+	const map: Record<string, string> = {
+		private_key: "Private Key",
+		credentials: "Credentials",
+		app_config: "App Config",
+		debug: "Debug Artifact",
+	};
+	return map[cat] ?? cat;
+}
+
+function RepositorySensitiveFilePanel({
+	tenantSlug,
+	repositoryFullName,
+}: {
+	tenantSlug: string;
+	repositoryFullName: string;
+}) {
+	const result = useQuery(
+		api.sensitiveFileIntel.getLatestSensitiveFileScanBySlug,
+		{ tenantSlug, repositoryFullName },
+	);
+
+	if (!result || result.riskLevel === "none") return null;
+
+	return (
+		<article className="rounded-xl border border-[var(--sea-glass)]/20 bg-[var(--deep-sea)]/40 p-4">
+			<div className="flex items-center justify-between">
+				<h4 className="text-sm font-semibold text-[var(--sea-ink)]">
+					Sensitive Files in Commits
+				</h4>
+				<span className="font-mono text-xs text-[var(--sea-ink)]/40">
+					{result.commitSha.slice(0, 7)}@{result.branch}
+				</span>
+			</div>
+
+			{/* Risk score + severity counts */}
+			<div className="mt-2 flex flex-wrap gap-2">
+				<StatusPill
+					label={`Risk ${result.riskScore}/100`}
+					tone={sensitiveFileRiskTone(result.riskLevel)}
+				/>
+				<StatusPill
+					label={result.riskLevel.toUpperCase()}
+					tone={sensitiveFileRiskTone(result.riskLevel)}
+				/>
+				{result.criticalCount > 0 && (
+					<StatusPill
+						label={`${result.criticalCount} critical`}
+						tone="danger"
+					/>
+				)}
+				{result.highCount > 0 && (
+					<StatusPill label={`${result.highCount} high`} tone="danger" />
+				)}
+				{result.mediumCount > 0 && (
+					<StatusPill label={`${result.mediumCount} medium`} tone="warning" />
+				)}
+				{result.lowCount > 0 && (
+					<StatusPill label={`${result.lowCount} low`} tone="neutral" />
+				)}
+			</div>
+
+			{/* Top 5 findings */}
+			{result.findings.length > 0 && (
+				<ul className="mt-3 space-y-2">
+					{result.findings.slice(0, 5).map((f, i) => (
+						<li
+							// biome-ignore lint/suspicious/noArrayIndexKey: static list
+							key={`${f.ruleId}-${i}`}
+							className="rounded-lg bg-[var(--deep-sea)]/60 px-3 py-2"
+						>
+							<div className="flex flex-wrap items-center gap-2">
+								<StatusPill
+									label={f.severity}
+									tone={sensitiveFileRiskTone(f.severity)}
+								/>
+								<StatusPill
+									label={sensitiveFileCategoryLabel(f.category)}
+									tone="neutral"
+								/>
+								<code className="text-xs text-[var(--sea-ink)]/70">
+									{f.matchedPath}
+								</code>
+							</div>
+							<p className="mt-1 text-xs text-[var(--sea-ink)]/50">
+								{f.recommendation}
+							</p>
+						</li>
+					))}
+				</ul>
+			)}
+
+			{/* Summary */}
+			<p className="mt-3 text-sm text-[var(--sea-ink)]/70">{result.summary}</p>
+		</article>
+	);
+}
+
 // RepositorySecurityTimelinePanel — WS-51
 // ---------------------------------------------------------------------------
 
@@ -7089,6 +7199,10 @@ function ConfiguredDashboard() {
 									repositoryFullName={repository.fullName}
 								/>
 								<RepositoryBranchProtectionPanel
+									tenantSlug={overview.tenant.slug}
+									repositoryFullName={repository.fullName}
+								/>
+								<RepositorySensitiveFilePanel
 									tenantSlug={overview.tenant.slug}
 									repositoryFullName={repository.fullName}
 								/>

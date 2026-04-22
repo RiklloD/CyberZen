@@ -403,6 +403,25 @@ async function ingestGithubPushForRepository(
     console.error('[crypto-weakness] failed to schedule for repository', repository._id, e)
   }
 
+  // ── WS-54: Sensitive File Commit Detector ────────────────────────────────
+  // Scans all changed file paths in the push for accidentally committed
+  // sensitive files: private keys, certificates, credential configs, .env
+  // files, and debug artifacts. Path-pattern analysis only — no content fetch.
+  try {
+    const allFiles = args.changedFiles ?? []
+    if (allFiles.length > 0) {
+      await ctx.scheduler.runAfter(0, internal.sensitiveFileIntel.recordSensitiveFileScan, {
+        tenantId: tenant._id,
+        repositoryId: repository._id,
+        commitSha: args.commitSha,
+        branch: args.branch,
+        filePaths: allFiles.slice(0, 200),
+      })
+    }
+  } catch (e) {
+    console.error('[sensitive-file] failed to schedule for repository', repository._id, e)
+  }
+
   return { eventId, workflowRunId, deduped: false }
 }
 

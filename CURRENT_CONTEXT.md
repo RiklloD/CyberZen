@@ -65,6 +65,12 @@ This is the always-on context file for fast session recovery. Read this first at
 
 ## Verified Status
 
+- `bun run test --run` in `apps/web`: **2758/2758 passing (77 files)** — WS-54 complete
+- `bun run check` in `apps/web`: passing (biome clean)
+- `bun run build` in `apps/web`: passing (1.20s)
+- `bunx tsc --noEmit` in `apps/web`: 0 errors
+
+_Previous:_
 - `bun run test --run` in `apps/web`: **2692/2692 passing (76 files)** — WS-52 + WS-53 complete
 - `bun run check` in `apps/web`: passing (biome clean)
 - `bun run build` in `apps/web`: passing (1.07s)

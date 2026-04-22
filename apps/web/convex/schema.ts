@@ -2650,4 +2650,55 @@ export default defineSchema({
   })
     .index('by_repository_and_scanned_at', ['repositoryId', 'scannedAt'])
     .index('by_tenant_and_scanned_at', ['tenantId', 'scannedAt']),
+
+  // WS-54 — Sensitive File Commit Detector
+  sensitiveFileResults: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    /** Git commit SHA that triggered this scan. */
+    commitSha: v.string(),
+    /** Branch where the push occurred. */
+    branch: v.string(),
+    /** All file paths in the push payload that were scanned. */
+    scannedPaths: v.array(v.string()),
+    /** 0–100 composite risk score (0=clean, 100=critical). */
+    riskScore: v.number(),
+    riskLevel: v.union(
+      v.literal('critical'),
+      v.literal('high'),
+      v.literal('medium'),
+      v.literal('low'),
+      v.literal('none'),
+    ),
+    totalFindings: v.number(),
+    criticalCount: v.number(),
+    highCount: v.number(),
+    mediumCount: v.number(),
+    lowCount: v.number(),
+    /** Per-path findings with category, severity, and remediation advice. */
+    findings: v.array(
+      v.object({
+        ruleId: v.string(),
+        category: v.union(
+          v.literal('private_key'),
+          v.literal('credentials'),
+          v.literal('app_config'),
+          v.literal('debug'),
+        ),
+        severity: v.union(
+          v.literal('critical'),
+          v.literal('high'),
+          v.literal('medium'),
+          v.literal('low'),
+        ),
+        matchedPath: v.string(),
+        description: v.string(),
+        recommendation: v.string(),
+      }),
+    ),
+    summary: v.string(),
+    scannedAt: v.number(),
+  })
+    .index('by_repository_and_scanned_at', ['repositoryId', 'scannedAt'])
+    .index('by_tenant_and_scanned_at', ['tenantId', 'scannedAt']),
 })

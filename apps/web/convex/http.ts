@@ -3491,6 +3491,44 @@ http.route({
 })
 
 // ---------------------------------------------------------------------------
+// GET /api/repository/sensitive-files?tenantSlug=&repositoryFullName=
+//
+// Return the latest sensitive-file scan for a repository: per-path findings
+// with category, severity, and remediation recommendations. API-key-guarded.
+// Spec WS-54.
+// ---------------------------------------------------------------------------
+
+http.route({
+  path: '/api/repository/sensitive-files',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const authError = requireApiKey(request)
+    if (authError) return authError
+
+    const url = new URL(request.url)
+    const tenantSlug = url.searchParams.get('tenantSlug') ?? ''
+    const repositoryFullName = url.searchParams.get('repositoryFullName') ?? ''
+
+    if (!tenantSlug || !repositoryFullName) {
+      return new Response(
+        JSON.stringify({ error: 'tenantSlug and repositoryFullName are required' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } },
+      )
+    }
+
+    const result = await ctx.runQuery(
+      api.sensitiveFileIntel.getLatestSensitiveFileScanBySlug,
+      { tenantSlug, repositoryFullName },
+    )
+
+    return new Response(JSON.stringify({ result }, null, 2), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+    })
+  }),
+})
+
+// ---------------------------------------------------------------------------
 // GET /api/repository/branch-protection?tenantSlug=&repositoryFullName=
 //
 // Return the latest branch protection scan for a repository: risk score,
