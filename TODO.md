@@ -131,6 +131,19 @@ Current focus: `Phase 0 - foundation implementation underway`
   - NuGet: csproj regex + packages.lock.json; Composer: composer.lock + bare composer.json
   - 6 new Python tests → 22 total sbom-ingest tests
 
+## Session 44 additions
+- [x] WS-52: Security Debt Velocity Tracker — `convex/lib/securityDebtVelocity.ts` (pure library: classifyTrend/computeDebtScore/computeSecurityDebtVelocity; 35 tests); `securityDebtSnapshots` schema table; `convex/securityDebtIntel.ts` (6 entrypoints: computeAndStoreSecurityDebt/triggerSecurityDebtForRepository/getLatestSecurityDebt/getLatestSecurityDebtBySlug/getSecurityDebtHistory/getSecurityDebtSummaryByTenant); fire-and-forget wiring in events.ts after cross-repo impact; `GET /api/security/debt` HTTP route; `api.d.ts` registration; `RepositorySecurityDebtPanel` dashboard component (debtScore pill, trend pill, velocity, open/critical/overdue counts, projectedClearanceDays, window stats, summary). All checks green (2650/2650 tests, 0 TS errors, biome clean, build 1.07s).
+- [x] WS-53: GitHub Branch Protection Analyzer — `convex/lib/branchProtection.ts` (pure library: 8 rules critical→low; riskScore 0–100; riskLevel none→critical; 42 tests); `branchProtectionResults` schema table (dataSource github_api|simulated; 2 indexes); `convex/branchProtectionIntel.ts` (6 entrypoints including checkAndStoreBranchProtection internalAction with GitHub API + CODEOWNERS fetch + simulated fallback); fire-and-forget in events.ts after security debt; `GET /api/repository/branch-protection` HTTP route; `api.d.ts` registration; `RepositoryBranchProtectionPanel` dashboard component. All checks green (2692/2692 tests, 0 TS errors, biome clean, build 1.07s).
+
+## Session 43 additions
+- [x] `scoreProvenanceSignals()` implementation in `convex/lib/modelProvenance.ts` (WS model provenance stub)
+  - Replaced placeholder with a principled 3-tier scoring model:
+  - **Tier 1 (additive)**: `totalPenalty = Σ signal.penalty` subtracted from base 100
+  - **Tier 2 (hard floor #1)**: `training_data_risk` present → score capped at 50 — training data contamination (CSAM, PII, copyright) cannot be patched at the model level, so a score above 50 would be misleading
+  - **Tier 3 (hard floor #2)**: 2+ high/critical signals → score capped at 40 — compound trust failure (e.g. unknown_source + restricted_license) is not just additive; it indicates systemic provenance absence
+  - `_baseScore` parameter preserved for caller flexibility without affecting existing tests
+  - All 2615/2615 tests pass; 0 TS errors; biome clean; build 1.70s
+
 ## Session 42 additions
 - [x] WS-45: Container Image Security Analyzer — static base-image EOL/near-EOL/outdated/unpinned/deprecated scanner
   - `convex/lib/containerImageSecurity.ts` — pure library: `CONTAINER_IMAGE_DATABASE` (~45 entries: ubuntu/debian/alpine/node/python/postgres/php/mysql/redis/nginx + deprecated node codenames); `CONTAINER_ECOSYSTEMS = new Set(['docker','container','oci'])`; `NEAR_EOL_WINDOW_DAYS = 90`; signals: `eol_base_image` (critical), `near_eol` (high), `outdated_base` (medium/low), `no_version_tag` (medium), `deprecated_image` (high/critical); `isUnpinnedTag` (UNPINNED_TAGS set); `matchVersionPrefix` (exact | `prefix-` | `prefix.` | `prefix_` separators — no substring false-positives); `checkContainerImage` (ecosystem filter → unpinned → DB lookup with registry-prefix stripping, e.g. `docker.io/library/ubuntu` → `ubuntu`); `computeContainerImageReport` (container-ecosystem filter, dedup by `ecosystem:name@version`, findings sort critical-first, aggregate counts + summary)

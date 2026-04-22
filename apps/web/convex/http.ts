@@ -3449,4 +3449,83 @@ http.route({
   }),
 })
 
+// ---------------------------------------------------------------------------
+// GET /api/security/debt?tenantSlug=&repositoryFullName=
+//
+// Return the latest security debt velocity snapshot for a repository: open
+// backlog, overdue SLA counts, net velocity, trend, projected clearance days,
+// and the 0–100 debt score. API-key-guarded. Spec WS-52.
+// ---------------------------------------------------------------------------
+
+http.route({
+  path: '/api/security/debt',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const authError = requireApiKey(request)
+    if (authError) return authError
+
+    const url = new URL(request.url)
+    const tenantSlug = url.searchParams.get('tenantSlug') ?? ''
+    const repositoryFullName = url.searchParams.get('repositoryFullName') ?? ''
+
+    if (!tenantSlug || !repositoryFullName) {
+      return new Response(
+        JSON.stringify({ error: 'tenantSlug and repositoryFullName are required' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } },
+      )
+    }
+
+    const snapshot = await ctx.runQuery(
+      api.securityDebtIntel.getLatestSecurityDebtBySlug,
+      { tenantSlug, repositoryFullName },
+    )
+
+    return new Response(
+      JSON.stringify({ snapshot }, null, 2),
+      {
+        status: 200,
+        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+      },
+    )
+  }),
+})
+
+// ---------------------------------------------------------------------------
+// GET /api/repository/branch-protection?tenantSlug=&repositoryFullName=
+//
+// Return the latest branch protection scan for a repository: risk score,
+// risk level, per-rule findings, and remediation recommendations.
+// API-key-guarded. Spec WS-53.
+// ---------------------------------------------------------------------------
+
+http.route({
+  path: '/api/repository/branch-protection',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const authError = requireApiKey(request)
+    if (authError) return authError
+
+    const url = new URL(request.url)
+    const tenantSlug = url.searchParams.get('tenantSlug') ?? ''
+    const repositoryFullName = url.searchParams.get('repositoryFullName') ?? ''
+
+    if (!tenantSlug || !repositoryFullName) {
+      return new Response(
+        JSON.stringify({ error: 'tenantSlug and repositoryFullName are required' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } },
+      )
+    }
+
+    const result = await ctx.runQuery(
+      api.branchProtectionIntel.getLatestBranchProtectionBySlug,
+      { tenantSlug, repositoryFullName },
+    )
+
+    return new Response(JSON.stringify({ result }, null, 2), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+    })
+  }),
+})
+
 export default http

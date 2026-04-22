@@ -2561,4 +2561,93 @@ export default defineSchema({
   })
     .index('by_repository_and_computed_at', ['repositoryId', 'computedAt'])
     .index('by_tenant_and_computed_at', ['tenantId', 'computedAt']),
+
+  // WS-52 — Security Debt Velocity Tracker
+  // Point-in-time snapshot of how quickly security findings are accumulating
+  // versus being resolved. Drives the debt velocity panel and executive digest.
+  securityDebtSnapshots: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    /** Analysis window in days used for velocity metrics. */
+    windowDays: v.number(),
+    /** Findings created within the window. */
+    newFindingsInWindow: v.number(),
+    /** Findings resolved/closed within the window. */
+    resolvedFindingsInWindow: v.number(),
+    /** net = new/day − resolved/day (positive = accumulating). */
+    netVelocityPerDay: v.number(),
+    /** Raw creation rate within the window (findings/day). */
+    newPerDay: v.number(),
+    /** Raw resolution rate within the window (findings/day). */
+    resolvedPerDay: v.number(),
+    /** Total open findings at time of snapshot. */
+    openFindings: v.number(),
+    /** Open findings with severity 'critical'. */
+    openCritical: v.number(),
+    /** Open findings with severity 'high'. */
+    openHigh: v.number(),
+    /** Open findings past their SLA deadline. */
+    overdueFindings: v.number(),
+    /** Open critical findings past the 24-hour SLA. */
+    overdueCritical: v.number(),
+    /** Trend classification based on net velocity. */
+    trend: v.union(
+      v.literal('improving'),
+      v.literal('stable'),
+      v.literal('degrading'),
+      v.literal('critical'),
+    ),
+    /** Projected days to clear all open findings at current resolution rate (null if no resolution). */
+    projectedClearanceDays: v.union(v.number(), v.null()),
+    /** 0–100 debt score (100 = no debt, 0 = worst). */
+    debtScore: v.number(),
+    summary: v.string(),
+    computedAt: v.number(),
+  })
+    .index('by_repository_and_computed_at', ['repositoryId', 'computedAt'])
+    .index('by_tenant_and_computed_at', ['tenantId', 'computedAt']),
+
+  // WS-53 — GitHub Branch Protection Analyzer
+  branchProtectionResults: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    /** Default branch name that was evaluated (e.g. "main"). */
+    defaultBranch: v.string(),
+    /** 0–100 composite risk score (0=safe, 100=critical). */
+    riskScore: v.number(),
+    /** Human-readable risk level. */
+    riskLevel: v.union(
+      v.literal('critical'),
+      v.literal('high'),
+      v.literal('medium'),
+      v.literal('low'),
+      v.literal('none'),
+    ),
+    totalFindings: v.number(),
+    criticalCount: v.number(),
+    highCount: v.number(),
+    mediumCount: v.number(),
+    lowCount: v.number(),
+    /** Per-rule findings with recommendation text. */
+    findings: v.array(
+      v.object({
+        ruleId: v.string(),
+        severity: v.union(
+          v.literal('critical'),
+          v.literal('high'),
+          v.literal('medium'),
+          v.literal('low'),
+        ),
+        title: v.string(),
+        detail: v.string(),
+        recommendation: v.string(),
+      }),
+    ),
+    summary: v.string(),
+    /** Whether the GitHub API was reachable and returned real data. */
+    dataSource: v.union(v.literal('github_api'), v.literal('simulated')),
+    scannedAt: v.number(),
+  })
+    .index('by_repository_and_scanned_at', ['repositoryId', 'scannedAt'])
+    .index('by_tenant_and_scanned_at', ['tenantId', 'scannedAt']),
 })

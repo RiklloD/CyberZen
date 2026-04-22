@@ -4315,6 +4315,226 @@ function RepositoryDependencyUpdatePanel({
 }
 
 // ---------------------------------------------------------------------------
+// RepositorySecurityDebtPanel — WS-52
+// ---------------------------------------------------------------------------
+
+/** Trend label → StatusPill tone */
+function debtTrendTone(
+	trend: string,
+): "success" | "warning" | "danger" | "neutral" {
+	if (trend === "improving") return "success";
+	if (trend === "stable") return "neutral";
+	if (trend === "degrading") return "warning";
+	return "danger"; // critical
+}
+
+/** 0–100 debt score → tone (inverse of most panels — lower score = worse) */
+function debtScoreTone(
+	score: number,
+): "success" | "warning" | "danger" | "neutral" {
+	if (score >= 80) return "success";
+	if (score >= 60) return "neutral";
+	if (score >= 40) return "warning";
+	return "danger";
+}
+
+function RepositorySecurityDebtPanel({
+	tenantSlug,
+	repositoryFullName,
+}: {
+	tenantSlug: string;
+	repositoryFullName: string;
+}) {
+	const snapshot = useQuery(api.securityDebtIntel.getLatestSecurityDebtBySlug, {
+		tenantSlug,
+		repositoryFullName,
+	});
+
+	if (!snapshot) return null;
+
+	const velocityLabel =
+		snapshot.netVelocityPerDay > 0
+			? `+${snapshot.netVelocityPerDay}/day`
+			: snapshot.netVelocityPerDay < 0
+				? `${snapshot.netVelocityPerDay}/day`
+				: "0/day";
+
+	return (
+		<article className="panel rounded-[1.75rem] p-6">
+			<p className="island-kicker mb-2">WS-52</p>
+			<h2 className="text-2xl font-semibold text-[var(--sea-ink)]">
+				Security debt velocity
+			</h2>
+
+			{/* Summary row */}
+			<div className="mt-4 flex flex-wrap gap-2">
+				<StatusPill
+					label={`score ${snapshot.debtScore}/100`}
+					tone={debtScoreTone(snapshot.debtScore)}
+				/>
+				<StatusPill
+					label={snapshot.trend}
+					tone={debtTrendTone(snapshot.trend)}
+				/>
+				<StatusPill
+					label={`velocity ${velocityLabel}`}
+					tone={snapshot.netVelocityPerDay > 1 ? "warning" : "neutral"}
+				/>
+			</div>
+
+			{/* Backlog summary */}
+			<div className="mt-3 flex flex-wrap gap-2">
+				{snapshot.openFindings > 0 && (
+					<StatusPill label={`${snapshot.openFindings} open`} tone="neutral" />
+				)}
+				{snapshot.openCritical > 0 && (
+					<StatusPill
+						label={`${snapshot.openCritical} critical`}
+						tone="danger"
+					/>
+				)}
+				{snapshot.openHigh > 0 && (
+					<StatusPill label={`${snapshot.openHigh} high`} tone="warning" />
+				)}
+				{snapshot.overdueFindings > 0 && (
+					<StatusPill
+						label={`${snapshot.overdueFindings} overdue SLA`}
+						tone="danger"
+					/>
+				)}
+			</div>
+
+			{/* Projection */}
+			{snapshot.projectedClearanceDays !== null && (
+				<p className="mt-3 text-sm text-[var(--sea-ink)]/70">
+					Projected clearance:{" "}
+					<span className="font-semibold">
+						{snapshot.projectedClearanceDays}d
+					</span>{" "}
+					at current resolution rate
+				</p>
+			)}
+
+			{/* Window stats */}
+			<p className="mt-2 text-xs text-[var(--sea-ink)]/50">
+				{snapshot.newFindingsInWindow} new · {snapshot.resolvedFindingsInWindow}{" "}
+				resolved in {snapshot.windowDays}d window
+			</p>
+
+			{/* Summary text */}
+			<p className="mt-3 text-sm text-[var(--sea-ink)]/70">
+				{snapshot.summary}
+			</p>
+		</article>
+	);
+}
+
+// RepositoryBranchProtectionPanel — WS-53
+// ---------------------------------------------------------------------------
+
+/** Risk level → StatusPill tone */
+function branchRiskTone(
+	level: string,
+): "success" | "warning" | "danger" | "neutral" {
+	if (level === "none") return "success";
+	if (level === "low") return "neutral";
+	if (level === "medium") return "warning";
+	return "danger"; // high | critical
+}
+
+/** Severity → StatusPill tone */
+function branchFindingSeverityTone(
+	severity: string,
+): "success" | "warning" | "danger" | "neutral" {
+	if (severity === "critical") return "danger";
+	if (severity === "high") return "danger";
+	if (severity === "medium") return "warning";
+	return "neutral";
+}
+
+function RepositoryBranchProtectionPanel({
+	tenantSlug,
+	repositoryFullName,
+}: {
+	tenantSlug: string;
+	repositoryFullName: string;
+}) {
+	const result = useQuery(
+		api.branchProtectionIntel.getLatestBranchProtectionBySlug,
+		{ tenantSlug, repositoryFullName },
+	);
+
+	if (!result || result.riskLevel === "none") return null;
+
+	return (
+		<article className="rounded-xl border border-[var(--sea-glass)]/20 bg-[var(--deep-sea)]/40 p-4">
+			<div className="flex items-center justify-between">
+				<h4 className="text-sm font-semibold text-[var(--sea-ink)]">
+					Branch Protection
+				</h4>
+				<span className="text-xs text-[var(--sea-ink)]/40">
+					{result.dataSource === "github_api" ? "GitHub API" : "Simulated"}
+				</span>
+			</div>
+
+			{/* Risk score + level */}
+			<div className="mt-2 flex flex-wrap gap-2">
+				<StatusPill
+					label={`Risk ${result.riskScore}/100`}
+					tone={branchRiskTone(result.riskLevel)}
+				/>
+				<StatusPill
+					label={result.riskLevel.toUpperCase()}
+					tone={branchRiskTone(result.riskLevel)}
+				/>
+				{result.criticalCount > 0 && (
+					<StatusPill
+						label={`${result.criticalCount} critical`}
+						tone="danger"
+					/>
+				)}
+				{result.highCount > 0 && (
+					<StatusPill label={`${result.highCount} high`} tone="danger" />
+				)}
+				{result.mediumCount > 0 && (
+					<StatusPill label={`${result.mediumCount} medium`} tone="warning" />
+				)}
+				{result.lowCount > 0 && (
+					<StatusPill label={`${result.lowCount} low`} tone="neutral" />
+				)}
+			</div>
+
+			{/* Top 5 findings */}
+			{result.findings.length > 0 && (
+				<ul className="mt-3 space-y-2">
+					{result.findings.slice(0, 5).map((f) => (
+						<li
+							key={f.ruleId}
+							className="rounded-lg bg-[var(--deep-sea)]/60 px-3 py-2"
+						>
+							<div className="flex items-center gap-2">
+								<StatusPill
+									label={f.severity}
+									tone={branchFindingSeverityTone(f.severity)}
+								/>
+								<span className="text-xs font-medium text-[var(--sea-ink)]/80">
+									{f.title}
+								</span>
+							</div>
+							<p className="mt-1 text-xs text-[var(--sea-ink)]/50">
+								{f.recommendation}
+							</p>
+						</li>
+					))}
+				</ul>
+			)}
+
+			{/* Summary */}
+			<p className="mt-3 text-sm text-[var(--sea-ink)]/70">{result.summary}</p>
+		</article>
+	);
+}
+
 // RepositorySecurityTimelinePanel — WS-51
 // ---------------------------------------------------------------------------
 
@@ -6861,6 +7081,14 @@ function ConfiguredDashboard() {
 									repositoryFullName={repository.fullName}
 								/>
 								<RepositoryDependencyUpdatePanel
+									tenantSlug={overview.tenant.slug}
+									repositoryFullName={repository.fullName}
+								/>
+								<RepositorySecurityDebtPanel
+									tenantSlug={overview.tenant.slug}
+									repositoryFullName={repository.fullName}
+								/>
+								<RepositoryBranchProtectionPanel
 									tenantSlug={overview.tenant.slug}
 									repositoryFullName={repository.fullName}
 								/>

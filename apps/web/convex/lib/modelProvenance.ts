@@ -332,12 +332,33 @@ export function scoreProvenanceSignals(
   signals: ProvenanceSignal[],
   _baseScore: number,
 ): number {
-  // ── BEGIN YOUR IMPLEMENTATION ──────────────────────────────────────────────
-  // Replace this placeholder with your own logic.
-  // Example placeholder: sum of penalties clamped to [0, 100].
+  // No signals → perfect score (no concerns detected).
+  if (signals.length === 0) return 100
+
+  // Primary mechanism: additive penalty subtraction from the 100-point base.
   const totalPenalty = signals.reduce((sum, s) => sum + s.penalty, 0)
-  return Math.max(0, Math.min(100, 100 - totalPenalty))
-  // ── END YOUR IMPLEMENTATION ────────────────────────────────────────────────
+  let score = 100 - totalPenalty
+
+  // Hard floor #1 — training_data_risk
+  // Training dataset contamination (CSAM detection, PII exposure, copyright) is
+  // a fundamental provenance concern that cannot be resolved by patching the
+  // model version. A score above 50 would imply manageable risk, which is
+  // misleading when the underlying training data is compromised.
+  const hasTrainingDataRisk = signals.some((s) => s.kind === 'training_data_risk')
+  if (hasTrainingDataRisk) score = Math.min(score, 50)
+
+  // Hard floor #2 — compound high/critical severity
+  // Two or more high-or-critical signals indicate systemic provenance failure
+  // (e.g. unknown source AND restricted license = unidentifiable, non-commercial
+  // model). The additive model under-penalises this because each penalty was
+  // calibrated for a single independent concern. Cap at 40 to reflect the
+  // multiplicative trust loss when multiple serious signals co-occur.
+  const highSeverityCount = signals.filter(
+    (s) => s.severity === 'critical' || s.severity === 'high',
+  ).length
+  if (highSeverityCount >= 2) score = Math.min(score, 40)
+
+  return Math.max(0, Math.min(100, score))
 }
 
 // ---------------------------------------------------------------------------

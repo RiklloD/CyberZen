@@ -1189,6 +1189,38 @@ async function ingestCanonicalDisclosure(
       console.error('[cross-repo] failed to schedule for finding', findingId, e)
     }
 
+    // Fire-and-forget security debt velocity snapshot. Recomputes the
+    // new/resolved velocity and overdue SLA counts for this repository now
+    // that a new finding has been added.
+    try {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.securityDebtIntel.computeAndStoreSecurityDebt,
+        { tenantId: tenant._id, repositoryId: repository._id },
+      )
+    } catch (e) {
+      console.error('[security-debt] failed to schedule for repository', repository._id, e)
+    }
+
+    // Fire-and-forget branch protection check. Evaluates the default-branch
+    // protection configuration whenever a disclosure finding is created so the
+    // dashboard always reflects the current gate posture.
+    try {
+      const defaultBranch = (repository as { defaultBranch?: string }).defaultBranch ?? 'main'
+      await ctx.scheduler.runAfter(
+        0,
+        internal.branchProtectionIntel.checkAndStoreBranchProtection,
+        {
+          tenantId: tenant._id,
+          repositoryId: repository._id,
+          repositoryFullName: repository.fullName,
+          defaultBranch,
+        },
+      )
+    } catch (e) {
+      console.error('[branch-protection] failed to schedule for repository', repository._id, e)
+    }
+
     await updateWorkflowTask(
       ctx,
       workflowRunId,
