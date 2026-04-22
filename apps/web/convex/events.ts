@@ -60,6 +60,8 @@ type GithubPushIngestInput = {
   branch: string
   commitSha: string
   changedFiles: string[]
+  /** Commit messages from the push payload (WS-55). Optional — callers may omit. */
+  commitMessages?: string[]
 }
 
 type SnapshotInventory = {
@@ -420,6 +422,30 @@ async function ingestGithubPushForRepository(
     }
   } catch (e) {
     console.error('[sensitive-file] failed to schedule for repository', repository._id, e)
+  }
+
+  // ── WS-55: Commit Message Security Analyzer ──────────────────────────────
+  // Analyses commit messages from the push for behavioral security signals:
+  // control bypasses, security-fix reverts, force-merge indicators, CVE refs,
+  // security TODOs, debug-mode enables, emergency deployments, and sensitive
+  // data references.
+  try {
+    const messages = args.commitMessages ?? []
+    if (messages.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.commitMessageIntel.recordCommitMessageScan,
+        {
+          tenantId: tenant._id,
+          repositoryId: repository._id,
+          commitSha: args.commitSha,
+          branch: args.branch,
+          commitMessages: messages,
+        },
+      )
+    }
+  } catch (e) {
+    console.error('[commit-message] failed to schedule for repository', repository._id, e)
   }
 
   return { eventId, workflowRunId, deduped: false }
@@ -1368,6 +1394,7 @@ export const ingestGithubPush = mutation({
     branch: v.string(),
     commitSha: v.string(),
     changedFiles: v.array(v.string()),
+    commitMessages: v.optional(v.array(v.string())),
   },
   returns: v.object({
     eventId: v.id('ingestionEvents'),
@@ -1385,6 +1412,7 @@ export const ingestGithubPush = mutation({
       branch: args.branch,
       commitSha: args.commitSha,
       changedFiles: args.changedFiles,
+      commitMessages: args.commitMessages,
     })
   },
 })
@@ -1395,6 +1423,7 @@ export const ingestGithubPushFromWebhook = internalMutation({
     branch: v.string(),
     commitSha: v.string(),
     changedFiles: v.array(v.string()),
+    commitMessages: v.optional(v.array(v.string())),
   },
   returns: v.object({
     eventId: v.id('ingestionEvents'),
@@ -1412,6 +1441,7 @@ export const ingestGithubPushFromWebhook = internalMutation({
       branch: args.branch,
       commitSha: args.commitSha,
       changedFiles: args.changedFiles,
+      commitMessages: args.commitMessages,
     })
   },
 })

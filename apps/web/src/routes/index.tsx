@@ -4645,6 +4645,120 @@ function RepositorySensitiveFilePanel({
 	);
 }
 
+// RepositoryCommitMessagePanel — WS-55
+// ---------------------------------------------------------------------------
+
+function commitMessageRiskTone(
+	level: string,
+): "success" | "warning" | "danger" | "neutral" {
+	if (level === "none") return "success";
+	if (level === "low") return "neutral";
+	if (level === "medium") return "warning";
+	return "danger";
+}
+
+function commitMessageRuleLabel(ruleId: string): string {
+	const map: Record<string, string> = {
+		SECURITY_BYPASS: "Security Bypass",
+		REVERT_SECURITY_FIX: "Revert Security Fix",
+		FORCE_MERGE_BYPASS: "Force Merge Bypass",
+		CVE_ACKNOWLEDGED: "CVE Reference",
+		TODO_SECURITY_DEBT: "Security Debt TODO",
+		DEBUG_MODE_ENABLED: "Debug Mode",
+		EMERGENCY_DEPLOYMENT: "Emergency Deploy",
+		SENSITIVE_DATA_REFERENCE: "Sensitive Data",
+	};
+	return map[ruleId] ?? ruleId;
+}
+
+function RepositoryCommitMessagePanel({
+	tenantSlug,
+	repositoryFullName,
+}: {
+	tenantSlug: string;
+	repositoryFullName: string;
+}) {
+	const result = useQuery(
+		api.commitMessageIntel.getLatestCommitMessageScanBySlug,
+		{ tenantSlug, repositoryFullName },
+	);
+
+	if (!result || result.riskLevel === "none") return null;
+
+	return (
+		<article className="rounded-xl border border-[var(--sea-glass)]/20 bg-[var(--deep-sea)]/40 p-4">
+			<div className="flex items-center justify-between">
+				<h4 className="text-sm font-semibold text-[var(--sea-ink)]">
+					Commit Message Security Signals
+				</h4>
+				<span className="font-mono text-xs text-[var(--sea-ink)]/40">
+					{result.commitSha.slice(0, 7)}@{result.branch}
+				</span>
+			</div>
+
+			{/* Risk score + severity counts */}
+			<div className="mt-2 flex flex-wrap gap-2">
+				<StatusPill
+					label={`Risk ${result.riskScore}/100`}
+					tone={commitMessageRiskTone(result.riskLevel)}
+				/>
+				<StatusPill
+					label={result.riskLevel.toUpperCase()}
+					tone={commitMessageRiskTone(result.riskLevel)}
+				/>
+				{result.criticalCount > 0 && (
+					<StatusPill
+						label={`${result.criticalCount} critical`}
+						tone="danger"
+					/>
+				)}
+				{result.highCount > 0 && (
+					<StatusPill label={`${result.highCount} high`} tone="danger" />
+				)}
+				{result.mediumCount > 0 && (
+					<StatusPill label={`${result.mediumCount} medium`} tone="warning" />
+				)}
+				{result.lowCount > 0 && (
+					<StatusPill label={`${result.lowCount} low`} tone="neutral" />
+				)}
+			</div>
+
+			{/* Top 5 findings */}
+			{result.findings.length > 0 && (
+				<ul className="mt-3 space-y-2">
+					{result.findings.slice(0, 5).map((f, i) => (
+						<li
+							// biome-ignore lint/suspicious/noArrayIndexKey: static list
+							key={`${f.ruleId}-${i}`}
+							className="rounded-lg bg-[var(--deep-sea)]/60 px-3 py-2"
+						>
+							<div className="flex flex-wrap items-center gap-2">
+								<StatusPill
+									label={f.severity}
+									tone={commitMessageRiskTone(f.severity)}
+								/>
+								<StatusPill
+									label={commitMessageRuleLabel(f.ruleId)}
+									tone="neutral"
+								/>
+								<code className="text-xs text-[var(--sea-ink)]/70">
+									{f.matchedMessage}
+								</code>
+							</div>
+							<p className="mt-1 text-xs text-[var(--sea-ink)]/50">
+								{f.recommendation}
+							</p>
+						</li>
+					))}
+				</ul>
+			)}
+
+			{/* Summary */}
+			<p className="mt-3 text-sm text-[var(--sea-ink)]/70">{result.summary}</p>
+		</article>
+	);
+}
+
 // RepositorySecurityTimelinePanel — WS-51
 // ---------------------------------------------------------------------------
 
@@ -7203,6 +7317,10 @@ function ConfiguredDashboard() {
 									repositoryFullName={repository.fullName}
 								/>
 								<RepositorySensitiveFilePanel
+									tenantSlug={overview.tenant.slug}
+									repositoryFullName={repository.fullName}
+								/>
+								<RepositoryCommitMessagePanel
 									tenantSlug={overview.tenant.slug}
 									repositoryFullName={repository.fullName}
 								/>

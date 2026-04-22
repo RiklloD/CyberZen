@@ -2701,4 +2701,49 @@ export default defineSchema({
   })
     .index('by_repository_and_scanned_at', ['repositoryId', 'scannedAt'])
     .index('by_tenant_and_scanned_at', ['tenantId', 'scannedAt']),
+
+  // WS-55 — Commit Message Security Analyzer
+  commitMessageScanResults: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    /** Git commit SHA of the HEAD commit in the push. */
+    commitSha: v.string(),
+    /** Branch where the push occurred. */
+    branch: v.string(),
+    /** All commit messages analysed in this push (capped at 50). */
+    analyzedMessages: v.array(v.string()),
+    /** 0–100 composite risk score (0=clean, 100=critical). */
+    riskScore: v.number(),
+    riskLevel: v.union(
+      v.literal('critical'),
+      v.literal('high'),
+      v.literal('medium'),
+      v.literal('low'),
+      v.literal('none'),
+    ),
+    totalFindings: v.number(),
+    criticalCount: v.number(),
+    highCount: v.number(),
+    mediumCount: v.number(),
+    lowCount: v.number(),
+    /** Per-message findings with rule, severity, and remediation advice. */
+    findings: v.array(
+      v.object({
+        ruleId: v.string(),
+        severity: v.union(
+          v.literal('critical'),
+          v.literal('high'),
+          v.literal('medium'),
+          v.literal('low'),
+        ),
+        matchedMessage: v.string(),
+        description: v.string(),
+        recommendation: v.string(),
+      }),
+    ),
+    summary: v.string(),
+    scannedAt: v.number(),
+  })
+    .index('by_repository_and_scanned_at', ['repositoryId', 'scannedAt'])
+    .index('by_tenant_and_scanned_at', ['tenantId', 'scannedAt']),
 })
