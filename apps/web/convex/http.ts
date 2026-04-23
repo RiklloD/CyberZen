@@ -3604,4 +3604,42 @@ http.route({
   }),
 })
 
+// ---------------------------------------------------------------------------
+// GET /api/repository/git-integrity?tenantSlug=&repositoryFullName=
+//
+// Return the latest Git supply-chain integrity scan for a repository: risk
+// score, risk level, per-path findings, and remediation recommendations.
+// API-key-guarded. Spec WS-56.
+// ---------------------------------------------------------------------------
+
+http.route({
+  path: '/api/repository/git-integrity',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const authError = requireApiKey(request)
+    if (authError) return authError
+
+    const url = new URL(request.url)
+    const tenantSlug = url.searchParams.get('tenantSlug') ?? ''
+    const repositoryFullName = url.searchParams.get('repositoryFullName') ?? ''
+
+    if (!tenantSlug || !repositoryFullName) {
+      return new Response(
+        JSON.stringify({ error: 'tenantSlug and repositoryFullName are required' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } },
+      )
+    }
+
+    const result = await ctx.runQuery(
+      api.gitIntegrityIntel.getLatestGitIntegrityScanBySlug,
+      { tenantSlug, repositoryFullName },
+    )
+
+    return new Response(JSON.stringify({ result }, null, 2), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+    })
+  }),
+})
+
 export default http

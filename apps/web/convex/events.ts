@@ -448,6 +448,31 @@ async function ingestGithubPushForRepository(
     console.error('[commit-message] failed to schedule for repository', repository._id, e)
   }
 
+  // ── WS-56: Git Supply Chain Integrity Scanner ─────────────────────────
+  // Analyses changed file paths for supply-chain attack patterns: system-binary
+  // PATH hijacking, submodule manipulation, binary executable smuggling, git
+  // hook tampering, dependency registry overrides, gitconfig modification,
+  // large blind pushes, and archive file commits.
+  try {
+    const allFiles = args.changedFiles ?? []
+    if (allFiles.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.gitIntegrityIntel.recordGitIntegrityScan,
+        {
+          tenantId: tenant._id,
+          repositoryId: repository._id,
+          commitSha: args.commitSha,
+          branch: args.branch,
+          changedFiles: allFiles.slice(0, 500),
+          totalFileCount: allFiles.length,
+        },
+      )
+    }
+  } catch (e) {
+    console.error('[git-integrity] failed to schedule for repository', repository._id, e)
+  }
+
   return { eventId, workflowRunId, deduped: false }
 }
 

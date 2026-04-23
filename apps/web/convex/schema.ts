@@ -2746,4 +2746,51 @@ export default defineSchema({
   })
     .index('by_repository_and_scanned_at', ['repositoryId', 'scannedAt'])
     .index('by_tenant_and_scanned_at', ['tenantId', 'scannedAt']),
+
+  // WS-56 — Git Supply Chain Integrity Scanner
+  gitIntegrityResults: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    /** Git commit SHA that triggered this scan. */
+    commitSha: v.string(),
+    /** Branch where the push occurred. */
+    branch: v.string(),
+    /** Changed file paths passed to the scanner (may be a capped subset). */
+    scannedPaths: v.array(v.string()),
+    /** Total files changed in the push (may be > scannedPaths.length if capped). */
+    totalFileCount: v.number(),
+    /** 0–100 composite risk score (0=clean, 100=critical). */
+    riskScore: v.number(),
+    riskLevel: v.union(
+      v.literal('critical'),
+      v.literal('high'),
+      v.literal('medium'),
+      v.literal('low'),
+      v.literal('none'),
+    ),
+    totalFindings: v.number(),
+    criticalCount: v.number(),
+    highCount: v.number(),
+    mediumCount: v.number(),
+    lowCount: v.number(),
+    /** Per-path findings with rule, severity, and remediation advice. */
+    findings: v.array(
+      v.object({
+        ruleId: v.string(),
+        severity: v.union(
+          v.literal('critical'),
+          v.literal('high'),
+          v.literal('medium'),
+          v.literal('low'),
+        ),
+        matchedPath: v.string(),
+        description: v.string(),
+        recommendation: v.string(),
+      }),
+    ),
+    summary: v.string(),
+    scannedAt: v.number(),
+  })
+    .index('by_repository_and_scanned_at', ['repositoryId', 'scannedAt'])
+    .index('by_tenant_and_scanned_at', ['tenantId', 'scannedAt']),
 })
