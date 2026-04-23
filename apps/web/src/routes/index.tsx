@@ -5004,6 +5004,110 @@ function RepositoryHighRiskChangePanel({
 	);
 }
 
+// RepositoryDepLockPanel — WS-58
+// ---------------------------------------------------------------------------
+
+function depLockTone(
+	level: string,
+): "success" | "warning" | "danger" | "neutral" {
+	if (level === "none") return "success";
+	if (level === "low") return "neutral";
+	if (level === "medium") return "warning";
+	return "danger";
+}
+
+function depLockRuleLabel(ruleId: string): string {
+	const map: Record<string, string> = {
+		DIRECT_LOCK_EDIT: "Direct Lock Edit",
+		MIXED_NPM_LOCK_FILES: "Mixed Lock Formats",
+		NPM_MANIFEST_WITHOUT_LOCK: "npm: No Lock File",
+		CARGO_MANIFEST_WITHOUT_LOCK: "Cargo: No Lock",
+		GO_MOD_WITHOUT_SUM: "go.mod: No go.sum",
+		PYTHON_MANIFEST_WITHOUT_LOCK: "Python: No Lock",
+		RUBY_GEMFILE_WITHOUT_LOCK: "Gemfile: No Lock",
+	};
+	return map[ruleId] ?? ruleId;
+}
+
+function RepositoryDepLockPanel({
+	tenantSlug,
+	repositoryFullName,
+}: {
+	tenantSlug: string;
+	repositoryFullName: string;
+}) {
+	const result = useQuery(api.depLockIntel.getLatestDepLockVerifyScanBySlug, {
+		tenantSlug,
+		repositoryFullName,
+	});
+
+	if (!result || result.riskLevel === "none") return null;
+
+	return (
+		<article className="rounded-xl border border-[var(--sea-glass)]/20 bg-[var(--deep-sea)]/40 p-4">
+			<div className="flex items-center justify-between">
+				<h4 className="text-sm font-semibold text-[var(--sea-ink)]">
+					Dep Lock Integrity
+				</h4>
+				<span className="font-mono text-xs text-[var(--sea-ink)]/40">
+					{result.commitSha.slice(0, 7)}@{result.branch}
+				</span>
+			</div>
+
+			{/* Risk score + severity counts */}
+			<div className="mt-2 flex flex-wrap gap-2">
+				<StatusPill
+					label={`Risk ${result.riskScore}/100`}
+					tone={depLockTone(result.riskLevel)}
+				/>
+				<StatusPill
+					label={result.riskLevel.toUpperCase()}
+					tone={depLockTone(result.riskLevel)}
+				/>
+				{result.highCount > 0 && (
+					<StatusPill label={`${result.highCount} high`} tone="warning" />
+				)}
+				{result.mediumCount > 0 && (
+					<StatusPill label={`${result.mediumCount} medium`} tone="neutral" />
+				)}
+			</div>
+
+			{/* Per-rule findings */}
+			{result.findings.length > 0 && (
+				<ul className="mt-3 space-y-2">
+					{result.findings.map((f) => (
+						<li
+							key={f.ruleId}
+							className="rounded-lg bg-[var(--deep-sea)]/60 p-2"
+						>
+							<div className="flex flex-wrap items-center gap-2">
+								<StatusPill
+									label={depLockRuleLabel(f.ruleId)}
+									tone={depLockTone(f.severity)}
+								/>
+								{f.matchCount > 1 && (
+									<span className="text-xs text-[var(--sea-ink)]/50">
+										{f.matchCount} files
+									</span>
+								)}
+								<code className="text-xs text-[var(--sea-ink)]/70">
+									{f.matchedPath}
+								</code>
+							</div>
+							<p className="mt-1 text-xs text-[var(--sea-ink)]/50">
+								{f.recommendation}
+							</p>
+						</li>
+					))}
+				</ul>
+			)}
+
+			{/* Summary */}
+			<p className="mt-3 text-sm text-[var(--sea-ink)]/70">{result.summary}</p>
+		</article>
+	);
+}
+
 // RepositorySecurityTimelinePanel — WS-51
 // ---------------------------------------------------------------------------
 
@@ -7574,6 +7678,10 @@ function ConfiguredDashboard() {
 									repositoryFullName={repository.fullName}
 								/>
 								<RepositoryHighRiskChangePanel
+									tenantSlug={overview.tenant.slug}
+									repositoryFullName={repository.fullName}
+								/>
+								<RepositoryDepLockPanel
 									tenantSlug={overview.tenant.slug}
 									repositoryFullName={repository.fullName}
 								/>
