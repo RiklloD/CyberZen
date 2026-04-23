@@ -131,6 +131,9 @@ Current focus: `Phase 0 - foundation implementation underway`
   - NuGet: csproj regex + packages.lock.json; Composer: composer.lock + bare composer.json
   - 6 new Python tests → 22 total sbom-ingest tests
 
+## Session 48 additions
+- [x] WS-57: Security Hotspot Change Detector — `convex/lib/highRiskChangeDetector.ts` (pure library: 12 rules across 6 categories — AUTH_HANDLER/TOKEN_MANAGEMENT/MFA_IMPLEMENTATION/CRYPTO_PRIMITIVE/PASSWORD_HANDLER/SIGNING_CODE/PAYMENT_PROCESSING/ADMIN_AREA/AUTHORIZATION_LOGIC/PII_HANDLING/RATE_LIMITER/SECURITY_MIDDLEWARE; deduplicated per rule — one finding per rule with matchCount; vendor-path exclusion for node_modules/dist/build/vendor; 85 tests); `highRiskChangeResults` schema table (2 indexes); `convex/highRiskChangeIntel.ts` (6 entrypoints); fire-and-forget in events.ts; `GET /api/repository/high-risk-changes` HTTP route; `api.d.ts` registration; `RepositoryHighRiskChangePanel` dashboard component. All checks green (2996/2996 tests, 0 TS errors, biome clean, build 1.36s).
+
 ## Session 47 additions
 - [x] WS-56: Git Supply Chain Integrity Scanner — `convex/lib/gitIntegrityScanner.ts` (pure library: 8 rules — SHADOW_SYSTEM_BINARY/SUBMODULE_MANIPULATION/EXECUTABLE_BINARY_COMMITTED/GIT_HOOK_TAMPERING/DEPENDENCY_REGISTRY_OVERRIDE/GITCONFIG_MODIFIED/LARGE_BLIND_PUSH/ARCHIVE_COMMITTED; 88 tests; same penalty/cap scoring as WS-53/54/55; LARGE_BLIND_PUSH fires once on >200 files using uncapped totalFileCount); `gitIntegrityResults` schema table (totalFileCount field, 2 indexes); `convex/gitIntegrityIntel.ts` (6 entrypoints); fire-and-forget in events.ts (up to 500 paths + uncapped totalFileCount); `GET /api/repository/git-integrity` HTTP route; `api.d.ts` registration; `RepositoryGitIntegrityPanel` dashboard component. All checks green (2911/2911 tests, 0 TS errors, biome clean, build 1.13s).
 

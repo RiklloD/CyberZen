@@ -473,6 +473,30 @@ async function ingestGithubPushForRepository(
     console.error('[git-integrity] failed to schedule for repository', repository._id, e)
   }
 
+  // ── WS-57: Security Hotspot Change Detector ───────────────────────────
+  // Analyses changed file paths for modifications to security-critical code
+  // areas: authentication handlers, cryptographic primitives, payment
+  // processing, administration endpoints, PII handlers, and security
+  // middleware. One finding per triggered rule (deduplicated by rule).
+  try {
+    const allFiles = args.changedFiles ?? []
+    if (allFiles.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.highRiskChangeIntel.recordHighRiskChangeScan,
+        {
+          tenantId: tenant._id,
+          repositoryId: repository._id,
+          commitSha: args.commitSha,
+          branch: args.branch,
+          changedFiles: allFiles.slice(0, 500),
+        },
+      )
+    }
+  } catch (e) {
+    console.error('[high-risk-change] failed to schedule for repository', repository._id, e)
+  }
+
   return { eventId, workflowRunId, deduped: false }
 }
 

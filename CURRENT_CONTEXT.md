@@ -65,12 +65,18 @@ This is the always-on context file for fast session recovery. Read this first at
 
 ## Verified Status
 
+- `bun run test --run` in `apps/web`: **2996/2996 passing (80 files)** — WS-57 complete
+- `bun run check` in `apps/web`: passing (biome clean)
+- `bun run build` in `apps/web`: passing (1.36s)
+- `bunx tsc --noEmit` in `apps/web`: 0 errors
+
+_Previous:_
 - `bun run test --run` in `apps/web`: **2911/2911 passing (79 files)** — WS-56 complete
 - `bun run check` in `apps/web`: passing (biome clean)
 - `bun run build` in `apps/web`: passing (1.13s)
 - `bunx tsc --noEmit` in `apps/web`: 0 errors
 
-_Previous:_
+_Previous (WS-55):_
 - `bun run test --run` in `apps/web`: **2823/2823 passing (78 files)** — WS-55 complete
 - `bun run check` in `apps/web`: passing (biome clean)
 - `bun run build` in `apps/web`: passing (1.08s)
@@ -131,6 +137,7 @@ _Previous entries:_
 - REST API completeness (spec §7.1) is now complete: all 24 spec-defined endpoints implemented across 28 HTTP routes in `http.ts`.
 - Trust Score Computation Pipeline is now complete (this session): `convex/lib/componentTrustScore.ts` (pure library — 7-signal penalty model: known CVE -30, extra CVEs up to -20, direct-dep surcharge -5, typosquat -25, suspicious name -15, pre-release -8, unknown version -12; score clamped 0–100; 30 tests), `convex/trustScoreIntel.ts` (`refreshComponentTrustScores` internalMutation — batch-loads breach disclosures once, computes scores for all snapshot components, patches sbomComponents.trustScore + hasKnownVulnerabilities, dispatches trust_score.degraded when delta ≥ 10 and trust_score.compromised when score newly crosses below 30; `getRepositoryTrustScoreSummary` public query with 4-tier breakdown: trusted/acceptable/at_risk/compromised), fire-and-forget wiring in `sbom.ingestRepositoryInventory` (after snapshot creation) and `events.ingestCanonicalDisclosure` (after hasKnownVulnerabilities patch), `trust_score.compromised` type + data shape added to `webhookDispatcher.ts` — 11th spec §7.2 event type.
 - Webhook event coverage (spec §7.2) is now **11/11 complete**: `finding.validated`, `finding.pr_opened`, `finding.resolved`, `trust_score.degraded`, `trust_score.compromised`, `honeypot.triggered`, `gate.blocked`, `gate.override`, `regulatory.gap_detected`, `sbom.drift_detected`, `attack_surface.increased`.
+- WS-57 (Security Hotspot Change Detector) is complete: `convex/lib/highRiskChangeDetector.ts` (pure library: 12 rules across 6 categories — AUTH_HANDLER/TOKEN_MANAGEMENT/MFA_IMPLEMENTATION/CRYPTO_PRIMITIVE/PASSWORD_HANDLER/SIGNING_CODE/PAYMENT_PROCESSING/ADMIN_AREA/AUTHORIZATION_LOGIC/PII_HANDLING/RATE_LIMITER/SECURITY_MIDDLEWARE; deduplicated per rule — one finding per rule showing firstMatchedPath+matchCount; vendor-path exclusion for node_modules/dist/build/vendor/.yarn; same penalty/cap scoring as WS-52-56; 85 tests), `highRiskChangeResults` schema table (findings with matchCount field; 2 indexes), `convex/highRiskChangeIntel.ts` (6 entrypoints: recordHighRiskChangeScan/triggerHighRiskChangeScan/getLatestHighRiskChangeScan/getLatestHighRiskChangeScanBySlug/getHighRiskChangeScanHistory/getHighRiskChangeSummaryByTenant); fire-and-forget in events.ts after WS-56 git integrity block; `GET /api/repository/high-risk-changes` HTTP route; `api.d.ts` registration; `RepositoryHighRiskChangePanel` dashboard component (risk score pill + severity count pills + top-6 findings with rule label/category/matchCount/firstPath + recommendation text). All checks green (2996/2996 tests, 0 TS errors, biome clean, build 1.36s).
 
 ## Verified Status (Session 45)
 

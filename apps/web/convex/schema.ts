@@ -2793,4 +2793,55 @@ export default defineSchema({
   })
     .index('by_repository_and_scanned_at', ['repositoryId', 'scannedAt'])
     .index('by_tenant_and_scanned_at', ['tenantId', 'scannedAt']),
+
+  // WS-57 — Security Hotspot Change Detector
+  // Stores one result per push event per repository. Findings are deduplicated
+  // per rule (one entry per triggered rule, not per file).
+  highRiskChangeResults: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    /** Git commit SHA that triggered this scan. */
+    commitSha: v.string(),
+    /** Branch where the push occurred. */
+    branch: v.string(),
+    /** Changed file paths passed to the scanner (may be a capped subset). */
+    scannedPaths: v.array(v.string()),
+    /** 0–100 composite risk score (0=clean, 100=critical). */
+    riskScore: v.number(),
+    riskLevel: v.union(
+      v.literal('critical'),
+      v.literal('high'),
+      v.literal('medium'),
+      v.literal('low'),
+      v.literal('none'),
+    ),
+    totalFindings: v.number(),
+    criticalCount: v.number(),
+    highCount: v.number(),
+    mediumCount: v.number(),
+    lowCount: v.number(),
+    /** One finding per triggered rule. */
+    findings: v.array(
+      v.object({
+        ruleId: v.string(),
+        category: v.string(),
+        severity: v.union(
+          v.literal('critical'),
+          v.literal('high'),
+          v.literal('medium'),
+          v.literal('low'),
+        ),
+        /** First file path that triggered this rule. */
+        matchedPath: v.string(),
+        /** Number of changed files that triggered this rule. */
+        matchCount: v.number(),
+        description: v.string(),
+        recommendation: v.string(),
+      }),
+    ),
+    summary: v.string(),
+    scannedAt: v.number(),
+  })
+    .index('by_repository_and_scanned_at', ['repositoryId', 'scannedAt'])
+    .index('by_tenant_and_scanned_at', ['tenantId', 'scannedAt']),
 })

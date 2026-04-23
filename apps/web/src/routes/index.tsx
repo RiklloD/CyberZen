@@ -4873,6 +4873,137 @@ function RepositoryGitIntegrityPanel({
 	);
 }
 
+// RepositoryHighRiskChangePanel — WS-57
+// ---------------------------------------------------------------------------
+
+function highRiskChangeTone(
+	level: string,
+): "success" | "warning" | "danger" | "neutral" {
+	if (level === "none") return "success";
+	if (level === "low") return "neutral";
+	if (level === "medium") return "warning";
+	return "danger";
+}
+
+function highRiskCategoryLabel(category: string): string {
+	const map: Record<string, string> = {
+		authentication: "Auth",
+		cryptography: "Crypto",
+		payment: "Payment",
+		administration: "Admin",
+		data_privacy: "PII",
+		security_config: "Sec Config",
+	};
+	return map[category] ?? category;
+}
+
+function highRiskRuleLabel(ruleId: string): string {
+	const map: Record<string, string> = {
+		AUTH_HANDLER: "Auth Handler",
+		TOKEN_MANAGEMENT: "Token Mgmt",
+		MFA_IMPLEMENTATION: "MFA Code",
+		CRYPTO_PRIMITIVE: "Crypto Primitive",
+		PASSWORD_HANDLER: "Password Hash",
+		SIGNING_CODE: "Signing/HMAC",
+		PAYMENT_PROCESSING: "Payment Logic",
+		ADMIN_AREA: "Admin Panel",
+		AUTHORIZATION_LOGIC: "AuthZ Logic",
+		PII_HANDLING: "PII Handler",
+		RATE_LIMITER: "Rate Limiter",
+		SECURITY_MIDDLEWARE: "Sec Middleware",
+	};
+	return map[ruleId] ?? ruleId;
+}
+
+function RepositoryHighRiskChangePanel({
+	tenantSlug,
+	repositoryFullName,
+}: {
+	tenantSlug: string;
+	repositoryFullName: string;
+}) {
+	const result = useQuery(
+		api.highRiskChangeIntel.getLatestHighRiskChangeScanBySlug,
+		{ tenantSlug, repositoryFullName },
+	);
+
+	if (!result || result.riskLevel === "none") return null;
+
+	return (
+		<article className="rounded-xl border border-[var(--sea-glass)]/20 bg-[var(--deep-sea)]/40 p-4">
+			<div className="flex items-center justify-between">
+				<h4 className="text-sm font-semibold text-[var(--sea-ink)]">
+					Security Hotspot Changes
+				</h4>
+				<span className="font-mono text-xs text-[var(--sea-ink)]/40">
+					{result.commitSha.slice(0, 7)}@{result.branch}
+				</span>
+			</div>
+
+			{/* Risk score + severity counts */}
+			<div className="mt-2 flex flex-wrap gap-2">
+				<StatusPill
+					label={`Risk ${result.riskScore}/100`}
+					tone={highRiskChangeTone(result.riskLevel)}
+				/>
+				<StatusPill
+					label={result.riskLevel.toUpperCase()}
+					tone={highRiskChangeTone(result.riskLevel)}
+				/>
+				{result.criticalCount > 0 && (
+					<StatusPill
+						label={`${result.criticalCount} critical`}
+						tone="danger"
+					/>
+				)}
+				{result.highCount > 0 && (
+					<StatusPill label={`${result.highCount} high`} tone="warning" />
+				)}
+				{result.mediumCount > 0 && (
+					<StatusPill label={`${result.mediumCount} medium`} tone="neutral" />
+				)}
+			</div>
+
+			{/* Per-rule findings */}
+			{result.findings.length > 0 && (
+				<ul className="mt-3 space-y-2">
+					{result.findings.slice(0, 6).map((f) => (
+						<li
+							key={f.ruleId}
+							className="rounded-lg bg-[var(--deep-sea)]/60 p-2"
+						>
+							<div className="flex flex-wrap items-center gap-2">
+								<StatusPill
+									label={highRiskRuleLabel(f.ruleId)}
+									tone={highRiskChangeTone(f.severity)}
+								/>
+								<StatusPill
+									label={highRiskCategoryLabel(f.category)}
+									tone="neutral"
+								/>
+								{f.matchCount > 1 && (
+									<span className="text-xs text-[var(--sea-ink)]/50">
+										{f.matchCount} files
+									</span>
+								)}
+								<code className="text-xs text-[var(--sea-ink)]/70">
+									{f.matchedPath}
+								</code>
+							</div>
+							<p className="mt-1 text-xs text-[var(--sea-ink)]/50">
+								{f.recommendation}
+							</p>
+						</li>
+					))}
+				</ul>
+			)}
+
+			{/* Summary */}
+			<p className="mt-3 text-sm text-[var(--sea-ink)]/70">{result.summary}</p>
+		</article>
+	);
+}
+
 // RepositorySecurityTimelinePanel — WS-51
 // ---------------------------------------------------------------------------
 
@@ -7439,6 +7570,10 @@ function ConfiguredDashboard() {
 									repositoryFullName={repository.fullName}
 								/>
 								<RepositoryGitIntegrityPanel
+									tenantSlug={overview.tenant.slug}
+									repositoryFullName={repository.fullName}
+								/>
+								<RepositoryHighRiskChangePanel
 									tenantSlug={overview.tenant.slug}
 									repositoryFullName={repository.fullName}
 								/>
