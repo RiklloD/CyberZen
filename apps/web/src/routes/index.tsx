@@ -5108,6 +5108,110 @@ function RepositoryDepLockPanel({
 	);
 }
 
+// RepositoryBuildConfigPanel — WS-59
+// ---------------------------------------------------------------------------
+
+function buildConfigTone(
+	level: string,
+): "success" | "warning" | "danger" | "neutral" {
+	if (level === "none") return "success";
+	if (level === "low") return "neutral";
+	if (level === "medium") return "warning";
+	return "danger";
+}
+
+function buildConfigRuleLabel(ruleId: string): string {
+	const map: Record<string, string> = {
+		MAKEFILE_MODIFIED: "Makefile / Taskfile",
+		SHELL_BUILD_SCRIPT: "Shell Build Script",
+		JS_BUNDLER_CONFIG: "Bundler Config",
+		CODE_TRANSFORM_CONFIG: "Transpiler Config",
+		JAVA_BUILD_CONFIG: "Gradle / Maven",
+		PYTHON_SETUP_MODIFIED: "Python Setup",
+		RUBY_BUILD_CONFIG: "Gemspec",
+	};
+	return map[ruleId] ?? ruleId;
+}
+
+function RepositoryBuildConfigPanel({
+	tenantSlug,
+	repositoryFullName,
+}: {
+	tenantSlug: string;
+	repositoryFullName: string;
+}) {
+	const result = useQuery(api.buildConfigIntel.getLatestBuildConfigScanBySlug, {
+		tenantSlug,
+		repositoryFullName,
+	});
+
+	if (!result || result.riskLevel === "none") return null;
+
+	return (
+		<article className="rounded-xl border border-[var(--sea-glass)]/20 bg-[var(--deep-sea)]/40 p-4">
+			<div className="flex items-center justify-between">
+				<h4 className="text-sm font-semibold text-[var(--sea-ink)]">
+					Build Config Changes
+				</h4>
+				<span className="font-mono text-xs text-[var(--sea-ink)]/40">
+					{result.commitSha.slice(0, 7)}@{result.branch}
+				</span>
+			</div>
+
+			{/* Risk score + severity counts */}
+			<div className="mt-2 flex flex-wrap gap-2">
+				<StatusPill
+					label={`Risk ${result.riskScore}/100`}
+					tone={buildConfigTone(result.riskLevel)}
+				/>
+				<StatusPill
+					label={result.riskLevel.toUpperCase()}
+					tone={buildConfigTone(result.riskLevel)}
+				/>
+				{result.highCount > 0 && (
+					<StatusPill label={`${result.highCount} high`} tone="warning" />
+				)}
+				{result.mediumCount > 0 && (
+					<StatusPill label={`${result.mediumCount} medium`} tone="neutral" />
+				)}
+			</div>
+
+			{/* Per-rule findings */}
+			{result.findings.length > 0 && (
+				<ul className="mt-3 space-y-2">
+					{result.findings.map((f) => (
+						<li
+							key={f.ruleId}
+							className="rounded-lg bg-[var(--deep-sea)]/60 p-2"
+						>
+							<div className="flex flex-wrap items-center gap-2">
+								<StatusPill
+									label={buildConfigRuleLabel(f.ruleId)}
+									tone={buildConfigTone(f.severity)}
+								/>
+								{f.matchCount > 1 && (
+									<span className="text-xs text-[var(--sea-ink)]/50">
+										{f.matchCount} files
+									</span>
+								)}
+								<code className="text-xs text-[var(--sea-ink)]/70">
+									{f.matchedPath}
+								</code>
+							</div>
+							<p className="mt-1 text-xs text-[var(--sea-ink)]/50">
+								{f.recommendation}
+							</p>
+						</li>
+					))}
+				</ul>
+			)}
+
+			{/* Summary */}
+			<p className="mt-3 text-sm text-[var(--sea-ink)]/70">{result.summary}</p>
+		</article>
+	);
+}
+
 // RepositorySecurityTimelinePanel — WS-51
 // ---------------------------------------------------------------------------
 
@@ -7682,6 +7786,10 @@ function ConfiguredDashboard() {
 									repositoryFullName={repository.fullName}
 								/>
 								<RepositoryDepLockPanel
+									tenantSlug={overview.tenant.slug}
+									repositoryFullName={repository.fullName}
+								/>
+								<RepositoryBuildConfigPanel
 									tenantSlug={overview.tenant.slug}
 									repositoryFullName={repository.fullName}
 								/>

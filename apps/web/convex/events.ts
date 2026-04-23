@@ -497,6 +497,30 @@ async function ingestGithubPushForRepository(
     console.error('[high-risk-change] failed to schedule for repository', repository._id, e)
   }
 
+  // ── WS-59: Build Toolchain Integrity Scanner ──────────────────────────
+  // Analyses changed file paths for modifications to build toolchain files:
+  // Makefiles, shell build scripts, webpack/vite/rollup bundler configs,
+  // babel/swc transpiler configs, Gradle/Maven descriptors, Python setup
+  // files, and Ruby gemspecs. One finding per triggered rule.
+  try {
+    const allFiles = args.changedFiles ?? []
+    if (allFiles.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.buildConfigIntel.recordBuildConfigScan,
+        {
+          tenantId: tenant._id,
+          repositoryId: repository._id,
+          commitSha: args.commitSha,
+          branch: args.branch,
+          changedFiles: allFiles.slice(0, 500),
+        },
+      )
+    }
+  } catch (e) {
+    console.error('[build-config] failed to schedule for repository', repository._id, e)
+  }
+
   // ── WS-58: Dependency Lock File Integrity Verifier ────────────────────
   // Analyses changed file paths for dependency lock-file integrity violations:
   // direct lock edits without manifests, mixed npm lock formats, and manifests
