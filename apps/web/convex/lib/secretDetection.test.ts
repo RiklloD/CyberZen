@@ -217,7 +217,8 @@ describe('OpenAI key detection', () => {
   })
 
   it('does NOT flag Stripe key as OpenAI (different prefix)', () => {
-    const result = scanForSecrets('const key = "FAKE_STRIPE_LIVE"')
+    const fakeStripeKey = 'sk_live_' + 'abcdefghijklmnopqrstuvwxyz'
+    const result = scanForSecrets(`const key = "${fakeStripeKey}"`)
     // Stripe key should be caught by stripe_key, not openai_key
     expect(result.findings.some((f) => f.category === 'stripe_key')).toBe(true)
     expect(result.findings.some((f) => f.category === 'openai_key')).toBe(false)
@@ -226,14 +227,16 @@ describe('OpenAI key detection', () => {
 
 describe('Stripe key detection', () => {
   it('detects Stripe live secret key as critical', () => {
-    const result = scanForSecrets('stripeKey = "FAKE_STRIPE_LIVE_LONG"')
+    const fakeStripeKey = 'sk_live_' + 'abcdefghijklmnopqrstuvwxyz123456'
+    const result = scanForSecrets(`stripeKey = "${fakeStripeKey}"`)
     const finding = result.findings.find((f) => f.category === 'stripe_key')
     expect(finding).toBeDefined()
     expect(finding?.severity).toBe('critical')
   })
 
   it('detects Stripe test secret key as high', () => {
-    const result = scanForSecrets('stripeKey = "FAKE_STRIPE_TEST_LONG"')
+    const fakeStripeTestKey = 'sk_test_' + 'abcdefghijklmnopqrstuvwxyz123456'
+    const result = scanForSecrets(`stripeKey = "${fakeStripeTestKey}"`)
     const finding = result.findings.find((f) => f.category === 'stripe_key')
     expect(finding).toBeDefined()
     expect(finding?.severity).toBe('high')
@@ -279,7 +282,7 @@ describe('Hardcoded password detection', () => {
 
 describe('Slack token detection', () => {
   it('detects Slack bot token', () => {
-    const token = 'FAKE_SLACK_BOT'
+    const token = 'xoxb-' + '12345678901-12345678901234-aBcDeFgHiJkLmNoPqRsTuVwX'
     const result = scanForSecrets(`SLACK_TOKEN = "${token}"`)
     expect(result.findings.some((f) => f.category === 'communication_key')).toBe(true)
   })
