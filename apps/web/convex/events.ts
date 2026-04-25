@@ -497,6 +497,1182 @@ async function ingestGithubPushForRepository(
     console.error('[high-risk-change] failed to schedule for repository', repository._id, e)
   }
 
+  // ── WS-101: AI/ML Dependency Security Drift ─────────────────────────────────
+  // Analyses changed file paths for modifications to AI/ML dependency security
+  // configuration: LLM provider client configuration (openai.yaml, anthropic.json,
+  // llm-config.yaml), vector database configuration (pinecone.yaml, weaviate.json,
+  // chroma.yaml, qdrant.conf, milvus.yaml), AI orchestration framework configuration
+  // (llamaindex.yaml, autogen.json, haystack.yaml, langgraph.yaml, crewai.yaml),
+  // ML model training and registry configuration (model.yaml, mlflow.yaml,
+  // bentoml.yaml, seldon.yaml, triton.yaml), AI gateway and proxy configuration
+  // (litellm.yaml, portkey.yaml, openrouter.yaml, ai-gateway.json), embedding
+  // pipeline configuration (embedding.yaml, faiss.json, embeddings.yaml), AI
+  // evaluation framework configuration (ragas.yaml, trulens.json, evals.yaml),
+  // and AI safety and guardrail configuration (lakera.yaml, rebuff.yaml,
+  // nemo-guardrails.yaml, guardrails.yaml in ai-safety dirs).
+  try {
+    const allFiles = args.changedFiles ?? []
+    if (allFiles.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.secretMgmtDriftIntel.recordSecretMgmtDriftScan,
+        {
+          tenantId:     tenant._id,
+          repositoryId: repository._id,
+          commitSha:    args.commitSha,
+          branch:       args.branch,
+          changedFiles: allFiles.slice(0, 500),
+        },
+      )
+      await ctx.scheduler.runAfter(
+        0,
+        internal.depMgrSecurityDriftIntel.recordDepMgrSecurityDriftScan,
+        {
+          tenantId:     tenant._id,
+          repositoryId: repository._id,
+          commitSha:    args.commitSha,
+          branch:       args.branch,
+          changedFiles: allFiles.slice(0, 500),
+        },
+      )
+      await ctx.scheduler.runAfter(
+        0,
+        internal.aiMlSecurityDriftIntel.recordAiMlSecurityDriftScan,
+        {
+          tenantId:     tenant._id,
+          repositoryId: repository._id,
+          commitSha:    args.commitSha,
+          branch:       args.branch,
+          changedFiles: allFiles.slice(0, 500),
+        },
+      )
+      await ctx.scheduler.runAfter(
+        0,
+        internal.k8sAdmissionDriftIntel.recordK8sAdmissionDriftScan,
+        {
+          tenantId:     tenant._id,
+          repositoryId: repository._id,
+          commitSha:    args.commitSha,
+          branch:       args.branch,
+          changedFiles: allFiles.slice(0, 500),
+        },
+      )
+      await ctx.scheduler.runAfter(
+        0,
+        internal.supplyChainAttestationDriftIntel.recordSupplyChainAttestationDriftScan,
+        {
+          tenantId:     tenant._id,
+          repositoryId: repository._id,
+          commitSha:    args.commitSha,
+          branch:       args.branch,
+          changedFiles: allFiles.slice(0, 500),
+        },
+      )
+    }
+  } catch (e) {
+    console.error('[ai-ml-security-drift] failed to schedule for repository', repository._id, e)
+  }
+
+  // ── WS-95: Endpoint Security & EDR Configuration Drift ────────────────────────
+  // Analyses changed file paths for modifications to endpoint security and EDR
+  // configuration: CrowdStrike Falcon EDR agent and prevention policy configuration
+  // (falcon.cfg, crowdstrike-policy.json, falcon/ dirs), SentinelOne agent and
+  // policy configuration (sentinelone.conf, s1-policy.json), Microsoft Defender for
+  // Endpoint managed configuration (mdatp-managed.json, wdav-config.json,
+  // defender/ dirs), EDR and antivirus exclusion lists (edr-exclusions.json,
+  // av-exclusions.conf — adversary-targeted), MDM and UEM device enrollment and
+  // compliance policy configuration (Jamf Pro, Microsoft Intune, SCCM —
+  // .mobileconfig, intune-policy.json), Carbon Black and Sophos endpoint security
+  // agent configuration (cbagent.cfg, sophos.conf), vulnerability scanner agent
+  // configuration (nessus.conf, openvas.conf, qualys-cloud-agent.conf), and
+  // Tanium and IBM BigFix endpoint management configuration (tanium.conf, bigfix.conf).
+  try {
+    const allFiles = args.changedFiles ?? []
+    if (allFiles.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.endpointSecurityDriftIntel.recordEndpointSecurityDriftScan,
+        {
+          tenantId:     tenant._id,
+          repositoryId: repository._id,
+          commitSha:    args.commitSha,
+          branch:       args.branch,
+          changedFiles: allFiles.slice(0, 500),
+        },
+      )
+    }
+  } catch (e) {
+    console.error('[endpoint-security-drift] failed to schedule for repository', repository._id, e)
+  }
+
+  // ── WS-94: Network Monitoring & SNMP Security Configuration Drift ─────────────
+  // Analyses changed file paths for modifications to network monitoring and SNMP
+  // security configuration: SNMP daemon community strings and v3 auth (snmpd.conf,
+  // snmp.conf), Nagios monitoring server and NRPE agent configuration (nagios.cfg,
+  // nrpe.cfg, icinga2.conf), Zabbix server/proxy/agent configuration
+  // (zabbix_server.conf, zabbix_agentd.conf), NetFlow/IPFIX/sFlow traffic analysis
+  // (pmacct.conf, ntopng.conf, fastnetmon.conf), network management system and
+  // device backup tool configuration (oxidized.conf, librenms/config.php), Netdata
+  // streaming and health configuration (netdata.conf, stream.conf in netdata/ dirs),
+  // SNMP trap daemon and translator configuration (snmptrapd.conf, snmptt.conf), and
+  // network scanner/probe tool configuration (masscan.conf, nmap.conf).
+  try {
+    const allFiles = args.changedFiles ?? []
+    if (allFiles.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.networkMonitoringDriftIntel.recordNetworkMonitoringDriftScan,
+        {
+          tenantId:     tenant._id,
+          repositoryId: repository._id,
+          commitSha:    args.commitSha,
+          branch:       args.branch,
+          changedFiles: allFiles.slice(0, 500),
+        },
+      )
+    }
+  } catch (e) {
+    console.error('[network-monitoring-drift] failed to schedule for repository', repository._id, e)
+  }
+
+  // ── WS-93: VoIP & Unified Communications Security Configuration Drift ─────────
+  // Analyses changed file paths for modifications to VoIP and UC security
+  // configuration: Asterisk PBX / FreePBX (sip.conf, pjsip.conf, extensions.conf,
+  // manager.conf in asterisk/ dirs), Kamailio and OpenSIPS SIP proxy configuration
+  // (kamailio.cfg, opensips.cfg), FreeSWITCH PBX (freeswitch.xml, switch.conf.xml,
+  // vars.xml in freeswitch/ dirs), SIP trunk provider credential configuration
+  // (sip-trunk.conf, sip-provider.conf, sip-credentials.conf), Jitsi Meet and
+  // TURN/STUN server configuration (coturn.conf, turnserver.conf, jvb.conf), VoIP
+  // gateway and ATA configuration (voip-gateway.conf, sangoma-*, audiocodes-*),
+  // web conferencing server configuration (Matrix/Synapse, BigBlueButton,
+  // Rocket.Chat, Mattermost), and VoIP CDR / SIP capture monitoring (Homer, SNGREP).
+  try {
+    const allFiles = args.changedFiles ?? []
+    if (allFiles.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.voipSecurityDriftIntel.recordVoipSecurityDriftScan,
+        {
+          tenantId:     tenant._id,
+          repositoryId: repository._id,
+          commitSha:    args.commitSha,
+          branch:       args.branch,
+          changedFiles: allFiles.slice(0, 500),
+        },
+      )
+    }
+  } catch (e) {
+    console.error('[voip-security-drift] failed to schedule for repository', repository._id, e)
+  }
+
+  // ── WS-92: Virtualization & Hypervisor Security Configuration Drift ──────────
+  // Analyses changed file paths for modifications to hypervisor-level and VM
+  // management security configuration: VMware vSphere / ESXi / vCenter
+  // configuration (vmware.conf, vsphere.conf, vcenter.conf, vpxa.cfg, vpxd.cfg),
+  // KVM / QEMU / libvirt host security configuration (libvirtd.conf, libvirt.conf,
+  // virtlogd.conf, qemu.conf in libvirt/ dirs), Docker daemon and containerd host
+  // configuration (docker-daemon.json, daemon.json in docker/ dirs, config.toml in
+  // containerd/ dirs), Proxmox VE cluster and node configuration (datacenter.cfg,
+  // pve.conf, corosync.conf in proxmox/ dirs), Xen / XenServer / XCP-ng
+  // configuration (xend.conf, xl.conf, xapi.conf), Hyper-V configuration
+  // (hyperv-config.xml, hyperv.conf), VM remote console access configuration
+  // (VNC / SPICE / QEMU display configs), and Open vSwitch / SDN configuration
+  // (ovs-vswitchd.conf, ovsdb.conf).
+  try {
+    const allFiles = args.changedFiles ?? []
+    if (allFiles.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.virtualizationSecurityDriftIntel.recordVirtualizationSecurityDriftScan,
+        {
+          tenantId:     tenant._id,
+          repositoryId: repository._id,
+          commitSha:    args.commitSha,
+          branch:       args.branch,
+          changedFiles: allFiles.slice(0, 500),
+        },
+      )
+    }
+  } catch (e) {
+    console.error('[virtualization-security-drift] failed to schedule for repository', repository._id, e)
+  }
+
+  // ── WS-91: IoT & Embedded Device Security Configuration Drift ────────────────
+  // Analyses changed file paths for modifications to IoT and embedded device
+  // security configuration: Balena IoT fleet configuration (balena.yml,
+  // balena-compose.yml, fleet-config/), AWS IoT Greengrass configuration
+  // (greengrass-config.json, gg-config.json, config.json in greengrass/ dirs),
+  // firmware signing and secure-boot configuration (signing_config.json,
+  // mcuboot.config.yaml, imgtool-signing.conf, esptool.cfg, bootloader-keys.json),
+  // Mender OTA update configuration (mender.conf, mender-artifact.conf,
+  // artifact_info), Zigbee/Z-Wave controller configuration
+  // (zigbee2mqtt/configuration.yaml, zwavejs2mqtt/settings.json, zigbee-*.yaml),
+  // Azure IoT Hub / DPS configuration (iothub-connection.json, dps-config.json,
+  // iotedge-config.yaml), IoT device management platforms (thingsboard.yml,
+  // hawkbit.yml, edgex-configuration.toml), and LoRaWAN / network gateway
+  // configuration (chirpstack.toml, the-things-stack.yml, lorawan-server.toml).
+  try {
+    const allFiles = args.changedFiles ?? []
+    if (allFiles.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.iotEmbeddedSecurityDriftIntel.recordIotEmbeddedSecurityDriftScan,
+        {
+          tenantId:     tenant._id,
+          repositoryId: repository._id,
+          commitSha:    args.commitSha,
+          branch:       args.branch,
+          changedFiles: allFiles.slice(0, 500),
+        },
+      )
+    }
+  } catch (e) {
+    console.error('[iot-embedded-security-drift] failed to schedule for repository', repository._id, e)
+  }
+
+  // ── WS-90: Wireless Network & RADIUS Authentication Security Configuration Drift ──
+  // Analyses changed file paths for modifications to wireless network and
+  // network-access-authentication configuration: Wi-Fi access-point daemon
+  // configuration (hostapd.conf, hostapd.wpa_psk, hostapd.eap_user), WPA
+  // supplicant configuration (wpa_supplicant.conf, per-interface variants),
+  // FreeRADIUS server configuration (radiusd.conf, clients.conf, users,
+  // huntgroups, dictionary, sites-enabled/, policy.d/, mods-enabled/), TACACS+
+  // authentication server configuration (tac_plus.conf, tacacs.conf), wireless
+  // controller configuration (UniFi, Aruba, WLC JSON/YAML config), RADIUS policy
+  // files (proxy.conf, policy.conf, filter.conf, sql.conf, sites-available/),
+  // 802.1X / EAP authentication profiles (eapol.conf, eap-* files), and
+  // captive-portal configuration (nodogsplash.conf, chillispot.conf,
+  // coova-chilli.conf).
+  try {
+    const allFiles = args.changedFiles ?? []
+    if (allFiles.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.wirelessRadiusDriftIntel.recordWirelessRadiusDriftScan,
+        {
+          tenantId:     tenant._id,
+          repositoryId: repository._id,
+          commitSha:    args.commitSha,
+          branch:       args.branch,
+          changedFiles: allFiles.slice(0, 500),
+        },
+      )
+    }
+  } catch (e) {
+    console.error('[wireless-radius-drift] failed to schedule for repository', repository._id, e)
+  }
+
+  // ── WS-89: Operating System Security Hardening Configuration Drift ────────────
+  // Analyses changed file paths for modifications to OS-level security hardening
+  // configuration: Linux kernel security parameters (sysctl.conf, sysctl.d/),
+  // OpenSSH daemon configuration (sshd_config, sshd_config.d/), sudo privilege
+  // escalation policy (sudoers, sudoers.d/), GRUB2 bootloader security settings
+  // (/etc/default/grub, grub.cfg), SELinux mandatory-access-control policy
+  // (/etc/selinux/config, .te/.pp policy files), OS access control files
+  // (hosts.allow/deny, cron.allow, at.allow, securetty), NTP/time-synchronisation
+  // daemon configuration (chrony.conf, ntp.conf, timesyncd.conf — critical for
+  // certificate validation and log forensics), and OS login banner/MOTD
+  // (/etc/issue, /etc/issue.net, /etc/motd, motd.d/ fragments).
+  try {
+    const allFiles = args.changedFiles ?? []
+    if (allFiles.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.osSecurityHardeningDriftIntel.recordOsSecurityHardeningDriftScan,
+        {
+          tenantId:     tenant._id,
+          repositoryId: repository._id,
+          commitSha:    args.commitSha,
+          branch:       args.branch,
+          changedFiles: allFiles.slice(0, 500),
+        },
+      )
+    }
+  } catch (e) {
+    console.error('[os-security-hardening-drift] failed to schedule for repository', repository._id, e)
+  }
+
+  // ── WS-88: DNS Security Configuration Drift ──────────────────────────────────
+  // Analyses changed file paths for modifications to DNS server configuration,
+  // DNS resolver settings, encrypted DNS proxy configuration, and RPKI validation
+  // setup: ISC BIND named.conf authoritative/recursive DNS server configuration
+  // (named.conf, named-local.conf, rndc.conf), Unbound validating DNS resolver
+  // (unbound.conf), PowerDNS authoritative and Recursor (pdns.conf,
+  // pdns-recursor.conf), CoreDNS Corefile and plugin config (common in
+  // Kubernetes), dnsmasq DNS/DHCP forwarder (dnsmasq.conf), Pi-hole DNS-level
+  // filtering (pihole.conf, ftl.conf, setupvars.conf), encrypted DNS proxy
+  // configuration (dnscrypt-proxy.toml, stubby.yml), and RPKI route-origin
+  // validation daemon configuration (routinator.conf, fort.conf).
+  try {
+    const allFiles = args.changedFiles ?? []
+    if (allFiles.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.dnsSecurityDriftIntel.recordDnsSecurityDriftScan,
+        {
+          tenantId:     tenant._id,
+          repositoryId: repository._id,
+          commitSha:    args.commitSha,
+          branch:       args.branch,
+          changedFiles: allFiles.slice(0, 500),
+        },
+      )
+    }
+  } catch (e) {
+    console.error('[dns-security-drift] failed to schedule for repository', repository._id, e)
+  }
+
+  // ── WS-87: Storage & Data Security Configuration Drift ───────────────────────
+  // Analyses changed file paths for modifications to storage daemon configs,
+  // disk encryption settings, object storage client credentials, file integrity
+  // monitoring tools, and data-loss prevention policies: NFS server exports
+  // (nfs-ganesha.conf, /etc/exports-style), Samba/SMB config (smb.conf,
+  // samba.conf), disk encryption (crypttab LUKS map, dm-crypt, eCryptfs),
+  // object storage client credentials (AWS .aws/credentials, s3cmd .s3cfg,
+  // MinIO client config.json), database backup encryption (pgbackrest.conf,
+  // barman.conf, wal-g config), file integrity monitoring (AIDE aide.conf,
+  // Tripwire tripwire.cfg, Samhain samhain.conf), DLP policy configuration
+  // (dlp-config.yaml, data-classification.yaml), and storage audit config
+  // (MinIO audit webhook config.env, storage-audit.yaml).
+  try {
+    const allFiles = args.changedFiles ?? []
+    if (allFiles.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.storageDataSecurityDriftIntel.recordStorageDataSecurityDriftScan,
+        {
+          tenantId:     tenant._id,
+          repositoryId: repository._id,
+          commitSha:    args.commitSha,
+          branch:       args.branch,
+          changedFiles: allFiles.slice(0, 500),
+        },
+      )
+    }
+  } catch (e) {
+    console.error('[storage-data-security-drift] failed to schedule for repository', repository._id, e)
+  }
+
+  // ── WS-86: SIEM & Security Analytics Configuration Drift ─────────────────────
+  // Analyses changed file paths for modifications to SIEM detection rules,
+  // security analytics configurations, and threat intelligence feed settings:
+  // Splunk detection configs (savedsearches.conf, alert_actions.conf,
+  // correlationsearches.conf), Elastic SIEM detection rule .toml files and
+  // exception lists, Microsoft Sentinel analytics rules and hunting queries
+  // (analyticsrules.json/yaml), osquery configuration and fleet packs
+  // (osquery.conf), SIEM detection suppression/exception rules, SOAR playbook
+  // configs (xsoar-config.yaml, phantom-config.json), threat intelligence feed
+  // configs (misp.conf, opencti.yaml, taxii-config.json), and SIEM log source
+  // input/output configs in log-collector directories.
+  try {
+    const allFiles = args.changedFiles ?? []
+    if (allFiles.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.siemSecurityDriftIntel.recordSiemSecurityDriftScan,
+        {
+          tenantId:     tenant._id,
+          repositoryId: repository._id,
+          commitSha:    args.commitSha,
+          branch:       args.branch,
+          changedFiles: allFiles.slice(0, 500),
+        },
+      )
+    }
+  } catch (e) {
+    console.error('[siem-security-drift] failed to schedule for repository', repository._id, e)
+  }
+
+  // ── WS-85: Backup & Disaster Recovery Security Configuration Drift ───────────
+  // Analyses changed file paths for modifications to backup agent, cloud sync,
+  // and disaster recovery security configuration files: rclone configuration
+  // (rclone.conf stores credentials for every cloud provider), Restic backup
+  // password files and repository configuration (restic-password,
+  // restic-password-file), BorgBackup passphrase and borgmatic YAML configs
+  // (borgpassphrase, borgmatic.yaml), generic backup-specific encryption keys
+  // and passphrases in backup dirs, rsync daemon configuration and secrets file
+  // (rsyncd.conf, rsyncd.secrets), Bacula Director/File/Storage daemon and
+  // Amanda backup server configs, Velero/Duplicati/Duplicity cloud backup agent
+  // configs (credentials-velero), and backup shell scripts in backup directories.
+  try {
+    const allFiles = args.changedFiles ?? []
+    if (allFiles.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.backupDrSecurityDriftIntel.recordBackupDrSecurityDriftScan,
+        {
+          tenantId:     tenant._id,
+          repositoryId: repository._id,
+          commitSha:    args.commitSha,
+          branch:       args.branch,
+          changedFiles: allFiles.slice(0, 500),
+        },
+      )
+    }
+  } catch (e) {
+    console.error('[backup-dr-security-drift] failed to schedule for repository', repository._id, e)
+  }
+
+  // ── WS-84: VPN & Remote Access Security Configuration Drift ──────────────────
+  // Analyses changed file paths for modifications to VPN and remote access
+  // security configuration files: OpenVPN server/client configuration and TLS
+  // auth key material (openvpn.conf, ta.key, .ovpn profiles), WireGuard
+  // interface configs with embedded private keys (wg0.conf, wgN.conf),
+  // IPsec/StrongSwan/Libreswan configuration and PSK secrets (ipsec.conf,
+  // ipsec.secrets, strongswan.conf), VPN-context PKI credential material,
+  // Apache Guacamole/Teleport/JumpServer remote access gateway configuration,
+  // Cisco AnyConnect profiles and ASA VPN config, Pritunl/OpenConnect/pptpd/
+  // xl2tpd SSL VPN servers and PPP auth secrets, and VPN client profiles
+  // including NetworkManager .nmconnection files and OpenVPN CCD entries.
+  try {
+    const allFiles = args.changedFiles ?? []
+    if (allFiles.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.vpnRemoteAccessDriftIntel.recordVpnRemoteAccessDriftScan,
+        {
+          tenantId:     tenant._id,
+          repositoryId: repository._id,
+          commitSha:    args.commitSha,
+          branch:       args.branch,
+          changedFiles: allFiles.slice(0, 500),
+        },
+      )
+    }
+  } catch (e) {
+    console.error('[vpn-remote-access-drift] failed to schedule for repository', repository._id, e)
+  }
+
+  // ── WS-83: Infrastructure Configuration Management Security Drift ────────────
+  // Analyses changed file paths for modifications to configuration management
+  // tool security files: Ansible configuration and vault password files
+  // (ansible.cfg, vault-password-file, ansible-vault.yml), Chef workstation API
+  // keys and encrypted data bag secrets (knife.rb, encrypted_data_bag_secret,
+  // .chef/client.rb), Puppet master server configuration and r10k Puppetfiles
+  // (puppet.conf, Puppetfile, hiera.yaml), SaltStack master/minion configuration
+  // and SSH rosters (Saltfile, master.conf, roster), Ansible inventory and
+  // group/host variable files, Chef Berkshelf and Policyfile cookbook dependency
+  // manifests, Puppet Hiera data files (including eyaml-encrypted common/site
+  // data), and Test Kitchen/Molecule CI framework configs.
+  try {
+    const allFiles = args.changedFiles ?? []
+    if (allFiles.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.cfgMgmtSecurityDriftIntel.recordCfgMgmtSecurityDriftScan,
+        {
+          tenantId:     tenant._id,
+          repositoryId: repository._id,
+          commitSha:    args.commitSha,
+          branch:       args.branch,
+          changedFiles: allFiles.slice(0, 500),
+        },
+      )
+    }
+  } catch (e) {
+    console.error('[cfg-mgmt-security-drift] failed to schedule for repository', repository._id, e)
+  }
+
+  // ── WS-82: Package & Artifact Registry Security Configuration Drift ──────────
+  // Analyses changed file paths for modifications to artifact registry and
+  // package repository security configuration files: JFrog Artifactory and
+  // JFrog Platform security (artifactory.system.yaml, artifactory.config.xml),
+  // Sonatype Nexus Repository Manager security and storage (nexus.properties),
+  // Harbor OCI container registry config (harbor.yml), Docker Distribution v2
+  // auth and storage (registry-config.yaml, config.yml in registry dirs),
+  // Verdaccio/Sinopia private npm registry (verdaccio.yaml), Bandersnatch/DevPI
+  // Python package registry (bandersnatch.cfg, devpi-server.cfg), ChartMuseum
+  // Helm chart repository (chartmuseum.yaml), and Athens Go module proxy
+  // (athens.yaml, athens.toml).
+  try {
+    const allFiles = args.changedFiles ?? []
+    if (allFiles.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.artifactRegistryDriftIntel.recordArtifactRegistryDriftScan,
+        {
+          tenantId:     tenant._id,
+          repositoryId: repository._id,
+          commitSha:    args.commitSha,
+          branch:       args.branch,
+          changedFiles: allFiles.slice(0, 500),
+        },
+      )
+    }
+  } catch (e) {
+    console.error('[artifact-registry-drift] failed to schedule for repository', repository._id, e)
+  }
+
+  // ── WS-81: ML/AI Platform Security Configuration Drift ───────────────────────
+  // Analyses changed file paths for modifications to machine learning and AI
+  // platform security configuration files: MLflow tracking server configs
+  // (mlflow.yaml, mlflow-config.yaml), Kubeflow Pipelines and KServe manifests
+  // (kfctl.yaml, kfdef.yaml, inferenceservice.yaml), Ray distributed compute
+  // cluster configs (ray-cluster.yaml, anyscale-config.yaml), cloud AI platform
+  // IAM configs (SageMaker, Vertex AI, Azure ML access and domain settings),
+  // Feast/Tecton feature store configs (feature_store.yaml), model serving configs
+  // (bentofile.yaml, torchserve.config, seldon-deployment.yaml), MLOps pipeline
+  // configs (dvc.yaml, clearml.conf), and model governance artifacts (model-card.json).
+  try {
+    const allFiles = args.changedFiles ?? []
+    if (allFiles.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.mlAiPlatformDriftIntel.recordMlAiPlatformDriftScan,
+        {
+          tenantId:     tenant._id,
+          repositoryId: repository._id,
+          commitSha:    args.commitSha,
+          branch:       args.branch,
+          changedFiles: allFiles.slice(0, 500),
+        },
+      )
+    }
+  } catch (e) {
+    console.error('[ml-ai-platform-drift] failed to schedule for repository', repository._id, e)
+  }
+
+  // ── WS-80: Data Pipeline & ETL Security Configuration Drift ──────────────────
+  // Analyses changed file paths for modifications to data pipeline and ETL
+  // security configuration files: Apache Airflow auth/RBAC configs (airflow.cfg,
+  // webserver_config.py), Apache Spark encryption settings (spark-defaults.conf),
+  // dbt database connection profiles (dbt_project.yml, profiles.yml), Apache
+  // Hadoop/Hive/HBase/Flink security XMLs (hdfs-site.xml, hive-site.xml,
+  // flink-conf.yaml), Trino/Presto query engine auth and TLS properties, pipeline
+  // orchestration configs (Dagster, Prefect, Kedro), data quality configs (Great
+  // Expectations, DataHub, Atlas), and Jupyter notebook server auth configs.
+  try {
+    const allFiles = args.changedFiles ?? []
+    if (allFiles.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.dataPipelineDriftIntel.recordDataPipelineDriftScan,
+        {
+          tenantId:     tenant._id,
+          repositoryId: repository._id,
+          commitSha:    args.commitSha,
+          branch:       args.branch,
+          changedFiles: allFiles.slice(0, 500),
+        },
+      )
+    }
+  } catch (e) {
+    console.error('[data-pipeline-drift] failed to schedule for repository', repository._id, e)
+  }
+
+  // ── WS-79: SSO Provider & Authentication Configuration Drift ─────────────────
+  // Analyses changed file paths for modifications to single-sign-on and
+  // authentication provider configuration files: Keycloak realm exports and
+  // client configs, SAML IdP/SP metadata, OAuth2/OIDC provider configs (Ory
+  // Hydra), hosted IdP configs (Auth0, Okta, PingFederate, Azure AD), Dex /
+  // Authelia / Authentik self-hosted SSO middleware, Duo/YubiKey MFA provider
+  // integration configs, SCIM provisioning endpoint configs, and oauth2-proxy
+  // reverse proxy authentication configurations.
+  try {
+    const allFiles = args.changedFiles ?? []
+    if (allFiles.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.ssoProviderDriftIntel.recordSsoProviderDriftScan,
+        {
+          tenantId:     tenant._id,
+          repositoryId: repository._id,
+          commitSha:    args.commitSha,
+          branch:       args.branch,
+          changedFiles: allFiles.slice(0, 500),
+        },
+      )
+    }
+  } catch (e) {
+    console.error('[sso-provider-drift] failed to schedule for repository', repository._id, e)
+  }
+
+  // ── WS-78: Messaging & Event Streaming Security Configuration Drift ─────────
+  // Analyses changed file paths for modifications to messaging broker and
+  // event-streaming security configuration files: Apache Kafka security configs
+  // (kafka-*.properties, JAAS, KRaft), RabbitMQ broker configs (rabbitmq.conf),
+  // NATS server configs (nats-server.conf), MQTT broker configs (mosquitto.conf,
+  // HiveMQ), messaging transport TLS configs (kafka-ssl, amqp-ssl), broker
+  // auth/ACL policy files, Confluent Schema Registry configs, and ActiveMQ /
+  // Apache Pulsar broker configs.
+  try {
+    const allFiles = args.changedFiles ?? []
+    if (allFiles.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.messagingSecurityDriftIntel.recordMessagingSecurityDriftScan,
+        {
+          tenantId:     tenant._id,
+          repositoryId: repository._id,
+          commitSha:    args.commitSha,
+          branch:       args.branch,
+          changedFiles: allFiles.slice(0, 500),
+        },
+      )
+    }
+  } catch (e) {
+    console.error('[messaging-security-drift] failed to schedule for repository', repository._id, e)
+  }
+
+  // ── WS-77: Serverless & FaaS Security Configuration Drift ────────────────
+  // Analyses changed file paths for modifications to serverless function and
+  // FaaS security configuration files: Serverless Framework configs (serverless.
+  // yml/yaml/ts), AWS SAM templates (samconfig.toml, template.yaml), Azure
+  // Functions host and settings files (host.json, local.settings.json), Cloudflare
+  // Workers Wrangler configs (wrangler.toml/json), Google Cloud Run and App Engine
+  // configs (cloud-run-service.yaml, app.yaml in GCP dirs), edge deployment configs
+  // (netlify.toml, fly.toml, vercel.json), serverless function IAM role/policy
+  // files in lambda/ dirs, and Knative/OpenWhisk FaaS platform configs.
+  try {
+    const allFiles = args.changedFiles ?? []
+    if (allFiles.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.serverlessFaasDriftIntel.recordServerlessFaasDriftScan,
+        {
+          tenantId:     tenant._id,
+          repositoryId: repository._id,
+          commitSha:    args.commitSha,
+          branch:       args.branch,
+          changedFiles: allFiles.slice(0, 500),
+        },
+      )
+    }
+  } catch (e) {
+    console.error('[serverless-faas-drift] failed to schedule for repository', repository._id, e)
+  }
+
+  // ── WS-76: Email Security Configuration Drift ────────────────────────────
+  // Analyses changed file paths for modifications to email server and mail
+  // transport security configuration files: MTA core configs (Postfix main.cf/
+  // master.cf, sendmail.cf/mc, exim.conf, dovecot.conf), DKIM signing key
+  // material and OpenDKIM/DMARC configs (opendkim.conf, opendmarc.conf,
+  // dkim/*.private), SASL authentication for mail relay (saslauthd.conf,
+  // sasl/smtpd.conf, cyrus.conf), SpamAssassin/Rspamd/Amavis anti-spam
+  // configs (amavisd.conf, spamassassin/local.cf, rspamd/ overrides), SMTP/
+  // IMAP/POP3 TLS configs (smtp-tls.conf, dovecot-ssl.conf), Postfix relay
+  // routing and virtual domain maps (relay_domains, transport, virtual), and
+  // Postfix access/header-filter maps (sender_access, header_checks).
+  try {
+    const allFiles = args.changedFiles ?? []
+    if (allFiles.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.emailSecurityDriftIntel.recordEmailSecurityDriftScan,
+        {
+          tenantId:     tenant._id,
+          repositoryId: repository._id,
+          commitSha:    args.commitSha,
+          branch:       args.branch,
+          changedFiles: allFiles.slice(0, 500),
+        },
+      )
+    }
+  } catch (e) {
+    console.error('[email-security-drift] failed to schedule for repository', repository._id, e)
+  }
+
+  // ── WS-75: Web Server & Reverse Proxy Security Configuration Drift ───────
+  // Analyses changed file paths for modifications to web server and reverse
+  // proxy security configuration files: nginx.conf and virtualhost configs,
+  // Apache .htaccess and httpd.conf, Traefik static config (traefik.yml/yaml/
+  // toml), Caddy Caddyfile variants, Kubernetes ingress controller security
+  // configs, ModSecurity/OWASP CRS WAF rules, SSL termination parameter files
+  // (ssl-params.conf, dhparam.pem, options-ssl-nginx.conf), and web server
+  // access control configs (.htpasswd, geo.conf, basic-auth.conf).
+  try {
+    const allFiles = args.changedFiles ?? []
+    if (allFiles.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.webServerSecurityDriftIntel.recordWebServerSecurityDriftScan,
+        {
+          tenantId:     tenant._id,
+          repositoryId: repository._id,
+          commitSha:    args.commitSha,
+          branch:       args.branch,
+          changedFiles: allFiles.slice(0, 500),
+        },
+      )
+    }
+  } catch (e) {
+    console.error('[web-server-security-drift] failed to schedule for repository', repository._id, e)
+  }
+
+  // ── WS-74: Mobile Application Security Configuration Drift ──────────────
+  // Analyses changed file paths for modifications to mobile application security
+  // configuration files: iOS entitlement files and export options, Android
+  // AndroidManifest.xml (excluding test source sets), signing keystores and
+  // provisioning profiles, iOS Info.plist/PrivacyInfo.xcprivacy ATS and privacy
+  // configs, Android ProGuard/R8 obfuscation rules, Firebase/Google services
+  // configs, Universal Links and Android App Links deep link configs, and mobile
+  // platform configs (Expo EAS, Ionic Capacitor, CocoaPods lockfile, xcconfig).
+  try {
+    const allFiles = args.changedFiles ?? []
+    if (allFiles.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.mobileAppSecurityDriftIntel.recordMobileAppSecurityDriftScan,
+        {
+          tenantId:     tenant._id,
+          repositoryId: repository._id,
+          commitSha:    args.commitSha,
+          branch:       args.branch,
+          changedFiles: allFiles.slice(0, 500),
+        },
+      )
+    }
+  } catch (e) {
+    console.error('[mobile-app-security-drift] failed to schedule for repository', repository._id, e)
+  }
+
+  // ── WS-73: CI/CD Pipeline Security Configuration Drift ──────────────────
+  // Analyses changed file paths for modifications to CI/CD pipeline security
+  // configuration files: GitHub Actions workflow YAML files, Jenkinsfile and
+  // shared-library pipeline configs, GitLab CI/CD pipeline configs, ArgoCD
+  // Application/AppProject/ApplicationSet CRDs, FluxCD Kustomization/HelmRelease/
+  // ImagePolicy CRDs, Buildkite/.circleci pipeline configs, Tekton Task/Pipeline
+  // security configs, and SLSA provenance and artifact signing pipeline configs.
+  try {
+    const allFiles = args.changedFiles ?? []
+    if (allFiles.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.cicdPipelineSecurityDriftIntel.recordCicdPipelineSecurityDriftScan,
+        {
+          tenantId:     tenant._id,
+          repositoryId: repository._id,
+          commitSha:    args.commitSha,
+          branch:       args.branch,
+          changedFiles: allFiles.slice(0, 500),
+        },
+      )
+    }
+  } catch (e) {
+    console.error('[cicd-pipeline-security-drift] failed to schedule for repository', repository._id, e)
+  }
+
+  // ── WS-96: Configuration Drift Aggregate Health Score ────────────────────
+  // Synthesis layer: reads the latest result from all 36 drift detector tables
+  // (WS-60 through WS-95) and produces a single weighted 0–100 drift posture
+  // score with an A–F grade and per-category breakdown. Runs 3 s after push so
+  // individual drift scans have a head start on persisting their results.
+  try {
+    await ctx.scheduler.runAfter(
+      3000,
+      internal.driftPostureIntel.recordDriftPostureScan,
+      {
+        tenantId:     tenant._id,
+        repositoryId: repository._id,
+      },
+    )
+  } catch (e) {
+    console.error('[drift-posture] failed to schedule for repository', repository._id, e)
+  }
+
+  // ── WS-98: Zero-Day Anomaly Detection (spec §3.1.3) ──────────────────────
+  // Runs alongside normal drift detection. When the semantic fingerprint scan
+  // finds no strong known-vuln-class match, this heuristic detector flags
+  // novel attack patterns via static file-path and code-pattern analysis.
+  // addedLines are empty here (push events don't carry diff content) — signals
+  // that rely on line content will be dormant until richer diff data is provided.
+  try {
+    const recentFindings = await ctx.db
+      .query('findings')
+      .withIndex('by_repository_and_status', (q) => q.eq('repositoryId', repository._id))
+      .take(50)
+    const recentBreachTypes = [...new Set(
+      recentFindings.map((f) => f.vulnClass).filter(Boolean) as string[],
+    )]
+    const changedFilesForZeroDay = args.changedFiles ?? []
+    const lockfileChanged = changedFilesForZeroDay.some((f) =>
+      /package-lock\.json|yarn\.lock|bun\.lock|pnpm-lock\.yaml|Cargo\.lock|go\.sum|Gemfile\.lock/.test(f),
+    )
+    const testChanged = changedFilesForZeroDay.some((f) =>
+      /[./]test[./]|\.test\.|\.spec\.|__test|__spec/.test(f),
+    )
+    await ctx.scheduler.runAfter(
+      0,
+      internal.zeroDayDetectionIntel.recordZeroDayDetection,
+      {
+        tenantId:     tenant._id,
+        repositoryId: repository._id,
+        ref:          args.commitSha,
+        changedFiles: changedFilesForZeroDay.slice(0, 200),
+        addedLines:   [],
+        recentBreachTypes,
+        hasTestChanges:     testChanged,
+        hasLockfileChanges: lockfileChanged,
+      },
+    )
+  } catch (e) {
+    console.error('[zero-day-detection] failed to schedule for repository', repository._id, e)
+  }
+
+  // ── WS-99: Security Program Maturity Assessment ───────────────────────────
+  // Reads all scanner outputs (SLA, supply chain, compliance, drift, red/blue,
+  // attack surface, automation flags) and produces a CMMI-style 5-level
+  // maturity score. Runs 13 s after push so all upstream scanners have persisted.
+  try {
+    await ctx.scheduler.runAfter(
+      13_000,
+      internal.maturityAssessmentIntel.recordMaturityAssessment,
+      {
+        tenantId:     tenant._id,
+        repositoryId: repository._id,
+      },
+    )
+  } catch (e) {
+    console.error('[maturity-assessment] failed to schedule for repository', repository._id, e)
+  }
+
+  // ── WS-100: Business Impact Assessment ──────────────────────────────────────
+  // Aggregates findings, blast-radius, attack surface, and compliance into a
+  // five-dimension business risk picture (spec §3.5.4). Runs 12 s after push
+  // so the attack-surface snapshot (runAfter 9 s) is ready.
+  try {
+    await ctx.scheduler.runAfter(
+      12_000,
+      internal.businessImpactIntel.recordBusinessImpact,
+      {
+        tenantId:     tenant._id,
+        repositoryId: repository._id,
+      },
+    )
+  } catch (e) {
+    console.error('[business-impact] failed to schedule for repository', repository._id, e)
+  }
+
+  // ── WS-72: Service Mesh & Zero-Trust Network Security Configuration Drift ─
+  // Analyses changed file paths for modifications to service mesh and zero-trust
+  // network security configuration files: Istio PeerAuthentication/Authorization
+  // Policy CRDs, Envoy static bootstrap and xDS security configs, SPIFFE/SPIRE
+  // workload attestation configs, Linkerd Server/ServerAuthorization, Consul
+  // service mesh intentions and ACL policies, CNI plugin-specific policies
+  // (Cilium/Calico/Antrea), zero-trust access proxies (Teleport/Pomerium/
+  // Cloudflare Tunnel/Tailscale ACL), and service mesh gateways/VirtualServices.
+  try {
+    const allFiles = args.changedFiles ?? []
+    if (allFiles.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.serviceMeshSecurityDriftIntel.recordServiceMeshSecurityDriftScan,
+        {
+          tenantId:     tenant._id,
+          repositoryId: repository._id,
+          commitSha:    args.commitSha,
+          branch:       args.branch,
+          changedFiles: allFiles.slice(0, 500),
+        },
+      )
+    }
+  } catch (e) {
+    console.error('[service-mesh-security-drift] failed to schedule for repository', repository._id, e)
+  }
+
+  // ── WS-71: Observability & Security Monitoring Configuration Drift ──────
+  // Analyses changed file paths for modifications to observability and security
+  // monitoring configuration files: Prometheus alerting rules, Alertmanager
+  // routing/silences/inhibitions, log collection pipeline configs (Fluentd/
+  // Logstash/Vector/Filebeat), OpenTelemetry collector security configs,
+  // Grafana auth and alert channel configs, CloudWatch alarm configurations,
+  // distributed tracing backend configs (Jaeger/Tempo/Zipkin), and log
+  // retention/rotation configs (logrotate/rsyslog/journald).
+  try {
+    const allFiles = args.changedFiles ?? []
+    if (allFiles.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.observabilitySecurityDriftIntel.recordObservabilitySecurityDriftScan,
+        {
+          tenantId:     tenant._id,
+          repositoryId: repository._id,
+          commitSha:    args.commitSha,
+          branch:       args.branch,
+          changedFiles: allFiles.slice(0, 500),
+        },
+      )
+    }
+  } catch (e) {
+    console.error('[observability-security-drift] failed to schedule for repository', repository._id, e)
+  }
+
+  // ── WS-70: Identity & Privileged Access Management Configuration Drift ─
+  // Analyses changed file paths for modifications to identity and privileged
+  // access management configuration files: HashiCorp Vault policies, LDAP/AD
+  // directory configs, PAM/sudo privilege configs, MFA enforcement configs,
+  // SAML/OIDC federation metadata, workload identity files, password policies,
+  // and application-level RBAC framework configs (Casbin/Oso/CASL/OpenFGA).
+  try {
+    const allFiles = args.changedFiles ?? []
+    if (allFiles.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.identityAccessDriftIntel.recordIdentityAccessDriftScan,
+        {
+          tenantId:     tenant._id,
+          repositoryId: repository._id,
+          commitSha:    args.commitSha,
+          branch:       args.branch,
+          changedFiles: allFiles.slice(0, 500),
+        },
+      )
+    }
+  } catch (e) {
+    console.error('[identity-access-drift] failed to schedule for repository', repository._id, e)
+  }
+
+  // ── WS-69: Developer Security Tooling & SAST Configuration Drift ────
+  // Analyses changed file paths for modifications to developer security tooling
+  // configuration files: secret scanners (gitleaks/trufflehog), SAST tools
+  // (SonarQube/Semgrep/Bandit/gosec), SCA policy (Snyk/ORT/Dependency-Check),
+  // security linters (Brakeman/SpotBugs), DAST configs (ZAP/Burp/Nikto/Nuclei),
+  // license policy (FOSSA/license-finder), container scan policy (Trivy/Grype),
+  // and security baselines (Talisman/Hadolint/Safety/MegaLinter).
+  try {
+    const allFiles = args.changedFiles ?? []
+    if (allFiles.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.devSecToolsDriftIntel.recordDevSecToolsDriftScan,
+        {
+          tenantId:     tenant._id,
+          repositoryId: repository._id,
+          commitSha:    args.commitSha,
+          branch:       args.branch,
+          changedFiles: allFiles.slice(0, 500),
+        },
+      )
+    }
+  } catch (e) {
+    console.error('[dev-sec-tools-drift] failed to schedule for repository', repository._id, e)
+  }
+
+  // ── WS-68: Network Perimeter & Firewall Configuration Drift ──────────
+  // Analyses changed file paths for modifications to host/OS-level firewall
+  // and network access-control configuration: iptables/ip6tables rules,
+  // nftables config, HAProxy ACL config, UFW rules, WireGuard/OpenVPN VPN
+  // configs, BIND/DNSSEC security config, proxy ACL configs, and firewalld
+  // zone XML files.
+  try {
+    const allFiles = args.changedFiles ?? []
+    if (allFiles.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.networkFirewallDriftIntel.recordNetworkFirewallDriftScan,
+        {
+          tenantId:     tenant._id,
+          repositoryId: repository._id,
+          commitSha:    args.commitSha,
+          branch:       args.branch,
+          changedFiles: allFiles.slice(0, 500),
+        },
+      )
+    }
+  } catch (e) {
+    console.error('[network-firewall-drift] failed to schedule for repository', repository._id, e)
+  }
+
+  // ── WS-67: Runtime Security Policy & Enforcement Drift ───────────────
+  // Analyses changed file paths for modifications to runtime security
+  // enforcement policy files: Falco behavioural rules, OPA Rego policies,
+  // seccomp/AppArmor profiles, Kyverno ClusterPolicy CRDs, fail2ban config,
+  // Linux auditd rules, Snort/Suricata IDS rules, and Sigma/YARA signatures.
+  try {
+    const allFiles = args.changedFiles ?? []
+    if (allFiles.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.runtimeSecurityDriftIntel.recordRuntimeSecurityDriftScan,
+        {
+          tenantId:     tenant._id,
+          repositoryId: repository._id,
+          commitSha:    args.commitSha,
+          branch:       args.branch,
+          changedFiles: allFiles.slice(0, 500),
+        },
+      )
+    }
+  } catch (e) {
+    console.error('[runtime-security-drift] failed to schedule for repository', repository._id, e)
+  }
+
+  // ── WS-66: Cryptographic Certificate & PKI Configuration Drift ───────
+  // Analyses changed file paths for modifications to cryptographic trust-layer
+  // configuration: cert-manager CRDs, PKI/CA certificate files, ACME/Let's
+  // Encrypt renewal configs, certificate pinning (TrustKit, Android NSC,
+  // HPKP), SSH authorized_keys and sshd_config, GPG keyrings, Sigstore/cosign
+  // signing configs, and TLS CA-bundle/trust-store files.
+  try {
+    const allFiles = args.changedFiles ?? []
+    if (allFiles.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.certPkiDriftIntel.recordCertPkiDriftScan,
+        {
+          tenantId:     tenant._id,
+          repositoryId: repository._id,
+          commitSha:    args.commitSha,
+          branch:       args.branch,
+          changedFiles: allFiles.slice(0, 500),
+        },
+      )
+    }
+  } catch (e) {
+    console.error('[cert-pki-drift] failed to schedule for repository', repository._id, e)
+  }
+
+  // ── WS-65: API Security Configuration Drift Detector ────────────────
+  // Analyses changed file paths for modifications to API-layer security
+  // configuration files: rate limiting / throttle configs, API key management
+  // and rotation configs, GraphQL security (depth limits / permissions shield),
+  // OpenAPI / Swagger security schemas, webhook HMAC validation configs,
+  // API quota enforcement, request/response validation schemas, and REST API
+  // security policies. One finding per triggered rule.
+  try {
+    const allFiles = args.changedFiles ?? []
+    if (allFiles.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.apiSecurityDriftIntel.recordApiSecurityDriftScan,
+        {
+          tenantId:     tenant._id,
+          repositoryId: repository._id,
+          commitSha:    args.commitSha,
+          branch:       args.branch,
+          changedFiles: allFiles.slice(0, 500),
+        },
+      )
+    }
+  } catch (e) {
+    console.error('[api-security-drift] failed to schedule for repository', repository._id, e)
+  }
+
+  // ── WS-64: Database Security Configuration Drift Detector ────────────
+  // Analyses changed file paths for modifications to database auth, TLS, and
+  // security config files: pg_hba.conf/postgresql.conf (PostgreSQL), my.cnf/
+  // mysqld.cnf (MySQL/MariaDB), mongod.conf (MongoDB), redis.conf/redis.acl
+  // (Redis), database TLS settings, pgBouncer/pgPool/ProxySQL connection
+  // pool config, security-sensitive DB migrations, and Elasticsearch/OpenSearch
+  // security configuration. One finding per triggered rule.
+  try {
+    const allFiles = args.changedFiles ?? []
+    if (allFiles.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.databaseSecurityDriftIntel.recordDatabaseSecurityDriftScan,
+        {
+          tenantId: tenant._id,
+          repositoryId: repository._id,
+          commitSha: args.commitSha,
+          branch: args.branch,
+          changedFiles: allFiles.slice(0, 500),
+        },
+      )
+    }
+  } catch (e) {
+    console.error('[database-security-drift] failed to schedule for repository', repository._id, e)
+  }
+
+  // ── WS-63: Kubernetes & Container Security Hardening Drift Detector ──
+  // Analyses changed file paths for modifications to Kubernetes security
+  // configuration and container hardening files: RBAC manifests, NetworkPolicy,
+  // PodSecurityPolicy/Admission, admission controllers (OPA/Kyverno/webhooks),
+  // ExternalSecrets/SealedSecrets, Dockerfiles, container runtime security
+  // profiles (Seccomp/AppArmor/Falco), and Helm chart security values.
+  try {
+    const allFiles = args.changedFiles ?? []
+    if (allFiles.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.containerHardeningDriftIntel.recordContainerHardeningDriftScan,
+        {
+          tenantId: tenant._id,
+          repositoryId: repository._id,
+          commitSha: args.commitSha,
+          branch: args.branch,
+          changedFiles: allFiles.slice(0, 500),
+        },
+      )
+    }
+  } catch (e) {
+    console.error('[container-hardening-drift] failed to schedule for repository', repository._id, e)
+  }
+
+  // ── WS-62: Cloud Security Configuration Drift Detector ───────────────
+  // Analyses changed file paths for modifications to cloud-provider and
+  // infrastructure security configuration files: IAM policy, KMS key policy,
+  // network security groups, storage bucket policy, API Gateway auth config,
+  // secrets backend config, audit logging, and CDN/WAF configuration.
+  // One finding per triggered rule; fires mandatory review when critical/high
+  // cloud security config files are modified in a push.
+  try {
+    const allFiles = args.changedFiles ?? []
+    if (allFiles.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.cloudSecurityDriftIntel.recordCloudSecurityDriftScan,
+        {
+          tenantId: tenant._id,
+          repositoryId: repository._id,
+          commitSha: args.commitSha,
+          branch: args.branch,
+          changedFiles: allFiles.slice(0, 500),
+        },
+      )
+    }
+  } catch (e) {
+    console.error('[cloud-security-drift] failed to schedule for repository', repository._id, e)
+  }
+
+  // ── WS-61: Test Coverage Gap Detector for Security-Critical Code ─────
+  // Analyses changed file paths to detect security-critical source file
+  // modifications (auth, crypto, payment, authz, session, middleware) that
+  // lack corresponding test coverage changes in the same commit. Fires
+  // one finding per domain where source changed but no test changed.
+  try {
+    const allFiles = args.changedFiles ?? []
+    if (allFiles.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.testCoverageGapIntel.recordTestCoverageGapScan,
+        {
+          tenantId: tenant._id,
+          repositoryId: repository._id,
+          commitSha: args.commitSha,
+          branch: args.branch,
+          changedFiles: allFiles.slice(0, 500),
+        },
+      )
+    }
+  } catch (e) {
+    console.error('[test-coverage-gap] failed to schedule for repository', repository._id, e)
+  }
+
+  // ── WS-60: Application Security Configuration Drift Detector ─────────
+  // Analyses changed file paths for modifications to application-level security
+  // configuration files: JWT signing configs, OAuth/SAML/SSO provider configs,
+  // CORS policy, CSP headers, TLS options, session/cookie settings, WAF rules,
+  // and IAM/permission policy files. One finding per triggered rule.
+  try {
+    const allFiles = args.changedFiles ?? []
+    if (allFiles.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.securityConfigDriftIntel.recordSecurityConfigDriftScan,
+        {
+          tenantId: tenant._id,
+          repositoryId: repository._id,
+          commitSha: args.commitSha,
+          branch: args.branch,
+          changedFiles: allFiles.slice(0, 500),
+        },
+      )
+    }
+  } catch (e) {
+    console.error('[security-config-drift] failed to schedule for repository', repository._id, e)
+  }
+
   // ── WS-59: Build Toolchain Integrity Scanner ──────────────────────────
   // Analyses changed file paths for modifications to build toolchain files:
   // Makefiles, shell build scripts, webpack/vite/rollup bundler configs,

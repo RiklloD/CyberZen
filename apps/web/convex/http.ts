@@ -3681,6 +3681,200 @@ http.route({
 })
 
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// GET /api/repository/security-config-drift?tenantSlug=&repositoryFullName=
+//
+// Return the latest application security configuration drift scan for a
+// repository: risk score, risk level, per-rule findings with matched paths,
+// and remediation recommendations. API-key-guarded. Spec WS-60.
+// ---------------------------------------------------------------------------
+
+http.route({
+  path: '/api/repository/security-config-drift',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const authError = requireApiKey(request)
+    if (authError) return authError
+
+    const url = new URL(request.url)
+    const tenantSlug = url.searchParams.get('tenantSlug') ?? ''
+    const repositoryFullName = url.searchParams.get('repositoryFullName') ?? ''
+
+    if (!tenantSlug || !repositoryFullName) {
+      return new Response(
+        JSON.stringify({ error: 'tenantSlug and repositoryFullName are required' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } },
+      )
+    }
+
+    const result = await ctx.runQuery(
+      api.securityConfigDriftIntel.getLatestSecurityConfigDriftBySlug,
+      { tenantSlug, repositoryFullName },
+    )
+
+    return new Response(JSON.stringify({ result }, null, 2), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+    })
+  }),
+})
+
+// ---------------------------------------------------------------------------
+// GET /api/repository/test-coverage-gaps?tenantSlug=&repositoryFullName=
+//
+// Return the latest test-coverage gap scan for a repository: risk score,
+// risk level, and per-domain findings. API-key-guarded. Spec WS-61.
+// ---------------------------------------------------------------------------
+
+http.route({
+  path: '/api/repository/test-coverage-gaps',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const authError = requireApiKey(request)
+    if (authError) return authError
+
+    const url = new URL(request.url)
+    const tenantSlug = url.searchParams.get('tenantSlug') ?? ''
+    const repositoryFullName = url.searchParams.get('repositoryFullName') ?? ''
+
+    if (!tenantSlug || !repositoryFullName) {
+      return new Response(
+        JSON.stringify({ error: 'tenantSlug and repositoryFullName are required' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } },
+      )
+    }
+
+    const result = await ctx.runQuery(
+      api.testCoverageGapIntel.getLatestTestCoverageGapBySlug,
+      { tenantSlug, repositoryFullName },
+    )
+
+    return new Response(JSON.stringify({ result }, null, 2), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+    })
+  }),
+})
+
+// ---------------------------------------------------------------------------
+// GET /api/repository/database-security?tenantSlug=&repositoryFullName=
+//
+// Return the latest database security configuration drift scan for a repository:
+// risk score, risk level, and per-rule findings covering PostgreSQL, MySQL,
+// MongoDB, Redis, database TLS, connection pool, security migrations, and
+// Elasticsearch security configuration. API-key-guarded. Spec WS-64.
+// ---------------------------------------------------------------------------
+
+http.route({
+  path: '/api/repository/database-security',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const authError = requireApiKey(request)
+    if (authError) return authError
+
+    const url = new URL(request.url)
+    const tenantSlug = url.searchParams.get('tenantSlug') ?? ''
+    const repositoryFullName = url.searchParams.get('repositoryFullName') ?? ''
+
+    if (!tenantSlug || !repositoryFullName) {
+      return new Response(
+        JSON.stringify({ error: 'tenantSlug and repositoryFullName are required query parameters.' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } },
+      )
+    }
+
+    const result = await ctx.runQuery(
+      api.databaseSecurityDriftIntel.getLatestDatabaseSecurityDriftBySlug,
+      { tenantSlug, repositoryFullName },
+    )
+
+    return new Response(JSON.stringify({ result }, null, 2), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+    })
+  }),
+})
+
+// ---------------------------------------------------------------------------
+// GET /api/repository/container-hardening?tenantSlug=&repositoryFullName=
+//
+// Return the latest Kubernetes & container security hardening drift scan for
+// a repository: risk score, risk level, and per-rule findings covering RBAC,
+// NetworkPolicy, PodSecurity, admission controllers, external secrets,
+// Dockerfiles, container runtime profiles, and Helm security values.
+// API-key-guarded. Spec WS-63.
+// ---------------------------------------------------------------------------
+
+http.route({
+  path: '/api/repository/container-hardening',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const authError = requireApiKey(request)
+    if (authError) return authError
+
+    const url = new URL(request.url)
+    const tenantSlug = url.searchParams.get('tenantSlug') ?? ''
+    const repositoryFullName = url.searchParams.get('repositoryFullName') ?? ''
+
+    if (!tenantSlug || !repositoryFullName) {
+      return new Response(
+        JSON.stringify({ error: 'tenantSlug and repositoryFullName are required query parameters.' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } },
+      )
+    }
+
+    const result = await ctx.runQuery(
+      api.containerHardeningDriftIntel.getLatestContainerHardeningDriftBySlug,
+      { tenantSlug, repositoryFullName },
+    )
+
+    return new Response(JSON.stringify({ result }, null, 2), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+    })
+  }),
+})
+
+// ---------------------------------------------------------------------------
+// GET /api/repository/cloud-security-drift?tenantSlug=&repositoryFullName=
+//
+// Return the latest cloud security configuration drift scan for a repository:
+// risk score, risk level, and per-rule findings covering IAM policy, KMS key
+// policy, network security, storage policy, API Gateway auth, secrets backend,
+// audit logging, and CDN/WAF configuration. API-key-guarded. Spec WS-62.
+// ---------------------------------------------------------------------------
+
+http.route({
+  path: '/api/repository/cloud-security-drift',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const authError = requireApiKey(request)
+    if (authError) return authError
+
+    const url = new URL(request.url)
+    const tenantSlug = url.searchParams.get('tenantSlug') ?? ''
+    const repositoryFullName = url.searchParams.get('repositoryFullName') ?? ''
+
+    if (!tenantSlug || !repositoryFullName) {
+      return new Response(
+        JSON.stringify({ error: 'tenantSlug and repositoryFullName are required query parameters.' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } },
+      )
+    }
+
+    const result = await ctx.runQuery(
+      api.cloudSecurityDriftIntel.getLatestCloudSecurityDriftBySlug,
+      { tenantSlug, repositoryFullName },
+    )
+
+    return new Response(JSON.stringify({ result }, null, 2), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+    })
+  }),
+})
+
+// ---------------------------------------------------------------------------
 // GET /api/repository/build-config?tenantSlug=&repositoryFullName=
 //
 // Return the latest build toolchain integrity scan for a repository: risk
@@ -3750,6 +3944,1563 @@ http.route({
     )
 
     return new Response(JSON.stringify({ result }, null, 2), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+    })
+  }),
+})
+
+// ---------------------------------------------------------------------------
+// GET /api/repository/api-security-drift?tenantSlug=&repositoryFullName=
+//
+// Return the latest API security configuration drift scan for a repository:
+// risk score, risk level, and per-rule findings covering rate limiting,
+// API key management, GraphQL security, OpenAPI security schemas, webhook
+// validation, quota enforcement, schema validation, and REST API security
+// policies. API-key-guarded. Spec WS-65.
+// ---------------------------------------------------------------------------
+
+http.route({
+  path: '/api/repository/api-security-drift',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const authError = requireApiKey(request)
+    if (authError) return authError
+
+    const url = new URL(request.url)
+    const tenantSlug          = url.searchParams.get('tenantSlug') ?? ''
+    const repositoryFullName  = url.searchParams.get('repositoryFullName') ?? ''
+
+    if (!tenantSlug || !repositoryFullName) {
+      return new Response(
+        JSON.stringify({ error: 'tenantSlug and repositoryFullName are required' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } },
+      )
+    }
+
+    const result = await ctx.runQuery(
+      api.apiSecurityDriftIntel.getLatestApiSecurityDriftBySlug,
+      { tenantSlug, repositoryFullName },
+    )
+
+    return new Response(JSON.stringify({ result }, null, 2), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+    })
+  }),
+})
+
+// ---------------------------------------------------------------------------
+// GET /api/repository/cert-pki-drift?tenantSlug=&repositoryFullName=
+//
+// Return the latest cryptographic certificate & PKI configuration drift scan
+// for a repository: risk score, risk level, and per-rule findings covering
+// cert-manager CRDs, PKI/CA certificates, ACME/Let's Encrypt renewal,
+// certificate pinning, SSH authorized keys, GPG keyrings, Sigstore/cosign,
+// and TLS CA-bundle/trust-store files. API-key-guarded. Spec WS-66.
+// ---------------------------------------------------------------------------
+
+http.route({
+  path: '/api/repository/cert-pki-drift',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const authError = requireApiKey(request)
+    if (authError) return authError
+
+    const url = new URL(request.url)
+    const tenantSlug         = url.searchParams.get('tenantSlug') ?? ''
+    const repositoryFullName = url.searchParams.get('repositoryFullName') ?? ''
+
+    if (!tenantSlug || !repositoryFullName) {
+      return new Response(
+        JSON.stringify({ error: 'tenantSlug and repositoryFullName are required' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } },
+      )
+    }
+
+    const result = await ctx.runQuery(
+      api.certPkiDriftIntel.getLatestCertPkiDriftBySlug,
+      { tenantSlug, repositoryFullName },
+    )
+
+    return new Response(JSON.stringify({ result }, null, 2), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+    })
+  }),
+})
+
+// ---------------------------------------------------------------------------
+// GET /api/repository/endpoint-security-drift?tenantSlug=&repositoryFullName=
+//
+// Return the latest endpoint security & EDR drift scan for a repo: risk score,
+// risk level, and per-rule findings covering CrowdStrike Falcon agent and
+// prevention policy, SentinelOne agent and policy, Microsoft Defender for
+// Endpoint managed configuration, EDR/AV exclusion lists, MDM/UEM device
+// enrollment and compliance policy, Carbon Black/Sophos endpoint security,
+// vulnerability scanner agent configuration, and Tanium/BigFix endpoint
+// management.
+// ---------------------------------------------------------------------------
+
+http.route({
+  path: '/api/repository/endpoint-security-drift',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const authError = requireApiKey(request)
+    if (authError) return authError
+
+    const { searchParams } = new URL(request.url)
+    const tenantSlug = searchParams.get('tenantSlug') ?? ''
+    const repositoryFullName = searchParams.get('repositoryFullName') ?? ''
+
+    if (!tenantSlug || !repositoryFullName) {
+      return new Response(
+        JSON.stringify({ error: 'tenantSlug and repositoryFullName are required' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } },
+      )
+    }
+
+    const data = await ctx.runQuery(api.endpointSecurityDriftIntel.getLatestEndpointSecurityDriftBySlug, {
+      tenantSlug,
+      repositoryFullName,
+    })
+    if (!data) {
+      return new Response(JSON.stringify({ error: 'not found' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+    return new Response(JSON.stringify(data), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+    })
+  }),
+})
+
+// ---------------------------------------------------------------------------
+// GET /api/repository/drift-posture?tenantSlug=&repositoryFullName=
+//
+// Returns the latest configuration drift aggregate health score for a repo:
+// 0–100 overall score, A–F grade, trend, per-category breakdown (8 categories
+// covering all 36 drift detectors WS-60 through WS-95), critical/high counts,
+// top risk signals, and a human-readable summary.
+// ---------------------------------------------------------------------------
+http.route({
+  path: '/api/repository/drift-posture',
+  method: 'GET',
+  handler: httpAction(async (ctx, req) => {
+    const err = requireApiKey(req)
+    if (err) return err
+    const { searchParams } = new URL(req.url)
+    const tenantSlug         = searchParams.get('tenantSlug') ?? ''
+    const repositoryFullName = searchParams.get('repositoryFullName') ?? ''
+    if (!tenantSlug || !repositoryFullName) {
+      return new Response(JSON.stringify({ error: 'tenantSlug and repositoryFullName are required' }), {
+        status: 400, headers: { 'Content-Type': 'application/json' },
+      })
+    }
+    const data = await ctx.runQuery(api.driftPostureIntel.getLatestDriftPostureBySlug, {
+      tenantSlug,
+      repositoryFullName,
+    })
+    if (!data) {
+      return new Response(JSON.stringify({ error: 'not found' }), {
+        status: 404, headers: { 'Content-Type': 'application/json' },
+      })
+    }
+    return new Response(JSON.stringify(data), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+    })
+  }),
+})
+
+// ---------------------------------------------------------------------------
+// GET /api/repository/network-monitoring-drift?tenantSlug=&repositoryFullName=
+//
+// Return the latest network monitoring & SNMP security drift scan for a repo:
+// risk score, risk level, and per-rule findings covering SNMP daemon community
+// strings/v3 auth, Nagios/NRPE monitoring, Zabbix server/agent, NetFlow/sFlow
+// traffic analysis, LibreNMS/Oxidized NMS, Netdata streaming, SNMP trap
+// receivers, and network probe/scanner configuration.
+// ---------------------------------------------------------------------------
+
+http.route({
+  path: '/api/repository/network-monitoring-drift',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const authError = requireApiKey(request)
+    if (authError) return authError
+
+    const { searchParams } = new URL(request.url)
+    const tenantSlug = searchParams.get('tenantSlug') ?? ''
+    const repositoryFullName = searchParams.get('repositoryFullName') ?? ''
+
+    if (!tenantSlug || !repositoryFullName) {
+      return new Response(
+        JSON.stringify({ error: 'tenantSlug and repositoryFullName are required' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } },
+      )
+    }
+
+    const data = await ctx.runQuery(api.networkMonitoringDriftIntel.getLatestNetworkMonitoringDriftBySlug, {
+      tenantSlug,
+      repositoryFullName,
+    })
+    if (!data) {
+      return new Response(JSON.stringify({ error: 'not found' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+    return new Response(JSON.stringify(data), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }),
+})
+
+// GET /api/repository/voip-security-drift?tenantSlug=&repositoryFullName=
+//
+// Return the latest VoIP & UC security drift scan for a repo: risk score,
+// risk level, and per-rule findings covering Asterisk PBX / FreePBX, Kamailio /
+// OpenSIPS SIP proxy, FreeSWITCH, SIP trunk credentials, Jitsi / TURN / WebRTC,
+// VoIP gateway and ATA configuration, web conferencing servers (Matrix/Synapse,
+// BigBlueButton, Rocket.Chat, Mattermost), and VoIP CDR / SIP capture monitoring.
+// ---------------------------------------------------------------------------
+
+http.route({
+  path: '/api/repository/voip-security-drift',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const authError = requireApiKey(request)
+    if (authError) return authError
+
+    const { searchParams } = new URL(request.url)
+    const tenantSlug = searchParams.get('tenantSlug') ?? ''
+    const repositoryFullName = searchParams.get('repositoryFullName') ?? ''
+
+    if (!tenantSlug || !repositoryFullName) {
+      return new Response(
+        JSON.stringify({ error: 'tenantSlug and repositoryFullName are required' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } },
+      )
+    }
+
+    const data = await ctx.runQuery(api.voipSecurityDriftIntel.getLatestVoipSecurityDriftBySlug, {
+      tenantSlug,
+      repositoryFullName,
+    })
+    if (!data) {
+      return new Response(JSON.stringify({ error: 'not found' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+    return new Response(JSON.stringify(data), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }),
+})
+
+// ---------------------------------------------------------------------------
+// GET /api/repository/virtualization-security-drift?tenantSlug=&repositoryFullName=
+//
+// Return the latest virtualization & hypervisor security drift scan for a repo:
+// risk score, risk level, and per-rule findings covering VMware vSphere/ESXi/
+// vCenter configuration, KVM/QEMU/libvirt host configuration, Docker daemon and
+// containerd host configuration, Proxmox VE cluster configuration, Xen/XenServer/
+// XCP-ng configuration, Hyper-V configuration, VM remote console access
+// configuration, and Open vSwitch / SDN configuration.
+// ---------------------------------------------------------------------------
+
+http.route({
+  path: '/api/repository/virtualization-security-drift',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const authError = requireApiKey(request)
+    if (authError) return authError
+
+    const { searchParams } = new URL(request.url)
+    const tenantSlug = searchParams.get('tenantSlug') ?? ''
+    const repositoryFullName = searchParams.get('repositoryFullName') ?? ''
+
+    if (!tenantSlug || !repositoryFullName) {
+      return new Response(
+        JSON.stringify({ error: 'tenantSlug and repositoryFullName are required' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } },
+      )
+    }
+
+    const result = await ctx.runQuery(
+      api.virtualizationSecurityDriftIntel.getLatestVirtualizationSecurityDriftBySlug,
+      { tenantSlug, repositoryFullName },
+    )
+
+    return new Response(JSON.stringify({ result }, null, 2), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+    })
+  }),
+})
+
+// ---------------------------------------------------------------------------
+// GET /api/repository/iot-embedded-security-drift?tenantSlug=&repositoryFullName=
+//
+// Return the latest IoT & embedded device security drift scan for a repo: risk
+// score, risk level, and per-rule findings covering Balena IoT fleet config,
+// AWS IoT Greengrass config, firmware signing / secure-boot config, Mender OTA
+// update config, Zigbee/Z-Wave controller config, Azure IoT Hub / DPS config,
+// IoT device management platforms (ThingsBoard, Hawkbit, EdgeX), and LoRaWAN /
+// network gateway configuration (ChirpStack, The Things Stack, lorawan-server).
+// ---------------------------------------------------------------------------
+
+http.route({
+  path: '/api/repository/iot-embedded-security-drift',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const authError = requireApiKey(request)
+    if (authError) return authError
+
+    const { searchParams } = new URL(request.url)
+    const tenantSlug = searchParams.get('tenantSlug') ?? ''
+    const repositoryFullName = searchParams.get('repositoryFullName') ?? ''
+
+    if (!tenantSlug || !repositoryFullName) {
+      return new Response(
+        JSON.stringify({ error: 'tenantSlug and repositoryFullName are required' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } },
+      )
+    }
+
+    const result = await ctx.runQuery(
+      api.iotEmbeddedSecurityDriftIntel.getLatestIotEmbeddedSecurityDriftBySlug,
+      { tenantSlug, repositoryFullName },
+    )
+
+    return new Response(JSON.stringify({ result }, null, 2), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+    })
+  }),
+})
+
+// ---------------------------------------------------------------------------
+// GET /api/repository/wireless-radius-drift?tenantSlug=&repositoryFullName=
+//
+// Return the latest wireless network & RADIUS authentication drift scan for a
+// repo: risk score, risk level, and per-rule findings covering Wi-Fi AP daemon
+// configuration (hostapd.conf), WPA supplicant configuration, FreeRADIUS server
+// configuration (radiusd.conf, clients.conf, users, huntgroups, dictionary,
+// sites-enabled/, policy.d/, mods-enabled/), TACACS+ authentication server
+// configuration, wireless controller configuration (UniFi, Aruba, WLC),
+// RADIUS policy files, 802.1X / EAP authentication profiles, and captive-portal
+// configuration.
+// ---------------------------------------------------------------------------
+
+http.route({
+  path: '/api/repository/wireless-radius-drift',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const authError = requireApiKey(request)
+    if (authError) return authError
+
+    const { searchParams } = new URL(request.url)
+    const tenantSlug = searchParams.get('tenantSlug') ?? ''
+    const repositoryFullName = searchParams.get('repositoryFullName') ?? ''
+
+    if (!tenantSlug || !repositoryFullName) {
+      return new Response(JSON.stringify({ error: 'tenantSlug and repositoryFullName required' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+
+    const result = await ctx.runQuery(
+      api.wirelessRadiusDriftIntel.getLatestWirelessRadiusDriftBySlug,
+      { tenantSlug, repositoryFullName },
+    )
+    return new Response(JSON.stringify(result ?? null), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+    })
+  }),
+})
+
+// ---------------------------------------------------------------------------
+// GET /api/repository/os-security-hardening-drift?tenantSlug=&repositoryFullName=
+//
+// Return the latest OS security hardening drift scan for a repo: risk score,
+// risk level, and per-rule findings covering sysctl kernel security parameters,
+// OpenSSH daemon configuration (sshd_config), sudo privilege escalation policy,
+// GRUB2 bootloader security settings, SELinux policy configuration, OS access
+// control files (hosts.allow/deny, cron/at.allow), NTP/time-sync daemon
+// configuration, and OS login banner/MOTD files.
+// ---------------------------------------------------------------------------
+
+http.route({
+  path: '/api/repository/os-security-hardening-drift',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const authError = requireApiKey(request)
+    if (authError) return authError
+
+    const { searchParams } = new URL(request.url)
+    const tenantSlug = searchParams.get('tenantSlug') ?? ''
+    const repositoryFullName = searchParams.get('repositoryFullName') ?? ''
+
+    if (!tenantSlug || !repositoryFullName) {
+      return new Response(JSON.stringify({ error: 'tenantSlug and repositoryFullName required' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+
+    const result = await ctx.runQuery(
+      api.osSecurityHardeningDriftIntel.getLatestOsSecurityHardeningDriftBySlug,
+      { tenantSlug, repositoryFullName },
+    )
+    return new Response(JSON.stringify(result ?? null), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+    })
+  }),
+})
+
+// ---------------------------------------------------------------------------
+// GET /api/repository/dns-security-drift?tenantSlug=&repositoryFullName=
+//
+// Return the latest DNS security drift scan for a repo: risk score, risk level,
+// and per-rule findings covering BIND named.conf, Unbound resolver config,
+// PowerDNS authoritative and recursor configs, CoreDNS Corefile, dnsmasq
+// DNS/DHCP forwarder config, Pi-hole filtering config, encrypted DNS proxy
+// settings (dnscrypt-proxy, Stubby), and RPKI route-origin validation daemon
+// configuration (routinator, fort, rpki-client).
+// ---------------------------------------------------------------------------
+
+http.route({
+  path: '/api/repository/dns-security-drift',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const authError = requireApiKey(request)
+    if (authError) return authError
+
+    const { searchParams } = new URL(request.url)
+    const tenantSlug = searchParams.get('tenantSlug') ?? ''
+    const repositoryFullName = searchParams.get('repositoryFullName') ?? ''
+
+    if (!tenantSlug || !repositoryFullName) {
+      return new Response(JSON.stringify({ error: 'tenantSlug and repositoryFullName required' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+
+    const result = await ctx.runQuery(
+      api.dnsSecurityDriftIntel.getLatestDnsSecurityDriftBySlug,
+      { tenantSlug, repositoryFullName },
+    )
+    return new Response(JSON.stringify(result ?? null), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+    })
+  }),
+})
+
+// ---------------------------------------------------------------------------
+// GET /api/repository/storage-data-security-drift?tenantSlug=&repositoryFullName=
+//
+// Return the latest storage & data security drift scan for a repo: risk score,
+// risk level, and per-rule findings covering NFS export configs, Samba/SMB
+// server configs, disk encryption (LUKS crypttab, dm-crypt), object storage
+// client credentials (AWS ~/.aws/credentials, s3cmd .s3cfg, MinIO client),
+// database backup encryption (pgbackrest/barman/wal-g), file integrity
+// monitoring (AIDE/Tripwire/Samhain), DLP policy configs, and storage audit
+// webhook configuration.
+// ---------------------------------------------------------------------------
+
+http.route({
+  path: '/api/repository/storage-data-security-drift',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const authError = requireApiKey(request)
+    if (authError) return authError
+
+    const { searchParams } = new URL(request.url)
+    const tenantSlug = searchParams.get('tenantSlug') ?? ''
+    const repositoryFullName = searchParams.get('repositoryFullName') ?? ''
+
+    if (!tenantSlug || !repositoryFullName) {
+      return new Response(JSON.stringify({ error: 'tenantSlug and repositoryFullName required' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+
+    const result = await ctx.runQuery(
+      api.storageDataSecurityDriftIntel.getLatestStorageDataSecurityDriftBySlug,
+      { tenantSlug, repositoryFullName },
+    )
+    return new Response(JSON.stringify(result ?? null), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+    })
+  }),
+})
+
+// ---------------------------------------------------------------------------
+// GET /api/repository/siem-security-drift?tenantSlug=&repositoryFullName=
+//
+// Return the latest SIEM & security analytics drift scan for a repo: risk score,
+// risk level, and per-rule findings covering Splunk detection configs, Elastic
+// SIEM detection rules, Microsoft Sentinel analytics rules and hunting queries,
+// osquery configuration, SIEM detection suppression rules, SOAR playbook configs,
+// threat intelligence feed configs (MISP/OpenCTI/TAXII), and SIEM log source
+// input/output configurations.
+// ---------------------------------------------------------------------------
+
+http.route({
+  path: '/api/repository/siem-security-drift',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const authError = requireApiKey(request)
+    if (authError) return authError
+
+    const { searchParams } = new URL(request.url)
+    const tenantSlug = searchParams.get('tenantSlug') ?? ''
+    const repositoryFullName = searchParams.get('repositoryFullName') ?? ''
+
+    if (!tenantSlug || !repositoryFullName) {
+      return new Response(JSON.stringify({ error: 'tenantSlug and repositoryFullName required' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+
+    const result = await ctx.runQuery(
+      api.siemSecurityDriftIntel.getLatestSiemSecurityDriftBySlug,
+      { tenantSlug, repositoryFullName },
+    )
+    return new Response(JSON.stringify(result ?? null), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+    })
+  }),
+})
+
+// ---------------------------------------------------------------------------
+// GET /api/repository/backup-dr-security-drift?tenantSlug=&repositoryFullName=
+//
+// Return the latest backup & DR security drift scan for a repo: risk score,
+// risk level, and per-rule findings covering rclone cloud sync credentials,
+// Restic backup password files and repo configuration, BorgBackup passphrase
+// and borgmatic YAML configs, generic backup encryption keys and passphrases,
+// rsync daemon configuration and secrets, Bacula/Amanda enterprise backup
+// server configs, Velero/Duplicati/Duplicity cloud backup agent credentials,
+// and backup shell scripts that frequently contain hardcoded credentials.
+// ---------------------------------------------------------------------------
+
+http.route({
+  path: '/api/repository/backup-dr-security-drift',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const authError = requireApiKey(request)
+    if (authError) return authError
+
+    const url            = new URL(request.url)
+    const tenantSlug     = url.searchParams.get('tenantSlug')     ?? ''
+    const repositoryFullName = url.searchParams.get('repositoryFullName') ?? ''
+    if (!tenantSlug || !repositoryFullName) {
+      return new Response(JSON.stringify({ error: 'tenantSlug and repositoryFullName are required' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+
+    const result = await ctx.runQuery(
+      api.backupDrSecurityDriftIntel.getLatestBackupDrSecurityDriftBySlug,
+      { tenantSlug, repositoryFullName },
+    )
+    return new Response(JSON.stringify(result ?? null), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+    })
+  }),
+})
+
+// ---------------------------------------------------------------------------
+// GET /api/repository/vpn-remote-access-drift?tenantSlug=&repositoryFullName=
+//
+// Return the latest VPN & remote access security drift scan for a repo:
+// risk score, risk level, and per-rule findings covering OpenVPN server/client
+// configuration and TLS auth key material, WireGuard interface configs with
+// embedded private keys, IPsec/StrongSwan/Libreswan configuration and PSK
+// secrets, VPN-context PKI credential material, Apache Guacamole/Teleport
+// bastion configuration, Cisco AnyConnect profiles, Pritunl/ocserv/pptpd SSL
+// VPN server configuration, and VPN client profiles.
+// ---------------------------------------------------------------------------
+
+http.route({
+  path: '/api/repository/vpn-remote-access-drift',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const authError = requireApiKey(request)
+    if (authError) return authError
+
+    const url        = new URL(request.url)
+    const tenantSlug = url.searchParams.get('tenantSlug') ?? ''
+    const repoName   = url.searchParams.get('repositoryFullName') ?? ''
+
+    const result = await ctx.runQuery(
+      api.vpnRemoteAccessDriftIntel.getLatestVpnRemoteAccessDriftBySlug,
+      { tenantSlug, repositoryFullName: repoName },
+    )
+
+    return new Response(JSON.stringify(result ?? null), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+    })
+  }),
+})
+
+// ---------------------------------------------------------------------------
+// GET /api/repository/cfg-mgmt-security-drift?tenantSlug=&repositoryFullName=
+//
+// Return the latest configuration management security drift scan for a repo:
+// risk score, risk level, and per-rule findings covering Ansible configuration
+// and vault password files, Chef workstation API keys and encrypted data bag
+// secrets, Puppet master server configuration and r10k Puppetfiles, SaltStack
+// master/minion configuration and SSH rosters, Ansible inventory and
+// group/host variable files, Chef Berkshelf/Policyfile cookbook dependency
+// manifests, Puppet Hiera eyaml-encrypted data files, and Test Kitchen/Molecule
+// CI framework configurations.
+// ---------------------------------------------------------------------------
+
+http.route({
+  path: '/api/repository/cfg-mgmt-security-drift',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const authError = requireApiKey(request)
+    if (authError) return authError
+
+    const url        = new URL(request.url)
+    const tenantSlug = url.searchParams.get('tenantSlug') ?? ''
+    const repoName   = url.searchParams.get('repositoryFullName') ?? ''
+
+    const result = await ctx.runQuery(
+      api.cfgMgmtSecurityDriftIntel.getLatestCfgMgmtSecurityDriftBySlug,
+      { tenantSlug, repositoryFullName: repoName },
+    )
+
+    return new Response(JSON.stringify(result ?? null), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+    })
+  }),
+})
+
+// ---------------------------------------------------------------------------
+// GET /api/repository/artifact-registry-drift?tenantSlug=&repositoryFullName=
+//
+// Return the latest artifact registry security drift scan for a repo:
+// risk score, risk level, and per-rule findings covering JFrog Artifactory,
+// Sonatype Nexus, Harbor OCI registry, Docker Distribution v2, Verdaccio
+// npm registry, Bandersnatch/DevPI PyPI mirror, ChartMuseum Helm chart
+// repository, and Athens Go module proxy configurations.
+// ---------------------------------------------------------------------------
+
+http.route({
+  path: '/api/repository/artifact-registry-drift',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const authError = requireApiKey(request)
+    if (authError) return authError
+
+    const url        = new URL(request.url)
+    const tenantSlug = url.searchParams.get('tenantSlug') ?? ''
+    const repoName   = url.searchParams.get('repositoryFullName') ?? ''
+
+    const result = await ctx.runQuery(
+      api.artifactRegistryDriftIntel.getLatestArtifactRegistryDriftBySlug,
+      { tenantSlug, repositoryFullName: repoName },
+    )
+
+    return new Response(JSON.stringify(result ?? null), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }),
+})
+
+// ---------------------------------------------------------------------------
+// GET /api/repository/ml-ai-platform-drift?tenantSlug=&repositoryFullName=
+//
+// Return the latest ML/AI platform security drift scan for a repo:
+// risk score, risk level, and per-rule findings covering MLflow tracking,
+// Kubeflow Pipelines/KServe, Ray clusters, SageMaker/Vertex AI/Azure ML
+// platform access, Feast feature stores, model serving (BentoML/Seldon/
+// Triton), MLOps pipelines (DVC/ClearML/W&B), and model governance artifacts.
+// ---------------------------------------------------------------------------
+
+http.route({
+  path: '/api/repository/ml-ai-platform-drift',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const authError = requireApiKey(request)
+    if (authError) return authError
+
+    const url        = new URL(request.url)
+    const tenantSlug = url.searchParams.get('tenantSlug') ?? ''
+    const repoName   = url.searchParams.get('repositoryFullName') ?? ''
+
+    const result = await ctx.runQuery(
+      api.mlAiPlatformDriftIntel.getLatestMlAiPlatformDriftBySlug,
+      { tenantSlug, repositoryFullName: repoName },
+    )
+
+    return new Response(JSON.stringify(result ?? null), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }),
+})
+
+// ---------------------------------------------------------------------------
+// GET /api/repository/data-pipeline-drift?tenantSlug=&repositoryFullName=
+//
+// Return the latest data pipeline & ETL security drift scan for a repo:
+// risk score, risk level, and per-rule findings covering Airflow, Spark, dbt,
+// Hadoop/Hive/HBase/Flink, Trino/Presto, Dagster/Prefect, Great Expectations,
+// DataHub, and Jupyter notebook server configurations.
+// ---------------------------------------------------------------------------
+
+http.route({
+  path: '/api/repository/data-pipeline-drift',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const authError = requireApiKey(request)
+    if (authError) return authError
+
+    const url        = new URL(request.url)
+    const tenantSlug = url.searchParams.get('tenantSlug') ?? ''
+    const repoName   = url.searchParams.get('repositoryFullName') ?? ''
+
+    const result = await ctx.runQuery(
+      api.dataPipelineDriftIntel.getLatestDataPipelineDriftBySlug,
+      { tenantSlug, repositoryFullName: repoName },
+    )
+
+    return new Response(JSON.stringify(result ?? null), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }),
+})
+
+// ---------------------------------------------------------------------------
+// GET /api/repository/sso-provider-drift?tenantSlug=&repositoryFullName=
+//
+// Return the latest SSO provider & auth configuration drift scan for a repo:
+// risk score, risk level, and per-rule findings covering Keycloak, SAML,
+// OAuth2/OIDC servers, Auth0/Okta/PingFederate, Dex/Authelia, Duo MFA,
+// SCIM provisioning, and oauth2-proxy configurations.
+// ---------------------------------------------------------------------------
+
+http.route({
+  path: '/api/repository/sso-provider-drift',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const authError = requireApiKey(request)
+    if (authError) return authError
+
+    const url        = new URL(request.url)
+    const tenantSlug = url.searchParams.get('tenantSlug') ?? ''
+    const repoName   = url.searchParams.get('repositoryFullName') ?? ''
+
+    const result = await ctx.runQuery(
+      api.ssoProviderDriftIntel.getLatestSsoProviderDriftBySlug,
+      { tenantSlug, repositoryFullName: repoName },
+    )
+
+    return new Response(JSON.stringify(result ?? null), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }),
+})
+
+// ---------------------------------------------------------------------------
+// GET /api/repository/messaging-security-drift?tenantSlug=&repositoryFullName=
+//
+// Return the latest messaging & event streaming security drift scan for a repo:
+// risk score, risk level, and per-rule findings covering Kafka, RabbitMQ, NATS,
+// MQTT brokers, transport TLS, auth/ACL policies, Schema Registry, and Pulsar /
+// ActiveMQ broker configurations.
+// ---------------------------------------------------------------------------
+
+http.route({
+  path: '/api/repository/messaging-security-drift',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const authError = requireApiKey(request)
+    if (authError) return authError
+
+    const url        = new URL(request.url)
+    const tenantSlug = url.searchParams.get('tenantSlug') ?? ''
+    const repoName   = url.searchParams.get('repositoryFullName') ?? ''
+
+    const result = await ctx.runQuery(
+      api.messagingSecurityDriftIntel.getLatestMessagingSecurityDriftBySlug,
+      { tenantSlug, repositoryFullName: repoName },
+    )
+
+    return new Response(JSON.stringify(result ?? null), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }),
+})
+
+// ---------------------------------------------------------------------------
+// GET /api/repository/serverless-faas-drift?tenantSlug=&repositoryFullName=
+//
+// Return the latest serverless & FaaS security drift scan for a repository:
+// risk score, risk level, and per-rule findings covering Serverless Framework,
+// AWS SAM/Lambda, Azure Functions, Cloudflare Workers, GCP Cloud Run, edge
+// deployment configs, function IAM permissions, and Knative/OpenWhisk.
+// ---------------------------------------------------------------------------
+
+http.route({
+  path: '/api/repository/serverless-faas-drift',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const authError = requireApiKey(request)
+    if (authError) return authError
+
+    const url        = new URL(request.url)
+    const tenantSlug = url.searchParams.get('tenantSlug') ?? ''
+    const repoName   = url.searchParams.get('repositoryFullName') ?? ''
+
+    const result = await ctx.runQuery(
+      api.serverlessFaasDriftIntel.getLatestServerlessFaasDriftBySlug,
+      { tenantSlug, repositoryFullName: repoName },
+    )
+
+    return new Response(JSON.stringify(result ?? null), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }),
+})
+
+// ---------------------------------------------------------------------------
+// GET /api/repository/email-security-drift?tenantSlug=&repositoryFullName=
+//
+// Return the latest email security drift scan for a repository: risk score,
+// risk level, and per-rule findings covering MTA configs, DKIM signing,
+// SASL auth, anti-spam filters, mail TLS, relay restrictions, access
+// policies, and header/body filter rules.
+// ---------------------------------------------------------------------------
+
+http.route({
+  path: '/api/repository/email-security-drift',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const authError = requireApiKey(request)
+    if (authError) return authError
+
+    const url        = new URL(request.url)
+    const tenantSlug = url.searchParams.get('tenantSlug') ?? ''
+    const repoName   = url.searchParams.get('repositoryFullName') ?? ''
+
+    const result = await ctx.runQuery(
+      api.emailSecurityDriftIntel.getLatestEmailSecurityDriftBySlug,
+      { tenantSlug, repositoryFullName: repoName },
+    )
+
+    return new Response(JSON.stringify(result ?? null), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }),
+})
+
+// ---------------------------------------------------------------------------
+// GET /api/repository/web-server-security-drift?tenantSlug=&repositoryFullName=
+//
+// Return the latest web server & reverse proxy security drift scan for a
+// repository: risk score, risk level, and per-rule findings covering nginx,
+// Apache, Traefik, Caddy, ingress controllers, ModSecurity WAF, SSL
+// termination configs, and access control files.
+// ---------------------------------------------------------------------------
+
+http.route({
+  path: '/api/repository/web-server-security-drift',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const authError = requireApiKey(request)
+    if (authError) return authError
+
+    const url        = new URL(request.url)
+    const tenantSlug = url.searchParams.get('tenantSlug') ?? ''
+    const repoName   = url.searchParams.get('repositoryFullName') ?? ''
+
+    const result = await ctx.runQuery(
+      api.webServerSecurityDriftIntel.getLatestWebServerSecurityDriftBySlug,
+      { tenantSlug, repositoryFullName: repoName },
+    )
+
+    return new Response(JSON.stringify(result ?? null), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }),
+})
+
+// ---------------------------------------------------------------------------
+// GET /api/repository/mobile-app-security-drift?tenantSlug=&repositoryFullName=
+//
+// Return the latest mobile application security drift scan for a repository:
+// risk score, risk level, and per-rule findings covering iOS entitlements,
+// Android manifests, signing configs, ProGuard/R8 obfuscation, Firebase
+// configs, deep link verification, and mobile platform configs.
+// ---------------------------------------------------------------------------
+
+http.route({
+  path: '/api/repository/mobile-app-security-drift',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const authError = requireApiKey(request)
+    if (authError) return authError
+
+    const url        = new URL(request.url)
+    const tenantSlug = url.searchParams.get('tenantSlug') ?? ''
+    const repoName   = url.searchParams.get('repositoryFullName') ?? ''
+
+    const result = await ctx.runQuery(
+      api.mobileAppSecurityDriftIntel.getLatestMobileAppSecurityDriftBySlug,
+      { tenantSlug, repositoryFullName: repoName },
+    )
+
+    return new Response(JSON.stringify(result ?? null), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }),
+})
+
+// ---------------------------------------------------------------------------
+// GET /api/repository/cicd-pipeline-security-drift?tenantSlug=&repositoryFullName=
+//
+// Return the latest CI/CD pipeline security configuration drift scan for a
+// repository: risk score, risk level, and per-rule findings covering GitHub
+// Actions workflows, Jenkinsfile, GitLab CI, ArgoCD, FluxCD, Buildkite/
+// CircleCI, Tekton pipelines, and SLSA artifact signing configs.
+// ---------------------------------------------------------------------------
+
+http.route({
+  path: '/api/repository/cicd-pipeline-security-drift',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const authError = requireApiKey(request)
+    if (authError) return authError
+
+    const url = new URL(request.url)
+    const tenantSlug         = url.searchParams.get('tenantSlug') ?? ''
+    const repositoryFullName = url.searchParams.get('repositoryFullName') ?? ''
+
+    if (!tenantSlug || !repositoryFullName) {
+      return new Response(
+        JSON.stringify({ error: 'tenantSlug and repositoryFullName are required' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } },
+      )
+    }
+
+    const result = await ctx.runQuery(
+      api.cicdPipelineSecurityDriftIntel.getLatestCicdPipelineSecurityDriftBySlug,
+      { tenantSlug, repositoryFullName },
+    )
+
+    return new Response(JSON.stringify({ result }, null, 2), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+    })
+  }),
+})
+
+// ---------------------------------------------------------------------------
+// GET /api/repository/service-mesh-security-drift?tenantSlug=&repositoryFullName=
+//
+// Return the latest service mesh & zero-trust network security configuration
+// drift scan for a repository: risk score, risk level, and per-rule findings
+// covering Istio auth policy, Envoy proxy, SPIFFE/SPIRE, Linkerd, Consul
+// Connect, CNI network policies, zero-trust access proxies, and mesh gateways.
+// ---------------------------------------------------------------------------
+
+http.route({
+  path: '/api/repository/service-mesh-security-drift',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const authError = requireApiKey(request)
+    if (authError) return authError
+
+    const url = new URL(request.url)
+    const tenantSlug         = url.searchParams.get('tenantSlug') ?? ''
+    const repositoryFullName = url.searchParams.get('repositoryFullName') ?? ''
+
+    if (!tenantSlug || !repositoryFullName) {
+      return new Response(
+        JSON.stringify({ error: 'tenantSlug and repositoryFullName are required' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } },
+      )
+    }
+
+    const result = await ctx.runQuery(
+      api.serviceMeshSecurityDriftIntel.getLatestServiceMeshSecurityDriftBySlug,
+      { tenantSlug, repositoryFullName },
+    )
+
+    return new Response(JSON.stringify({ result }, null, 2), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+    })
+  }),
+})
+
+// ---------------------------------------------------------------------------
+// GET /api/repository/observability-security-drift?tenantSlug=&repositoryFullName=
+//
+// Return the latest observability & security monitoring configuration drift scan
+// for a repository: risk score, risk level, and per-rule findings covering
+// Prometheus alert rules, Alertmanager, log pipelines, OTEL, Grafana, CloudWatch
+// alarms, distributed tracing backends, and log retention policies.
+// ---------------------------------------------------------------------------
+
+http.route({
+  path: '/api/repository/observability-security-drift',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const authError = requireApiKey(request)
+    if (authError) return authError
+
+    const url = new URL(request.url)
+    const tenantSlug         = url.searchParams.get('tenantSlug') ?? ''
+    const repositoryFullName = url.searchParams.get('repositoryFullName') ?? ''
+
+    if (!tenantSlug || !repositoryFullName) {
+      return new Response(
+        JSON.stringify({ error: 'tenantSlug and repositoryFullName are required' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } },
+      )
+    }
+
+    const result = await ctx.runQuery(
+      api.observabilitySecurityDriftIntel.getLatestObservabilitySecurityDriftBySlug,
+      { tenantSlug, repositoryFullName },
+    )
+
+    return new Response(JSON.stringify({ result }, null, 2), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+    })
+  }),
+})
+
+// ---------------------------------------------------------------------------
+// GET /api/repository/identity-access-drift?tenantSlug=&repositoryFullName=
+//
+// Return the latest identity & privileged access management configuration drift
+// scan for a repository: risk score, risk level, and per-rule findings covering
+// Vault policies, LDAP/PAM, MFA enforcement, SAML federation, and app RBAC.
+// ---------------------------------------------------------------------------
+
+http.route({
+  path: '/api/repository/identity-access-drift',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const authError = requireApiKey(request)
+    if (authError) return authError
+
+    const url = new URL(request.url)
+    const tenantSlug         = url.searchParams.get('tenantSlug') ?? ''
+    const repositoryFullName = url.searchParams.get('repositoryFullName') ?? ''
+
+    if (!tenantSlug || !repositoryFullName) {
+      return new Response(
+        JSON.stringify({ error: 'tenantSlug and repositoryFullName are required' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } },
+      )
+    }
+
+    const result = await ctx.runQuery(
+      api.identityAccessDriftIntel.getLatestIdentityAccessDriftBySlug,
+      { tenantSlug, repositoryFullName },
+    )
+
+    return new Response(JSON.stringify({ result }, null, 2), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+    })
+  }),
+})
+
+// ---------------------------------------------------------------------------
+// GET /api/repository/dev-sec-tools-drift?tenantSlug=&repositoryFullName=
+//
+// Return the latest developer security tooling & SAST configuration drift scan
+// for a repository: risk score, risk level, and per-rule findings covering
+// secret scanning, SAST, SCA, security linting, DAST, license policy,
+// container scanning, and security baseline configurations.
+// ---------------------------------------------------------------------------
+
+http.route({
+  path: '/api/repository/dev-sec-tools-drift',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const authError = requireApiKey(request)
+    if (authError) return authError
+
+    const url = new URL(request.url)
+    const tenantSlug         = url.searchParams.get('tenantSlug') ?? ''
+    const repositoryFullName = url.searchParams.get('repositoryFullName') ?? ''
+
+    if (!tenantSlug || !repositoryFullName) {
+      return new Response(
+        JSON.stringify({ error: 'tenantSlug and repositoryFullName are required' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } },
+      )
+    }
+
+    const result = await ctx.runQuery(
+      api.devSecToolsDriftIntel.getLatestDevSecToolsDriftBySlug,
+      { tenantSlug, repositoryFullName },
+    )
+
+    return new Response(JSON.stringify({ result }, null, 2), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+    })
+  }),
+})
+
+// ---------------------------------------------------------------------------
+// GET /api/repository/network-firewall-drift?tenantSlug=&repositoryFullName=
+//
+// Return the latest network perimeter & firewall configuration drift scan
+// for a repository: risk score, risk level, and per-rule findings covering
+// iptables/nftables rules, HAProxy ACL config, UFW rules, VPN configs,
+// DNS/BIND security, proxy access control, and firewalld zones.
+// API-key-guarded. Spec WS-68.
+// ---------------------------------------------------------------------------
+
+http.route({
+  path: '/api/repository/network-firewall-drift',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const authError = requireApiKey(request)
+    if (authError) return authError
+
+    const url = new URL(request.url)
+    const tenantSlug         = url.searchParams.get('tenantSlug') ?? ''
+    const repositoryFullName = url.searchParams.get('repositoryFullName') ?? ''
+
+    if (!tenantSlug || !repositoryFullName) {
+      return new Response(
+        JSON.stringify({ error: 'tenantSlug and repositoryFullName are required' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } },
+      )
+    }
+
+    const result = await ctx.runQuery(
+      api.networkFirewallDriftIntel.getLatestNetworkFirewallDriftBySlug,
+      { tenantSlug, repositoryFullName },
+    )
+
+    return new Response(JSON.stringify({ result }, null, 2), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+    })
+  }),
+})
+
+// ---------------------------------------------------------------------------
+// GET /api/repository/runtime-security-drift?tenantSlug=&repositoryFullName=
+//
+// Return the latest runtime security policy & enforcement configuration drift
+// scan for a repository: risk score, risk level, and per-rule findings covering
+// Falco behavioral rules, OPA Rego policies, seccomp/AppArmor profiles,
+// Kyverno ClusterPolicy CRDs, fail2ban config, Linux auditd rules,
+// Snort/Suricata IDS rules, and Sigma/YARA threat detection rules.
+// API-key-guarded. Spec WS-67.
+// ---------------------------------------------------------------------------
+
+http.route({
+  path: '/api/repository/runtime-security-drift',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const authError = requireApiKey(request)
+    if (authError) return authError
+
+    const url = new URL(request.url)
+    const tenantSlug         = url.searchParams.get('tenantSlug') ?? ''
+    const repositoryFullName = url.searchParams.get('repositoryFullName') ?? ''
+
+    if (!tenantSlug || !repositoryFullName) {
+      return new Response(
+        JSON.stringify({ error: 'tenantSlug and repositoryFullName are required' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } },
+      )
+    }
+
+    const result = await ctx.runQuery(
+      api.runtimeSecurityDriftIntel.getLatestRuntimeSecurityDriftBySlug,
+      { tenantSlug, repositoryFullName },
+    )
+
+    return new Response(JSON.stringify({ result }, null, 2), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+    })
+  }),
+})
+
+// ---------------------------------------------------------------------------
+// GET /api/tenant/executive-report?tenantSlug=<slug>
+//
+// Returns the cross-repository tenant executive security summary: composite
+// scores per domain (health, drift, supply chain, compliance), overall grade,
+// risk tier, worst/best repos, top-5 action items, and framework roll-up.
+// No new table — assembled at query time from WS-49, WS-96, WS-44, WS-46.
+// API-key-guarded. Spec WS-97.
+// ---------------------------------------------------------------------------
+
+http.route({
+  path: '/api/tenant/executive-report',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const authError = requireApiKey(request)
+    if (authError) return authError
+
+    const url = new URL(request.url)
+    const tenantSlug = url.searchParams.get('tenantSlug') ?? ''
+
+    if (!tenantSlug) {
+      return new Response(
+        JSON.stringify({ error: 'tenantSlug is required' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } },
+      )
+    }
+
+    const report = await ctx.runQuery(
+      api.executiveReportIntel.getExecutiveReport,
+      { tenantSlug },
+    )
+
+    if (!report) {
+      return new Response(
+        JSON.stringify({ error: `Tenant not found: ${tenantSlug}` }),
+        { status: 404, headers: { 'Content-Type': 'application/json' } },
+      )
+    }
+
+    return new Response(JSON.stringify({ report }, null, 2), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+    })
+  }),
+})
+
+// ---------------------------------------------------------------------------
+// GET /api/repository/zero-day-detections?tenantSlug=&repositoryFullName=
+//
+// Returns the latest zero-day anomaly detection result. Spec WS-98 (§3.1.3).
+// API-key-guarded.
+// ---------------------------------------------------------------------------
+
+http.route({
+  path: '/api/repository/zero-day-detections',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const authError = requireApiKey(request)
+    if (authError) return authError
+
+    const { searchParams } = new URL(request.url)
+    const tenantSlug         = searchParams.get('tenantSlug') ?? ''
+    const repositoryFullName = searchParams.get('repositoryFullName') ?? ''
+
+    if (!tenantSlug || !repositoryFullName) {
+      return new Response(
+        JSON.stringify({ error: 'tenantSlug and repositoryFullName are required' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } },
+      )
+    }
+
+    const latest = await ctx.runQuery(
+      api.zeroDayDetectionIntel.getLatestZeroDayDetectionBySlug,
+      { tenantSlug, repositoryFullName },
+    )
+
+    return new Response(JSON.stringify({ zeroDayDetection: latest ?? null }, null, 2), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+    })
+  }),
+})
+
+// ---------------------------------------------------------------------------
+// GET /api/repository/maturity-assessment?tenantSlug=&repositoryFullName=
+//
+// Returns the latest Security Program Maturity Assessment. Spec WS-99.
+// API-key-guarded.
+// ---------------------------------------------------------------------------
+
+http.route({
+  path: '/api/repository/maturity-assessment',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const authError = requireApiKey(request)
+    if (authError) return authError
+
+    const { searchParams } = new URL(request.url)
+    const tenantSlug         = searchParams.get('tenantSlug') ?? ''
+    const repositoryFullName = searchParams.get('repositoryFullName') ?? ''
+
+    if (!tenantSlug || !repositoryFullName) {
+      return new Response(
+        JSON.stringify({ error: 'tenantSlug and repositoryFullName are required' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } },
+      )
+    }
+
+    const assessment = await ctx.runQuery(
+      api.maturityAssessmentIntel.getLatestMaturityAssessmentBySlug,
+      { tenantSlug, repositoryFullName },
+    )
+
+    return new Response(JSON.stringify({ maturityAssessment: assessment ?? null }, null, 2), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+    })
+  }),
+})
+
+// ---------------------------------------------------------------------------
+// GET /api/repository/business-impact?tenantSlug=&repositoryFullName=
+//
+// Returns the latest Business Impact Assessment for a repository. Spec WS-100 (§3.5.4).
+// API-key-guarded.
+// ---------------------------------------------------------------------------
+
+http.route({
+  path: '/api/repository/business-impact',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const authError = requireApiKey(request)
+    if (authError) return authError
+
+    const { searchParams } = new URL(request.url)
+    const tenantSlug         = searchParams.get('tenantSlug') ?? ''
+    const repositoryFullName = searchParams.get('repositoryFullName') ?? ''
+
+    if (!tenantSlug || !repositoryFullName) {
+      return new Response(
+        JSON.stringify({ error: 'tenantSlug and repositoryFullName are required' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } },
+      )
+    }
+
+    const data = await ctx.runQuery(
+      api.businessImpactIntel.getLatestBusinessImpactBySlug,
+      { tenantSlug, repositoryFullName },
+    )
+
+    return new Response(JSON.stringify({ businessImpact: data ?? null }, null, 2), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+    })
+  }),
+})
+
+// ---------------------------------------------------------------------------
+// GET /api/repository/supply-chain-attestation-drift?tenantSlug=&repositoryFullName=
+//
+// Returns the latest Supply Chain Build Integrity & Attestation Drift scan for
+// a repository. Spec WS-109. API-key-guarded.
+// ---------------------------------------------------------------------------
+
+http.route({
+  path: '/api/repository/supply-chain-attestation-drift',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const authError = requireApiKey(request)
+    if (authError) return authError
+
+    const { searchParams } = new URL(request.url)
+    const tenantSlug         = searchParams.get('tenantSlug') ?? ''
+    const repositoryFullName = searchParams.get('repositoryFullName') ?? ''
+
+    if (!tenantSlug || !repositoryFullName) {
+      return new Response(
+        JSON.stringify({ error: 'tenantSlug and repositoryFullName are required' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } },
+      )
+    }
+
+    const data = await ctx.runQuery(
+      api.supplyChainAttestationDriftIntel.getLatestSupplyChainAttestationDriftBySlug,
+      { tenantSlug, repositoryFullName },
+    )
+
+    return new Response(JSON.stringify({ supplyChainAttestationDrift: data ?? null }, null, 2), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+    })
+  }),
+})
+
+// ---------------------------------------------------------------------------
+// GET /api/repository/k8s-admission-drift?tenantSlug=&repositoryFullName=
+//
+// Returns the latest Kubernetes Admission Controller & Policy Engine Drift scan
+// for a repository. Spec WS-107. API-key-guarded.
+// ---------------------------------------------------------------------------
+
+http.route({
+  path: '/api/repository/k8s-admission-drift',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const authError = requireApiKey(request)
+    if (authError) return authError
+
+    const { searchParams } = new URL(request.url)
+    const tenantSlug         = searchParams.get('tenantSlug') ?? ''
+    const repositoryFullName = searchParams.get('repositoryFullName') ?? ''
+
+    if (!tenantSlug || !repositoryFullName) {
+      return new Response(
+        JSON.stringify({ error: 'tenantSlug and repositoryFullName are required' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } },
+      )
+    }
+
+    const data = await ctx.runQuery(
+      api.k8sAdmissionDriftIntel.getLatestK8sAdmissionDriftBySlug,
+      { tenantSlug, repositoryFullName },
+    )
+
+    return new Response(JSON.stringify({ k8sAdmissionDrift: data ?? null }, null, 2), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+    })
+  }),
+})
+
+// ---------------------------------------------------------------------------
+// GET /api/repository/secret-mgmt-drift?tenantSlug=&repositoryFullName=
+//
+// Returns the latest Secret Management Configuration Drift scan for a
+// repository. Spec WS-105. API-key-guarded.
+// ---------------------------------------------------------------------------
+
+http.route({
+  path: '/api/repository/secret-mgmt-drift',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const authError = requireApiKey(request)
+    if (authError) return authError
+
+    const { searchParams } = new URL(request.url)
+    const tenantSlug         = searchParams.get('tenantSlug') ?? ''
+    const repositoryFullName = searchParams.get('repositoryFullName') ?? ''
+
+    if (!tenantSlug || !repositoryFullName) {
+      return new Response(
+        JSON.stringify({ error: 'tenantSlug and repositoryFullName are required' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } },
+      )
+    }
+
+    const data = await ctx.runQuery(
+      api.secretMgmtDriftIntel.getLatestSecretMgmtDriftBySlug,
+      { tenantSlug, repositoryFullName },
+    )
+
+    return new Response(JSON.stringify({ secretMgmtDrift: data ?? null }, null, 2), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+    })
+  }),
+})
+
+// ---------------------------------------------------------------------------
+// GET /api/repository/dep-mgr-security-drift?tenantSlug=&repositoryFullName=
+//
+// Returns the latest Dependency Manager Security Configuration Drift scan for
+// a repository. Spec WS-103. API-key-guarded.
+// ---------------------------------------------------------------------------
+
+http.route({
+  path: '/api/repository/dep-mgr-security-drift',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const authError = requireApiKey(request)
+    if (authError) return authError
+
+    const { searchParams } = new URL(request.url)
+    const tenantSlug         = searchParams.get('tenantSlug') ?? ''
+    const repositoryFullName = searchParams.get('repositoryFullName') ?? ''
+
+    if (!tenantSlug || !repositoryFullName) {
+      return new Response(
+        JSON.stringify({ error: 'tenantSlug and repositoryFullName are required' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } },
+      )
+    }
+
+    const data = await ctx.runQuery(
+      api.depMgrSecurityDriftIntel.getLatestDepMgrSecurityDriftBySlug,
+      { tenantSlug, repositoryFullName },
+    )
+
+    return new Response(JSON.stringify({ depMgrSecurityDrift: data ?? null }, null, 2), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+    })
+  }),
+})
+
+// ---------------------------------------------------------------------------
+// GET /api/repository/ai-ml-security-drift?tenantSlug=&repositoryFullName=
+//
+// Returns the latest AI/ML Dependency Security Drift scan for a repository.
+// Spec WS-101 (§3.11.2 Layer 6). API-key-guarded.
+// ---------------------------------------------------------------------------
+
+http.route({
+  path: '/api/repository/ai-ml-security-drift',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const authError = requireApiKey(request)
+    if (authError) return authError
+
+    const { searchParams } = new URL(request.url)
+    const tenantSlug         = searchParams.get('tenantSlug') ?? ''
+    const repositoryFullName = searchParams.get('repositoryFullName') ?? ''
+
+    if (!tenantSlug || !repositoryFullName) {
+      return new Response(
+        JSON.stringify({ error: 'tenantSlug and repositoryFullName are required' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } },
+      )
+    }
+
+    const data = await ctx.runQuery(
+      api.aiMlSecurityDriftIntel.getLatestAiMlSecurityDriftBySlug,
+      { tenantSlug, repositoryFullName },
+    )
+
+    return new Response(JSON.stringify({ aiMlSecurityDrift: data ?? null }, null, 2), {
       status: 200,
       headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
     })

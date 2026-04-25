@@ -1,5 +1,5 @@
 /// <reference types="vite/client" />
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   ALL_WEBHOOK_EVENT_TYPES,
   buildSignedPayload,
@@ -168,72 +168,64 @@ describe('validateSubscribedEvents', () => {
 
 describe('postWebhookPayload', () => {
   const signed = { body: '{"test":1}', signature: 'sha256=abc123' }
+  let originalFetch: typeof globalThis.fetch
+
+  beforeEach(() => {
+    originalFetch = globalThis.fetch
+  })
+  afterEach(() => {
+    globalThis.fetch = originalFetch
+  })
 
   it('returns success=true for 200 response', async () => {
-    const mockFetch = vi.fn().mockResolvedValue({ status: 200 })
-    vi.stubGlobal('fetch', mockFetch)
+    globalThis.fetch = vi.fn().mockResolvedValue({ status: 200 }) as typeof fetch
 
     const result = await postWebhookPayload('ep-1', 'https://example.com/hook', signed, 'del-1')
     expect(result.success).toBe(true)
     expect(result.statusCode).toBe(200)
     expect(result.endpointId).toBe('ep-1')
     expect(result.errorMessage).toBeNull()
-
-    vi.unstubAllGlobals()
   })
 
   it('returns success=true for 201 response', async () => {
-    const mockFetch = vi.fn().mockResolvedValue({ status: 201 })
-    vi.stubGlobal('fetch', mockFetch)
+    globalThis.fetch = vi.fn().mockResolvedValue({ status: 201 }) as typeof fetch
 
     const result = await postWebhookPayload('ep-2', 'https://example.com/hook', signed, 'del-2')
     expect(result.success).toBe(true)
     expect(result.statusCode).toBe(201)
-
-    vi.unstubAllGlobals()
   })
 
   it('returns success=false for 400 response', async () => {
-    const mockFetch = vi.fn().mockResolvedValue({ status: 400 })
-    vi.stubGlobal('fetch', mockFetch)
+    globalThis.fetch = vi.fn().mockResolvedValue({ status: 400 }) as typeof fetch
 
     const result = await postWebhookPayload('ep-3', 'https://example.com/hook', signed, 'del-3')
     expect(result.success).toBe(false)
     expect(result.statusCode).toBe(400)
-
-    vi.unstubAllGlobals()
   })
 
   it('returns success=false for 500 response', async () => {
-    const mockFetch = vi.fn().mockResolvedValue({ status: 500 })
-    vi.stubGlobal('fetch', mockFetch)
+    globalThis.fetch = vi.fn().mockResolvedValue({ status: 500 }) as typeof fetch
 
     const result = await postWebhookPayload('ep-4', 'https://example.com/hook', signed, 'del-4')
     expect(result.success).toBe(false)
     expect(result.statusCode).toBe(500)
-
-    vi.unstubAllGlobals()
   })
 
   it('handles network error gracefully', async () => {
-    const mockFetch = vi.fn().mockRejectedValue(new Error('ECONNREFUSED'))
-    vi.stubGlobal('fetch', mockFetch)
+    globalThis.fetch = vi.fn().mockRejectedValue(new Error('ECONNREFUSED')) as typeof fetch
 
     const result = await postWebhookPayload('ep-5', 'https://example.com/hook', signed, 'del-5')
     expect(result.success).toBe(false)
     expect(result.statusCode).toBeNull()
     expect(result.errorMessage).toContain('ECONNREFUSED')
-
-    vi.unstubAllGlobals()
   })
 
   it('sends correct headers', async () => {
     let capturedInit: RequestInit | undefined
-    const mockFetch = vi.fn().mockImplementation((_url: string, init: RequestInit) => {
+    globalThis.fetch = vi.fn().mockImplementation((_url: string, init: RequestInit) => {
       capturedInit = init
       return Promise.resolve({ status: 200 })
-    })
-    vi.stubGlobal('fetch', mockFetch)
+    }) as typeof fetch
 
     await postWebhookPayload('ep-6', 'https://example.com/hook', signed, 'del-6')
 
@@ -241,33 +233,25 @@ describe('postWebhookPayload', () => {
     expect(headers['X-Sentinel-Signature-256']).toBe('sha256=abc123')
     expect(headers['X-Sentinel-Delivery']).toBe('del-6')
     expect(headers['Content-Type']).toBe('application/json')
-
-    vi.unstubAllGlobals()
   })
 
   it('sends the signed body as request body', async () => {
     let capturedBody: string | undefined
-    const mockFetch = vi.fn().mockImplementation((_url: string, init: RequestInit) => {
+    globalThis.fetch = vi.fn().mockImplementation((_url: string, init: RequestInit) => {
       capturedBody = init.body as string
       return Promise.resolve({ status: 200 })
-    })
-    vi.stubGlobal('fetch', mockFetch)
+    }) as typeof fetch
 
     await postWebhookPayload('ep-7', 'https://example.com/hook', signed, 'del-7')
     expect(capturedBody).toBe('{"test":1}')
-
-    vi.unstubAllGlobals()
   })
 
   it('includes durationMs in result', async () => {
-    const mockFetch = vi.fn().mockResolvedValue({ status: 200 })
-    vi.stubGlobal('fetch', mockFetch)
+    globalThis.fetch = vi.fn().mockResolvedValue({ status: 200 }) as typeof fetch
 
     const result = await postWebhookPayload('ep-8', 'https://example.com/hook', signed, 'del-8')
     expect(typeof result.durationMs).toBe('number')
     expect(result.durationMs).toBeGreaterThanOrEqual(0)
-
-    vi.unstubAllGlobals()
   })
 })
 

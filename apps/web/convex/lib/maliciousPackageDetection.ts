@@ -3,17 +3,32 @@
 // Detects typosquatting and other malicious package indicators via purely
 // static heuristics — no network calls required.
 //
-// Detection signals (three independent layers):
-//   1. known_malicious        — package is in our curated confirmed-malicious DB;
-//                               entries sourced from npm security advisories, Sonatype OSS
-//                               Index, Snyk vuln DB, and public post-mortem write-ups.
-//   2. typosquat_near_popular — standard Levenshtein distance ≤ 1 from a top-100 npm
-//                               package (length-guarded; unscoped npm packages only).
-//   3. suspicious_name_pattern — "beyond edit distance" heuristics that catch attacks
-//                               edit distance alone misses:
-//                               • Homoglyph substitutions: l↔1, o↔0 (visual deception)
-//                               • Numeric-suffix variants: lodash2, axios1 (fake update)
-//                               • Scope squatting: @npm/lodash, @node/express (impersonation)
+// Detection signals (six independent layers):
+//   1. known_malicious              — package is in our curated confirmed-malicious DB;
+//                                     entries sourced from npm security advisories, Sonatype OSS
+//                                     Index, Snyk vuln DB, and public post-mortem write-ups.
+//   2. typosquat_near_popular       — standard Levenshtein distance ≤ 1 from a top-100 npm
+//                                     package (length-guarded; unscoped npm packages only).
+//   3. suspicious_name_pattern      — "beyond edit distance" heuristics that catch attacks
+//                                     edit distance alone misses:
+//                                     • Homoglyph substitutions: l↔1, o↔0 (visual deception)
+//                                     • Numeric-suffix variants: lodash2, axios1 (fake update)
+//                                     • Scope squatting: @npm/lodash, @node/express (impersonation)
+//   4. install_script_network_call  — outbound network call (curl/wget/fetch/http.request/…)
+//                                     in the package's install or postinstall lifecycle hook;
+//                                     the primary exfiltration vector in confirmed supply-chain
+//                                     attacks (event-stream, crossenv, babelcli, etc.).
+//   5. suspicious_author_email      — author/maintainer email belongs to a disposable or
+//                                     temporary address service (mailinator, guerrillamail, etc.);
+//                                     associated with throwaway accounts used in malicious campaigns.
+//   6. recent_ownership_transfer    — npm package ownership changed within the past 90 days;
+//                                     elevated risk following the event-stream (2018) pattern.
+//
+// Signals 1–3 cascade (at most one fires, in priority order).
+// Signals 4–6 require optional enrichment metadata passed to checkMaliciousPackage().
+// Signals 4–6 fire independently of signals 1–3 and of each other; absence of the
+// relevant metadata field means the signal is simply not evaluated.
+// The overall risk level is the maximum across all fired signals.
 //
 // Zero network calls. Zero Convex imports. Safe to use in tests without mocking.
 
@@ -149,14 +164,55 @@ export const SQUATTING_SCOPES = new Set<string>([
  */
 export const TYPOSQUAT_EDIT_DISTANCE = 1
 
+/**
+ * Regex patterns that identify outbound network calls in npm lifecycle scripts
+ * (install, preinstall, postinstall, etc.). Any match is a red flag for
+ * data exfiltration or payload download during package installation.
+ */
+export const NETWORK_CALL_PATTERNS: RegExp[] = [
+  /\bcurl\b/,
+  /\bwget\b/,
+  /\bfetch\s*\(/,
+  /https?\.(?:request|get|post)\s*\(/,
+  /require\s*\(\s*['"]https?['"]\s*\)/,
+  /\bfrom\s+['"]https?['"]/,
+  /\bdns\.lookup\s*\(/,
+  /\bnet\.connect\s*\(/,
+  /new\s+XMLHttpRequest\s*\(/,
+  /new\s+WebSocket\s*\(/,
+]
+
+/**
+ * Domains operated as disposable / temporary email services.
+ * Authorship via these domains is a signal associated with throwaway accounts
+ * used in malicious package publishing campaigns.
+ */
+export const DISPOSABLE_EMAIL_DOMAINS = new Set<string>([
+  'mailinator.com', 'guerrillamail.com', 'tempmail.com', '10minutemail.com',
+  'yopmail.com', 'throwam.com', 'dispostable.com', 'maildrop.cc',
+  'trashmail.com', 'sharklasers.com', 'spam4.me', 'trashmail.at',
+  'trashmail.io', 'trashmail.me', 'getairmail.com', 'fakeinbox.com',
+  'tempr.email', 'discard.email', 'spamgourmet.com', 'guerrillamail.info',
+  'guerrillamail.biz', 'guerrillamail.de', 'guerrillamail.net', 'grr.la',
+])
+
+/**
+ * Package ownership transfers within this many days are flagged as elevated
+ * supply-chain risk (mirrors the event-stream attack timeline, 2018).
+ */
+export const OWNERSHIP_TRANSFER_THRESHOLD_DAYS = 90
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
 export type MaliciousSignal =
-  | 'known_malicious'         // in our curated confirmed-malicious database
-  | 'typosquat_near_popular'  // Levenshtein ≤ 1 from a popular package (npm, unscoped)
-  | 'suspicious_name_pattern' // homoglyphs, numeric suffix, or scope squatting
+  | 'known_malicious'              // in our curated confirmed-malicious database
+  | 'typosquat_near_popular'       // Levenshtein ≤ 1 from a popular package (npm, unscoped)
+  | 'suspicious_name_pattern'      // homoglyphs, numeric suffix, or scope squatting
+  | 'install_script_network_call'  // outbound network call in install/postinstall lifecycle
+  | 'suspicious_author_email'      // disposable/temporary author email domain
+  | 'recent_ownership_transfer'    // npm ownership changed within OWNERSHIP_TRANSFER_THRESHOLD_DAYS
 
 export type MaliciousRiskLevel = 'critical' | 'high' | 'medium' | 'low'
 
@@ -287,26 +343,89 @@ export function isScopeSquat(name: string): boolean {
   return POPULAR_NPM_PACKAGES.has(bare)
 }
 
+/**
+ * Return true when the given script string contains an outbound network call
+ * that could be used for data exfiltration or payload download during install.
+ * Matches curl/wget/fetch/http.request/require('http')/dns.lookup and similar.
+ */
+export function containsNetworkCall(script: string): boolean {
+  return NETWORK_CALL_PATTERNS.some((pattern) => pattern.test(script))
+}
+
+/**
+ * Return true when the author email belongs to a known disposable or temporary
+ * email domain — a common indicator of throwaway accounts used in malicious
+ * package campaigns.
+ * Uses the rightmost `@` so that display names with embedded addresses still work.
+ */
+export function isSuspiciousAuthorEmail(email: string): boolean {
+  const atIdx = email.lastIndexOf('@')
+  if (atIdx < 0) return false
+  // Strip trailing angle bracket to handle "Display Name <user@domain>" format
+  let domain = email.slice(atIdx + 1).toLowerCase()
+  const gtIdx = domain.indexOf('>')
+  if (gtIdx >= 0) domain = domain.slice(0, gtIdx)
+  return DISPOSABLE_EMAIL_DOMAINS.has(domain.trim())
+}
+
+/**
+ * Return true when the ISO 8601 ownership-transfer date falls within the
+ * OWNERSHIP_TRANSFER_THRESHOLD_DAYS window relative to `nowMs` (default: Date.now()).
+ * An invalid or unparseable date, or a future date, returns false.
+ *
+ * Accepts `nowMs` for deterministic testing.
+ */
+export function isRecentOwnershipTransfer(isoDate: string, nowMs = Date.now()): boolean {
+  const ts = Date.parse(isoDate)
+  if (isNaN(ts)) return false
+  const elapsedMs = nowMs - ts
+  if (elapsedMs < 0) return false // future date
+  return elapsedMs <= OWNERSHIP_TRANSFER_THRESHOLD_DAYS * 24 * 60 * 60 * 1000
+}
+
 // ---------------------------------------------------------------------------
 // Core detector
 // ---------------------------------------------------------------------------
+
+/** Per-signal risk levels used for the max-risk computation. */
+const SIGNAL_RISK_MAP: Record<Exclude<MaliciousSignal, 'known_malicious'>, MaliciousRiskLevel> = {
+  typosquat_near_popular: 'high',
+  suspicious_name_pattern: 'medium',
+  install_script_network_call: 'high',
+  suspicious_author_email: 'low',
+  recent_ownership_transfer: 'medium',
+}
+
+const RISK_RANK: Record<MaliciousRiskLevel, number> = { critical: 0, high: 1, medium: 2, low: 3 }
 
 /**
  * Examine a single SBOM component for malicious package indicators.
  * Returns a `MaliciousFinding` when one or more signals fire, null otherwise.
  *
- * Signal priority (only the highest-priority unfired signal is set for signals
- * 1 → 2 → 3 in sequence; Signal 3 is independent of Signal 1 but skipped when
- * Signal 2 fires to avoid signal redundancy on the same package):
+ * Phase A — name-based signals (cascade; at most one fires):
+ *   Signal 1 (known_malicious)         → critical/high as per DB entry
+ *   Signal 2 (typosquat_near_popular)  → high (npm, unscoped only; skipped if 1 fired)
+ *   Signal 3 (suspicious_name_pattern) → medium (all ecosystems; skipped if 1 or 2 fired)
  *
- *   Signal 1 (known_malicious)      → critical/high as per DB entry
- *   Signal 2 (typosquat_near_popular) → high (npm, unscoped only)
- *   Signal 3 (suspicious_name_pattern) → medium (all ecosystems)
+ * Phase B — behavioral signals (independent; any number can fire alongside Phase A):
+ *   Signal 4 (install_script_network_call) → high
+ *   Signal 5 (suspicious_author_email)     → low
+ *   Signal 6 (recent_ownership_transfer)   → medium
+ *
+ * Overall risk = maximum risk level across all fired signals.
  */
 export function checkMaliciousPackage(component: {
   name: string
   version: string
   ecosystem: string
+  /** Content of the package's "install" lifecycle script, if available. */
+  installScript?: string
+  /** Content of the package's "postinstall" lifecycle script, if available. */
+  postinstallScript?: string
+  /** Email address of the package author/maintainer, if available. */
+  authorEmail?: string
+  /** ISO 8601 date of the most recent npm ownership transfer, if available. */
+  lastOwnershipTransferredAt?: string
 }): MaliciousFinding | null {
   const { name, version, ecosystem } = component
   const bareName = name.includes('/') ? name.slice(name.indexOf('/') + 1) : name
@@ -316,7 +435,9 @@ export function checkMaliciousPackage(component: {
   let similarTo: string | null = null
   let knownEntry: KnownMaliciousEntry | null = null
 
-  // ── Signal 1: known malicious database (npm only) ────────────────────────
+  // ── Phase A: name-based signals (cascade) ────────────────────────────────
+
+  // Signal 1: known malicious database (npm only)
   if (ecosystem === 'npm') {
     const entry = KNOWN_MALICIOUS_NPM_PACKAGES.get(lowerBareName)
     if (entry) {
@@ -326,9 +447,8 @@ export function checkMaliciousPackage(component: {
     }
   }
 
-  // ── Signal 2: Levenshtein ≤ 1 from popular package (npm, unscoped) ───────
-  // Skip if Signal 1 already fired (definitive) or if this is a scoped package
-  // (scoped packages have a different risk profile — see Signal 3 scope squatting).
+  // Signal 2: Levenshtein ≤ 1 from popular package (npm, unscoped only)
+  // Skip if Signal 1 already fired (definitive) or if this is a scoped package.
   if (ecosystem === 'npm' && !name.startsWith('@') && signals.length === 0) {
     const closest = findClosestPopularPackage(lowerBareName)
     if (closest) {
@@ -337,9 +457,8 @@ export function checkMaliciousPackage(component: {
     }
   }
 
-  // ── Signal 3: suspicious name patterns (all ecosystems) ──────────────────
-  // Fires independently of Signals 1 and 2, but only when no higher-priority
-  // signal has already captured this package (avoids redundant findings).
+  // Signal 3: suspicious name patterns (all ecosystems)
+  // Fires only when no higher-priority signal has already captured this package.
   if (signals.length === 0) {
     const hasPattern =
       containsHomoglyphSubstitution(lowerBareName) ||
@@ -348,11 +467,9 @@ export function checkMaliciousPackage(component: {
 
     if (hasPattern) {
       signals.push('suspicious_name_pattern')
-      // Try to surface which popular package is being impersonated
       if (similarTo === null) {
         const stripped = lowerBareName.replace(/\d+$/, '')
         if (POPULAR_NPM_PACKAGES.has(stripped)) similarTo = stripped
-        // Scope squat: bare name IS the popular package
         if (similarTo === null && POPULAR_NPM_PACKAGES.has(lowerBareName)) {
           similarTo = lowerBareName
         }
@@ -360,17 +477,53 @@ export function checkMaliciousPackage(component: {
     }
   }
 
+  // ── Phase B: behavioral signals (independent) ────────────────────────────
+
+  // Signal 4: network call in install/postinstall lifecycle script
+  const { installScript, postinstallScript, authorEmail, lastOwnershipTransferredAt } = component
+  if (
+    (installScript !== undefined && containsNetworkCall(installScript)) ||
+    (postinstallScript !== undefined && containsNetworkCall(postinstallScript))
+  ) {
+    signals.push('install_script_network_call')
+  }
+
+  // Signal 5: disposable/temporary author email domain
+  if (authorEmail !== undefined && isSuspiciousAuthorEmail(authorEmail)) {
+    signals.push('suspicious_author_email')
+  }
+
+  // Signal 6: recent npm ownership transfer
+  if (lastOwnershipTransferredAt !== undefined && isRecentOwnershipTransfer(lastOwnershipTransferredAt)) {
+    signals.push('recent_ownership_transfer')
+  }
+
   if (signals.length === 0) return null
 
-  // ── Classify risk level ───────────────────────────────────────────────────
-  let riskLevel: MaliciousRiskLevel
+  // ── Classify risk level (maximum across all signals) ──────────────────────
+  let riskLevel: MaliciousRiskLevel = 'low'
+  for (const signal of signals) {
+    const r: MaliciousRiskLevel =
+      signal === 'known_malicious'
+        ? (knownEntry?.riskLevel ?? 'critical')
+        : SIGNAL_RISK_MAP[signal]
+    if (RISK_RANK[r] < RISK_RANK[riskLevel]) riskLevel = r
+  }
 
-  if (signals.includes('known_malicious')) {
-    riskLevel = knownEntry?.riskLevel ?? 'critical'
-  } else if (signals.includes('typosquat_near_popular')) {
-    riskLevel = 'high'
-  } else {
-    riskLevel = 'medium'
+  // ── Build evidence string ─────────────────────────────────────────────────
+  const evidenceParts = [
+    `package=${name}`,
+    `version=${version}`,
+    `ecosystem=${ecosystem}`,
+    `signals=[${signals.join(',')}]`,
+  ]
+  if (similarTo) evidenceParts.push(`similarTo=${similarTo}`)
+  if (signals.includes('install_script_network_call')) evidenceParts.push('installScriptNetworkCall=true')
+  if (authorEmail !== undefined && signals.includes('suspicious_author_email')) {
+    evidenceParts.push(`authorEmail=${authorEmail}`)
+  }
+  if (lastOwnershipTransferredAt !== undefined && signals.includes('recent_ownership_transfer')) {
+    evidenceParts.push(`ownershipTransferredAt=${lastOwnershipTransferredAt}`)
   }
 
   return {
@@ -381,8 +534,10 @@ export function checkMaliciousPackage(component: {
     riskLevel,
     similarTo,
     title: buildTitle(signals, knownEntry),
-    description: buildDescription(name, signals, similarTo, ecosystem, knownEntry, lowerBareName),
-    evidence: `package=${name} version=${version} ecosystem=${ecosystem} signals=[${signals.join(',')}]${similarTo ? ` similarTo=${similarTo}` : ''}`,
+    description: buildDescription(name, signals, similarTo, ecosystem, knownEntry, lowerBareName, {
+      authorEmail,
+    }),
+    evidence: evidenceParts.join(' '),
   }
 }
 
@@ -396,9 +551,17 @@ export function checkMaliciousPackage(component: {
  * Findings are sorted critical-first.
  */
 export function computeMaliciousReport(
-  components: Array<{ name: string; version: string; ecosystem: string }>,
+  components: Array<{
+    name: string
+    version: string
+    ecosystem: string
+    installScript?: string
+    postinstallScript?: string
+    authorEmail?: string
+    lastOwnershipTransferredAt?: string
+  }>,
 ): MaliciousReport {
-  // Deduplicate
+  // Deduplicate on name/version/ecosystem (metadata fields don't affect dedup key)
   const seen = new Set<string>()
   const unique: typeof components = []
   for (const c of components) {
@@ -416,8 +579,7 @@ export function computeMaliciousReport(
   }
 
   // Sort: critical → high → medium → low
-  const RANK: Record<MaliciousRiskLevel, number> = { critical: 0, high: 1, medium: 2, low: 3 }
-  findings.sort((a, b) => RANK[a.riskLevel] - RANK[b.riskLevel])
+  findings.sort((a, b) => RISK_RANK[a.riskLevel] - RISK_RANK[b.riskLevel])
 
   const criticalCount = findings.filter((f) => f.riskLevel === 'critical').length
   const highCount = findings.filter((f) => f.riskLevel === 'high').length
@@ -454,7 +616,16 @@ function buildTitle(signals: MaliciousSignal[], _entry: KnownMaliciousEntry | nu
   if (signals.includes('typosquat_near_popular')) {
     return 'Possible typosquat — name is one edit away from a popular package'
   }
-  return 'Suspicious package name — homoglyph, numeric-suffix, or scope-squatting pattern'
+  if (signals.includes('install_script_network_call')) {
+    return 'Suspicious install script — network call detected in lifecycle hook'
+  }
+  if (signals.includes('recent_ownership_transfer')) {
+    return 'Package ownership recently transferred — elevated supply chain risk'
+  }
+  if (signals.includes('suspicious_name_pattern')) {
+    return 'Suspicious package name — homoglyph, numeric-suffix, or scope-squatting pattern'
+  }
+  return 'Suspicious author email — disposable or temporary email domain'
 }
 
 function buildDescription(
@@ -464,6 +635,7 @@ function buildDescription(
   ecosystem: string,
   entry: KnownMaliciousEntry | null,
   lowerBareName: string,
+  metadata: { authorEmail?: string } = {},
 ): string {
   if (signals.includes('known_malicious') && entry) {
     return `"${name}" is a confirmed malicious package targeting "${entry.targetsPackage}". ${entry.reason}.`
@@ -471,18 +643,29 @@ function buildDescription(
   if (signals.includes('typosquat_near_popular') && similarTo) {
     return `"${name}" is one character edit away from the popular ${ecosystem} package "${similarTo}", a classic typosquatting pattern used to intercept installs from developers who make a single keystroke error.`
   }
-  const patterns: string[] = []
-  if (containsHomoglyphSubstitution(lowerBareName)) {
-    patterns.push('visually deceptive character substitution (l/1 or o/0)')
+  if (signals.includes('install_script_network_call')) {
+    return `"${name}" contains a network call in its lifecycle script (install or postinstall). This is a common supply chain attack vector used to exfiltrate environment variables or download malware during package installation.`
   }
-  if (isNumericSuffixVariant(name)) {
-    const stripped = lowerBareName.replace(/\d+$/, '')
-    patterns.push(`numeric suffix on popular package "${stripped}" (fake-update pattern)`)
+  if (signals.includes('recent_ownership_transfer')) {
+    return `"${name}" had its npm ownership recently transferred. Packages that change hands within ${OWNERSHIP_TRANSFER_THRESHOLD_DAYS} days carry elevated supply chain risk — see the npm event-stream incident (2018).`
   }
-  if (isScopeSquat(name)) {
-    patterns.push(`suspicious scope squatting a well-known unscoped package`)
+  if (signals.includes('suspicious_name_pattern')) {
+    const patterns: string[] = []
+    if (containsHomoglyphSubstitution(lowerBareName)) {
+      patterns.push('visually deceptive character substitution (l/1 or o/0)')
+    }
+    if (isNumericSuffixVariant(name)) {
+      const stripped = lowerBareName.replace(/\d+$/, '')
+      patterns.push(`numeric suffix on popular package "${stripped}" (fake-update pattern)`)
+    }
+    if (isScopeSquat(name)) {
+      patterns.push(`suspicious scope squatting a well-known unscoped package`)
+    }
+    return `"${name}" exhibits suspicious naming patterns: ${patterns.join('; ')}. This may indicate an attempt to impersonate a legitimate package.`
   }
-  return `"${name}" exhibits suspicious naming patterns: ${patterns.join('; ')}. This may indicate an attempt to impersonate a legitimate package.`
+  // suspicious_author_email
+  const emailNote = metadata.authorEmail ? ` (${metadata.authorEmail})` : ''
+  return `"${name}" is published by an author using a disposable or temporary email address${emailNote}. This is associated with throwaway accounts used in malicious package campaigns.`
 }
 
 function buildReportSummary(

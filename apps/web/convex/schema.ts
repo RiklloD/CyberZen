@@ -2845,6 +2845,210 @@ export default defineSchema({
     .index('by_repository_and_scanned_at', ['repositoryId', 'scannedAt'])
     .index('by_tenant_and_scanned_at', ['tenantId', 'scannedAt']),
 
+  // WS-60 — Application Security Configuration Drift Detector
+  securityConfigDriftResults: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    /** Git commit SHA that triggered this scan. */
+    commitSha: v.string(),
+    /** Branch where the push occurred. */
+    branch: v.string(),
+    /** 0–100 composite risk score (0=clean, 100=critical). */
+    riskScore: v.number(),
+    riskLevel: v.union(
+      v.literal('critical'),
+      v.literal('high'),
+      v.literal('medium'),
+      v.literal('low'),
+      v.literal('none'),
+    ),
+    totalFindings: v.number(),
+    criticalCount: v.number(),
+    highCount: v.number(),
+    mediumCount: v.number(),
+    lowCount: v.number(),
+    /** One finding per triggered rule. */
+    findings: v.array(
+      v.object({
+        ruleId: v.string(),
+        severity: v.union(
+          v.literal('critical'),
+          v.literal('high'),
+          v.literal('medium'),
+          v.literal('low'),
+        ),
+        /** First file path that triggered this rule. */
+        matchedPath: v.string(),
+        /** Total changed files that triggered this rule. */
+        matchCount: v.number(),
+        description: v.string(),
+        recommendation: v.string(),
+      }),
+    ),
+    summary: v.string(),
+    scannedAt: v.number(),
+  })
+    .index('by_repository_and_scanned_at', ['repositoryId', 'scannedAt'])
+    .index('by_tenant_and_scanned_at', ['tenantId', 'scannedAt']),
+
+  // WS-61 — Test Coverage Gap Detector for Security-Critical Code
+  testCoverageGapResults: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    /** Git commit SHA that triggered this scan. */
+    commitSha: v.string(),
+    /** Branch where the push occurred. */
+    branch: v.string(),
+    /** 0–100 composite risk score (0=clean, 100=maximally risky). */
+    riskScore: v.number(),
+    riskLevel: v.union(
+      v.literal('high'),
+      v.literal('medium'),
+      v.literal('low'),
+      v.literal('none'),
+    ),
+    totalFindings: v.number(),
+    highCount: v.number(),
+    mediumCount: v.number(),
+    /** One finding per triggered domain rule (deduped). */
+    findings: v.array(
+      v.object({
+        ruleId: v.string(),
+        severity: v.union(v.literal('high'), v.literal('medium')),
+        /** First untested security source file in this domain. */
+        matchedPath: v.string(),
+        /** Total untested security source files in this domain. */
+        matchCount: v.number(),
+        description: v.string(),
+        recommendation: v.string(),
+      }),
+    ),
+    summary: v.string(),
+    scannedAt: v.number(),
+  })
+    .index('by_repository_and_scanned_at', ['repositoryId', 'scannedAt'])
+    .index('by_tenant_and_scanned_at', ['tenantId', 'scannedAt']),
+
+  // WS-64 — Database Security Configuration Drift Detector
+  databaseSecurityDriftResults: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    /** Git commit SHA that triggered this scan. */
+    commitSha: v.string(),
+    /** Branch where the push occurred. */
+    branch: v.string(),
+    /** 0–100 composite risk score (0=clean, 100=maximally risky). */
+    riskScore: v.number(),
+    riskLevel: v.union(
+      v.literal('critical'),
+      v.literal('high'),
+      v.literal('medium'),
+      v.literal('low'),
+      v.literal('none'),
+    ),
+    totalFindings: v.number(),
+    criticalCount: v.number(),
+    highCount: v.number(),
+    mediumCount: v.number(),
+    /** One finding per triggered database security rule (deduped). */
+    findings: v.array(
+      v.object({
+        ruleId: v.string(),
+        severity: v.union(v.literal('critical'), v.literal('high'), v.literal('medium')),
+        /** First file path that triggered this rule. */
+        matchedPath: v.string(),
+        /** Total changed files that triggered this rule. */
+        matchCount: v.number(),
+        description: v.string(),
+        recommendation: v.string(),
+      }),
+    ),
+    summary: v.string(),
+    scannedAt: v.number(),
+  })
+    .index('by_repository_and_scanned_at', ['repositoryId', 'scannedAt'])
+    .index('by_tenant_and_scanned_at', ['tenantId', 'scannedAt']),
+
+  // WS-63 — Kubernetes & Container Security Hardening Drift Detector
+  containerHardeningDriftResults: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    /** Git commit SHA that triggered this scan. */
+    commitSha: v.string(),
+    /** Branch where the push occurred. */
+    branch: v.string(),
+    /** 0–100 composite risk score (0=clean, 100=maximally risky). */
+    riskScore: v.number(),
+    riskLevel: v.union(
+      v.literal('critical'),
+      v.literal('high'),
+      v.literal('medium'),
+      v.literal('low'),
+      v.literal('none'),
+    ),
+    totalFindings: v.number(),
+    criticalCount: v.number(),
+    highCount: v.number(),
+    mediumCount: v.number(),
+    /** One finding per triggered container hardening rule (deduped). */
+    findings: v.array(
+      v.object({
+        ruleId: v.string(),
+        severity: v.union(v.literal('critical'), v.literal('high'), v.literal('medium')),
+        /** First file path that triggered this rule. */
+        matchedPath: v.string(),
+        /** Total changed files that triggered this rule. */
+        matchCount: v.number(),
+        description: v.string(),
+        recommendation: v.string(),
+      }),
+    ),
+    summary: v.string(),
+    scannedAt: v.number(),
+  })
+    .index('by_repository_and_scanned_at', ['repositoryId', 'scannedAt'])
+    .index('by_tenant_and_scanned_at', ['tenantId', 'scannedAt']),
+
+  // WS-62 — Cloud Security Configuration Drift Detector
+  cloudSecurityDriftResults: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    /** Git commit SHA that triggered this scan. */
+    commitSha: v.string(),
+    /** Branch where the push occurred. */
+    branch: v.string(),
+    /** 0–100 composite risk score (0=clean, 100=maximally risky). */
+    riskScore: v.number(),
+    riskLevel: v.union(
+      v.literal('critical'),
+      v.literal('high'),
+      v.literal('medium'),
+      v.literal('low'),
+      v.literal('none'),
+    ),
+    totalFindings: v.number(),
+    criticalCount: v.number(),
+    highCount: v.number(),
+    mediumCount: v.number(),
+    /** One finding per triggered cloud security rule (deduped). */
+    findings: v.array(
+      v.object({
+        ruleId: v.string(),
+        severity: v.union(v.literal('critical'), v.literal('high'), v.literal('medium')),
+        /** First file path that triggered this rule. */
+        matchedPath: v.string(),
+        /** Total changed files that triggered this rule. */
+        matchCount: v.number(),
+        description: v.string(),
+        recommendation: v.string(),
+      }),
+    ),
+    summary: v.string(),
+    scannedAt: v.number(),
+  })
+    .index('by_repository_and_scanned_at', ['repositoryId', 'scannedAt'])
+    .index('by_tenant_and_scanned_at', ['tenantId', 'scannedAt']),
+
   // WS-59 — Build Toolchain Integrity Scanner
   buildConfigScanResults: defineTable({
     tenantId: v.id('tenants'),
@@ -2877,6 +3081,1238 @@ export default defineSchema({
           v.literal('medium'),
           v.literal('low'),
         ),
+        /** First file path that triggered this rule. */
+        matchedPath: v.string(),
+        /** Total changed files that triggered this rule. */
+        matchCount: v.number(),
+        description: v.string(),
+        recommendation: v.string(),
+      }),
+    ),
+    summary: v.string(),
+    scannedAt: v.number(),
+  })
+    .index('by_repository_and_scanned_at', ['repositoryId', 'scannedAt'])
+    .index('by_tenant_and_scanned_at', ['tenantId', 'scannedAt']),
+
+  // WS-95 — Endpoint Security & EDR Configuration Drift Detector
+  endpointSecurityDriftResults: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    /** Git commit SHA that triggered this scan. */
+    commitSha: v.string(),
+    /** Branch where the push occurred. */
+    branch: v.string(),
+    /** 0–100 composite risk score (0=clean, 100=maximally risky). */
+    riskScore: v.number(),
+    riskLevel: v.union(
+      v.literal('critical'),
+      v.literal('high'),
+      v.literal('medium'),
+      v.literal('low'),
+      v.literal('none'),
+    ),
+    totalFindings: v.number(),
+    highCount: v.number(),
+    mediumCount: v.number(),
+    lowCount: v.number(),
+    /** One finding per triggered endpoint security/EDR rule (deduped). */
+    findings: v.array(
+      v.object({
+        ruleId: v.string(),
+        severity: v.union(
+          v.literal('high'),
+          v.literal('medium'),
+          v.literal('low'),
+        ),
+        /** First file path that triggered this rule. */
+        matchedPath: v.string(),
+        /** Total changed files that triggered this rule. */
+        matchCount: v.number(),
+        description: v.string(),
+        recommendation: v.string(),
+      }),
+    ),
+    summary: v.string(),
+    scannedAt: v.number(),
+  })
+    .index('by_repository_and_scanned_at', ['repositoryId', 'scannedAt'])
+    .index('by_tenant_and_scanned_at', ['tenantId', 'scannedAt']),
+
+  // WS-94 — Network Monitoring & SNMP Security Configuration Drift Detector
+  networkMonitoringDriftResults: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    /** Git commit SHA that triggered this scan. */
+    commitSha: v.string(),
+    /** Branch where the push occurred. */
+    branch: v.string(),
+    /** 0–100 composite risk score (0=clean, 100=maximally risky). */
+    riskScore: v.number(),
+    riskLevel: v.union(
+      v.literal('critical'),
+      v.literal('high'),
+      v.literal('medium'),
+      v.literal('low'),
+      v.literal('none'),
+    ),
+    totalFindings: v.number(),
+    highCount: v.number(),
+    mediumCount: v.number(),
+    lowCount: v.number(),
+    /** One finding per triggered network monitoring/SNMP rule (deduped). */
+    findings: v.array(
+      v.object({
+        ruleId: v.string(),
+        severity: v.union(v.literal('high'), v.literal('medium'), v.literal('low')),
+        matchedPath: v.string(),
+        /** Total changed files that triggered this rule. */
+        matchCount: v.number(),
+        description: v.string(),
+        recommendation: v.string(),
+      }),
+    ),
+    summary:   v.string(),
+    scannedAt: v.number(),
+  })
+    .index('by_repository_and_scanned_at', ['repositoryId', 'scannedAt'])
+    .index('by_tenant_and_scanned_at', ['tenantId', 'scannedAt']),
+
+  // WS-93 — VoIP & Unified Communications Security Configuration Drift Detector
+  voipSecurityDriftResults: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    /** Git commit SHA that triggered this scan. */
+    commitSha: v.string(),
+    /** Branch where the push occurred. */
+    branch: v.string(),
+    /** 0–100 composite risk score (0=clean, 100=maximally risky). */
+    riskScore: v.number(),
+    riskLevel: v.union(
+      v.literal('critical'),
+      v.literal('high'),
+      v.literal('medium'),
+      v.literal('low'),
+      v.literal('none'),
+    ),
+    totalFindings: v.number(),
+    highCount: v.number(),
+    mediumCount: v.number(),
+    lowCount: v.number(),
+    /** One finding per triggered VoIP/UC rule (deduped). */
+    findings: v.array(
+      v.object({
+        ruleId: v.string(),
+        severity: v.union(v.literal('high'), v.literal('medium'), v.literal('low')),
+        matchedPath: v.string(),
+        /** Total changed files that triggered this rule. */
+        matchCount: v.number(),
+        description: v.string(),
+        recommendation: v.string(),
+      }),
+    ),
+    summary:   v.string(),
+    scannedAt: v.number(),
+  })
+    .index('by_repository_and_scanned_at', ['repositoryId', 'scannedAt'])
+    .index('by_tenant_and_scanned_at', ['tenantId', 'scannedAt']),
+
+  // WS-92 — Virtualization & Hypervisor Security Configuration Drift Detector
+  virtualizationSecurityDriftResults: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    /** Git commit SHA that triggered this scan. */
+    commitSha: v.string(),
+    /** Branch where the push occurred. */
+    branch: v.string(),
+    /** 0–100 composite risk score (0=clean, 100=maximally risky). */
+    riskScore: v.number(),
+    riskLevel: v.union(
+      v.literal('critical'),
+      v.literal('high'),
+      v.literal('medium'),
+      v.literal('low'),
+      v.literal('none'),
+    ),
+    totalFindings: v.number(),
+    highCount: v.number(),
+    mediumCount: v.number(),
+    lowCount: v.number(),
+    /** One finding per triggered virtualization/hypervisor rule (deduped). */
+    findings: v.array(
+      v.object({
+        ruleId: v.string(),
+        severity: v.union(v.literal('high'), v.literal('medium'), v.literal('low')),
+        matchedPath: v.string(),
+        /** Total changed files that triggered this rule. */
+        matchCount: v.number(),
+        description: v.string(),
+        recommendation: v.string(),
+      }),
+    ),
+    summary:   v.string(),
+    scannedAt: v.number(),
+  })
+    .index('by_repository_and_scanned_at', ['repositoryId', 'scannedAt'])
+    .index('by_tenant_and_scanned_at', ['tenantId', 'scannedAt']),
+
+  // WS-91 — IoT & Embedded Device Security Configuration Drift Detector
+  iotEmbeddedSecurityDriftResults: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    /** Git commit SHA that triggered this scan. */
+    commitSha: v.string(),
+    /** Branch where the push occurred. */
+    branch: v.string(),
+    /** 0–100 composite risk score (0=clean, 100=maximally risky). */
+    riskScore: v.number(),
+    riskLevel: v.union(
+      v.literal('critical'),
+      v.literal('high'),
+      v.literal('medium'),
+      v.literal('low'),
+      v.literal('none'),
+    ),
+    totalFindings: v.number(),
+    highCount: v.number(),
+    mediumCount: v.number(),
+    lowCount: v.number(),
+    /** One finding per triggered IoT/embedded security rule (deduped). */
+    findings: v.array(
+      v.object({
+        ruleId: v.string(),
+        severity: v.union(v.literal('high'), v.literal('medium'), v.literal('low')),
+        matchedPath: v.string(),
+        /** Total changed files that triggered this rule. */
+        matchCount: v.number(),
+        description: v.string(),
+        recommendation: v.string(),
+      }),
+    ),
+    summary:   v.string(),
+    scannedAt: v.number(),
+  })
+    .index('by_repository_and_scanned_at', ['repositoryId', 'scannedAt'])
+    .index('by_tenant_and_scanned_at', ['tenantId', 'scannedAt']),
+
+  // WS-90 — Wireless Network & RADIUS Authentication Security Configuration Drift Detector
+  wirelessRadiusDriftResults: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    /** Git commit SHA that triggered this scan. */
+    commitSha: v.string(),
+    /** Branch where the push occurred. */
+    branch: v.string(),
+    /** 0–100 composite risk score (0=clean, 100=maximally risky). */
+    riskScore: v.number(),
+    riskLevel: v.union(
+      v.literal('critical'),
+      v.literal('high'),
+      v.literal('medium'),
+      v.literal('low'),
+      v.literal('none'),
+    ),
+    totalFindings: v.number(),
+    highCount: v.number(),
+    mediumCount: v.number(),
+    lowCount: v.number(),
+    /** One finding per triggered wireless/RADIUS rule (deduped). */
+    findings: v.array(
+      v.object({
+        ruleId: v.string(),
+        severity: v.union(v.literal('high'), v.literal('medium'), v.literal('low')),
+        matchedPath: v.string(),
+        /** Total changed files that triggered this rule. */
+        matchCount: v.number(),
+        description: v.string(),
+        recommendation: v.string(),
+      }),
+    ),
+    summary:   v.string(),
+    scannedAt: v.number(),
+  })
+    .index('by_repository_and_scanned_at', ['repositoryId', 'scannedAt'])
+    .index('by_tenant_and_scanned_at', ['tenantId', 'scannedAt']),
+
+  // WS-89 — Operating System Security Hardening Configuration Drift Detector
+  osSecurityHardeningDriftResults: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    /** Git commit SHA that triggered this scan. */
+    commitSha: v.string(),
+    /** Branch where the push occurred. */
+    branch: v.string(),
+    /** 0–100 composite risk score (0=clean, 100=maximally risky). */
+    riskScore: v.number(),
+    riskLevel: v.union(
+      v.literal('critical'),
+      v.literal('high'),
+      v.literal('medium'),
+      v.literal('low'),
+      v.literal('none'),
+    ),
+    totalFindings: v.number(),
+    highCount: v.number(),
+    mediumCount: v.number(),
+    lowCount: v.number(),
+    /** One finding per triggered OS hardening rule (deduped). */
+    findings: v.array(
+      v.object({
+        ruleId: v.string(),
+        severity: v.union(v.literal('high'), v.literal('medium'), v.literal('low')),
+        matchedPath: v.string(),
+        /** Total changed files that triggered this rule. */
+        matchCount: v.number(),
+        description: v.string(),
+        recommendation: v.string(),
+      }),
+    ),
+    summary:   v.string(),
+    scannedAt: v.number(),
+  })
+    .index('by_repository_and_scanned_at', ['repositoryId', 'scannedAt'])
+    .index('by_tenant_and_scanned_at', ['tenantId', 'scannedAt']),
+
+  // WS-88 — DNS Security Configuration Drift Detector
+  dnsSecurityDriftResults: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    /** Git commit SHA that triggered this scan. */
+    commitSha: v.string(),
+    /** Branch where the push occurred. */
+    branch: v.string(),
+    /** 0–100 composite risk score (0=clean, 100=maximally risky). */
+    riskScore: v.number(),
+    riskLevel: v.union(
+      v.literal('critical'),
+      v.literal('high'),
+      v.literal('medium'),
+      v.literal('low'),
+      v.literal('none'),
+    ),
+    totalFindings: v.number(),
+    highCount: v.number(),
+    mediumCount: v.number(),
+    lowCount: v.number(),
+    /** One finding per triggered DNS security rule (deduped). */
+    findings: v.array(
+      v.object({
+        ruleId: v.string(),
+        severity: v.union(v.literal('high'), v.literal('medium'), v.literal('low')),
+        matchedPath: v.string(),
+        /** Total changed files that triggered this rule. */
+        matchCount: v.number(),
+        description: v.string(),
+        recommendation: v.string(),
+      }),
+    ),
+    summary:   v.string(),
+    scannedAt: v.number(),
+  })
+    .index('by_repository_and_scanned_at', ['repositoryId', 'scannedAt'])
+    .index('by_tenant_and_scanned_at', ['tenantId', 'scannedAt']),
+
+  // WS-87 — Storage & Data Security Configuration Drift Detector
+  storageDataSecurityDriftResults: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    /** Git commit SHA that triggered this scan. */
+    commitSha: v.string(),
+    /** Branch where the push occurred. */
+    branch: v.string(),
+    /** 0–100 composite risk score (0=clean, 100=maximally risky). */
+    riskScore: v.number(),
+    riskLevel: v.union(
+      v.literal('critical'),
+      v.literal('high'),
+      v.literal('medium'),
+      v.literal('low'),
+      v.literal('none'),
+    ),
+    totalFindings: v.number(),
+    highCount: v.number(),
+    mediumCount: v.number(),
+    lowCount: v.number(),
+    /** One finding per triggered storage/data security rule (deduped). */
+    findings: v.array(
+      v.object({
+        ruleId: v.string(),
+        severity: v.union(v.literal('high'), v.literal('medium'), v.literal('low')),
+        matchedPath: v.string(),
+        /** Total changed files that triggered this rule. */
+        matchCount: v.number(),
+        description: v.string(),
+        recommendation: v.string(),
+      }),
+    ),
+    summary:   v.string(),
+    scannedAt: v.number(),
+  })
+    .index('by_repository_and_scanned_at', ['repositoryId', 'scannedAt'])
+    .index('by_tenant_and_scanned_at', ['tenantId', 'scannedAt']),
+
+  // WS-86 — SIEM & Security Analytics Configuration Drift Detector
+  siemSecurityDriftResults: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    /** Git commit SHA that triggered this scan. */
+    commitSha: v.string(),
+    /** Branch where the push occurred. */
+    branch: v.string(),
+    /** 0–100 composite risk score (0=clean, 100=maximally risky). */
+    riskScore: v.number(),
+    riskLevel: v.union(
+      v.literal('critical'),
+      v.literal('high'),
+      v.literal('medium'),
+      v.literal('low'),
+      v.literal('none'),
+    ),
+    totalFindings: v.number(),
+    highCount: v.number(),
+    mediumCount: v.number(),
+    lowCount: v.number(),
+    /** One finding per triggered SIEM/security analytics rule (deduped). */
+    findings: v.array(
+      v.object({
+        ruleId: v.string(),
+        severity: v.union(v.literal('high'), v.literal('medium'), v.literal('low')),
+        matchedPath: v.string(),
+        /** Total changed files that triggered this rule. */
+        matchCount: v.number(),
+        description: v.string(),
+        recommendation: v.string(),
+      }),
+    ),
+    summary:   v.string(),
+    scannedAt: v.number(),
+  })
+    .index('by_repository_and_scanned_at', ['repositoryId', 'scannedAt'])
+    .index('by_tenant_and_scanned_at', ['tenantId', 'scannedAt']),
+
+  // WS-85 — Backup & Disaster Recovery Security Configuration Drift Detector
+  backupDrSecurityDriftResults: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    /** Git commit SHA that triggered this scan. */
+    commitSha: v.string(),
+    /** Branch where the push occurred. */
+    branch: v.string(),
+    /** 0–100 composite risk score (0=clean, 100=maximally risky). */
+    riskScore: v.number(),
+    riskLevel: v.union(
+      v.literal('critical'),
+      v.literal('high'),
+      v.literal('medium'),
+      v.literal('low'),
+      v.literal('none'),
+    ),
+    totalFindings: v.number(),
+    highCount: v.number(),
+    mediumCount: v.number(),
+    lowCount: v.number(),
+    /** One finding per triggered backup/DR security rule (deduped). */
+    findings: v.array(
+      v.object({
+        ruleId: v.string(),
+        severity: v.union(v.literal('high'), v.literal('medium'), v.literal('low')),
+        matchedPath: v.string(),
+        /** Total changed files that triggered this rule. */
+        matchCount: v.number(),
+        description: v.string(),
+        recommendation: v.string(),
+      }),
+    ),
+    summary:   v.string(),
+    scannedAt: v.number(),
+  })
+    .index('by_repository_and_scanned_at', ['repositoryId', 'scannedAt'])
+    .index('by_tenant_and_scanned_at', ['tenantId', 'scannedAt']),
+
+  // WS-84 — VPN & Remote Access Security Configuration Drift Detector
+  vpnRemoteAccessDriftResults: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    /** Git commit SHA that triggered this scan. */
+    commitSha: v.string(),
+    /** Branch where the push occurred. */
+    branch: v.string(),
+    /** 0–100 composite risk score (0=clean, 100=maximally risky). */
+    riskScore: v.number(),
+    riskLevel: v.union(
+      v.literal('critical'),
+      v.literal('high'),
+      v.literal('medium'),
+      v.literal('low'),
+      v.literal('none'),
+    ),
+    totalFindings: v.number(),
+    highCount: v.number(),
+    mediumCount: v.number(),
+    lowCount: v.number(),
+    /** One finding per triggered VPN/remote access security rule (deduped). */
+    findings: v.array(
+      v.object({
+        ruleId: v.string(),
+        severity: v.union(v.literal('high'), v.literal('medium'), v.literal('low')),
+        matchedPath: v.string(),
+        /** Total changed files that triggered this rule. */
+        matchCount: v.number(),
+        description: v.string(),
+        recommendation: v.string(),
+      }),
+    ),
+    summary: v.string(),
+    scannedAt: v.number(),
+  })
+    .index('by_repository_and_scanned_at', ['repositoryId', 'scannedAt'])
+    .index('by_tenant_and_scanned_at', ['tenantId', 'scannedAt']),
+
+  // WS-83 — Infrastructure Configuration Management Security Drift Detector
+  cfgMgmtSecurityDriftResults: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    /** Git commit SHA that triggered this scan. */
+    commitSha: v.string(),
+    /** Branch where the push occurred. */
+    branch: v.string(),
+    /** 0–100 composite risk score (0=clean, 100=maximally risky). */
+    riskScore: v.number(),
+    riskLevel: v.union(
+      v.literal('critical'),
+      v.literal('high'),
+      v.literal('medium'),
+      v.literal('low'),
+      v.literal('none'),
+    ),
+    totalFindings: v.number(),
+    highCount: v.number(),
+    mediumCount: v.number(),
+    lowCount: v.number(),
+    /** One finding per triggered cfg management security rule (deduped). */
+    findings: v.array(
+      v.object({
+        ruleId: v.string(),
+        severity: v.union(v.literal('high'), v.literal('medium'), v.literal('low')),
+        matchedPath: v.string(),
+        /** Total changed files that triggered this rule. */
+        matchCount: v.number(),
+        description: v.string(),
+        recommendation: v.string(),
+      }),
+    ),
+    summary: v.string(),
+    scannedAt: v.number(),
+  })
+    .index('by_repository_and_scanned_at', ['repositoryId', 'scannedAt'])
+    .index('by_tenant_and_scanned_at', ['tenantId', 'scannedAt']),
+
+  // WS-82 — Package & Artifact Registry Security Configuration Drift Detector
+  artifactRegistryDriftResults: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    /** Git commit SHA that triggered this scan. */
+    commitSha: v.string(),
+    /** Branch where the push occurred. */
+    branch: v.string(),
+    /** 0–100 composite risk score (0=clean, 100=maximally risky). */
+    riskScore: v.number(),
+    riskLevel: v.union(
+      v.literal('critical'),
+      v.literal('high'),
+      v.literal('medium'),
+      v.literal('low'),
+      v.literal('none'),
+    ),
+    totalFindings: v.number(),
+    highCount: v.number(),
+    mediumCount: v.number(),
+    lowCount: v.number(),
+    /** One finding per triggered artifact registry security rule (deduped). */
+    findings: v.array(
+      v.object({
+        ruleId: v.string(),
+        severity: v.union(v.literal('high'), v.literal('medium'), v.literal('low')),
+        /** First file path that triggered this rule. */
+        matchedPath: v.string(),
+        /** Total changed files that triggered this rule. */
+        matchCount: v.number(),
+        description: v.string(),
+        recommendation: v.string(),
+      }),
+    ),
+    summary: v.string(),
+    scannedAt: v.number(),
+  })
+    .index('by_repository_and_scanned_at', ['repositoryId', 'scannedAt'])
+    .index('by_tenant_and_scanned_at', ['tenantId', 'scannedAt']),
+
+  // WS-81 — ML/AI Platform Security Configuration Drift Detector
+  mlAiPlatformDriftResults: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    /** Git commit SHA that triggered this scan. */
+    commitSha: v.string(),
+    /** Branch where the push occurred. */
+    branch: v.string(),
+    /** 0–100 composite risk score (0=clean, 100=maximally risky). */
+    riskScore: v.number(),
+    riskLevel: v.union(
+      v.literal('critical'),
+      v.literal('high'),
+      v.literal('medium'),
+      v.literal('low'),
+      v.literal('none'),
+    ),
+    totalFindings: v.number(),
+    highCount: v.number(),
+    mediumCount: v.number(),
+    lowCount: v.number(),
+    /** One finding per triggered ML/AI platform security rule (deduped). */
+    findings: v.array(
+      v.object({
+        ruleId: v.string(),
+        severity: v.union(v.literal('high'), v.literal('medium'), v.literal('low')),
+        /** First file path that triggered this rule. */
+        matchedPath: v.string(),
+        /** Total changed files that triggered this rule. */
+        matchCount: v.number(),
+        description: v.string(),
+        recommendation: v.string(),
+      }),
+    ),
+    summary: v.string(),
+    scannedAt: v.number(),
+  })
+    .index('by_repository_and_scanned_at', ['repositoryId', 'scannedAt'])
+    .index('by_tenant_and_scanned_at', ['tenantId', 'scannedAt']),
+
+  // WS-80 — Data Pipeline & ETL Security Configuration Drift Detector
+  dataPipelineDriftResults: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    /** Git commit SHA that triggered this scan. */
+    commitSha: v.string(),
+    /** Branch where the push occurred. */
+    branch: v.string(),
+    /** 0–100 composite risk score (0=clean, 100=maximally risky). */
+    riskScore: v.number(),
+    riskLevel: v.union(
+      v.literal('critical'),
+      v.literal('high'),
+      v.literal('medium'),
+      v.literal('low'),
+      v.literal('none'),
+    ),
+    totalFindings: v.number(),
+    highCount: v.number(),
+    mediumCount: v.number(),
+    lowCount: v.number(),
+    /** One finding per triggered data pipeline security rule (deduped). */
+    findings: v.array(
+      v.object({
+        ruleId: v.string(),
+        severity: v.union(v.literal('high'), v.literal('medium'), v.literal('low')),
+        /** First file path that triggered this rule. */
+        matchedPath: v.string(),
+        /** Total changed files that triggered this rule. */
+        matchCount: v.number(),
+        description: v.string(),
+        recommendation: v.string(),
+      }),
+    ),
+    summary: v.string(),
+    scannedAt: v.number(),
+  })
+    .index('by_repository_and_scanned_at', ['repositoryId', 'scannedAt'])
+    .index('by_tenant_and_scanned_at', ['tenantId', 'scannedAt']),
+
+  // WS-79 — SSO Provider & Authentication Configuration Drift Detector
+  ssoProviderDriftResults: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    /** Git commit SHA that triggered this scan. */
+    commitSha: v.string(),
+    /** Branch where the push occurred. */
+    branch: v.string(),
+    /** 0–100 composite risk score (0=clean, 100=maximally risky). */
+    riskScore: v.number(),
+    riskLevel: v.union(
+      v.literal('critical'),
+      v.literal('high'),
+      v.literal('medium'),
+      v.literal('low'),
+      v.literal('none'),
+    ),
+    totalFindings: v.number(),
+    highCount: v.number(),
+    mediumCount: v.number(),
+    lowCount: v.number(),
+    /** One finding per triggered SSO/auth security rule (deduped). */
+    findings: v.array(
+      v.object({
+        ruleId: v.string(),
+        severity: v.union(v.literal('high'), v.literal('medium'), v.literal('low')),
+        /** First file path that triggered this rule. */
+        matchedPath: v.string(),
+        /** Total changed files that triggered this rule. */
+        matchCount: v.number(),
+        description: v.string(),
+        recommendation: v.string(),
+      }),
+    ),
+    summary: v.string(),
+    scannedAt: v.number(),
+  })
+    .index('by_repository_and_scanned_at', ['repositoryId', 'scannedAt'])
+    .index('by_tenant_and_scanned_at', ['tenantId', 'scannedAt']),
+
+  // WS-78 — Messaging & Event Streaming Security Configuration Drift Detector
+  messagingSecurityDriftResults: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    /** Git commit SHA that triggered this scan. */
+    commitSha: v.string(),
+    /** Branch where the push occurred. */
+    branch: v.string(),
+    /** 0–100 composite risk score (0=clean, 100=maximally risky). */
+    riskScore: v.number(),
+    riskLevel: v.union(
+      v.literal('critical'),
+      v.literal('high'),
+      v.literal('medium'),
+      v.literal('low'),
+      v.literal('none'),
+    ),
+    totalFindings: v.number(),
+    highCount: v.number(),
+    mediumCount: v.number(),
+    lowCount: v.number(),
+    /** One finding per triggered messaging security rule (deduped). */
+    findings: v.array(
+      v.object({
+        ruleId: v.string(),
+        severity: v.union(v.literal('high'), v.literal('medium'), v.literal('low')),
+        /** First file path that triggered this rule. */
+        matchedPath: v.string(),
+        /** Total changed files that triggered this rule. */
+        matchCount: v.number(),
+        description: v.string(),
+        recommendation: v.string(),
+      }),
+    ),
+    summary: v.string(),
+    scannedAt: v.number(),
+  })
+    .index('by_repository_and_scanned_at', ['repositoryId', 'scannedAt'])
+    .index('by_tenant_and_scanned_at', ['tenantId', 'scannedAt']),
+
+  // WS-77 — Serverless & FaaS Security Configuration Drift Detector
+  serverlessFaasDriftResults: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    /** Git commit SHA that triggered this scan. */
+    commitSha: v.string(),
+    /** Branch where the push occurred. */
+    branch: v.string(),
+    /** 0–100 composite risk score (0=clean, 100=maximally risky). */
+    riskScore: v.number(),
+    riskLevel: v.union(
+      v.literal('critical'),
+      v.literal('high'),
+      v.literal('medium'),
+      v.literal('low'),
+      v.literal('none'),
+    ),
+    totalFindings: v.number(),
+    highCount: v.number(),
+    mediumCount: v.number(),
+    lowCount: v.number(),
+    /** One finding per triggered serverless/FaaS security rule (deduped). */
+    findings: v.array(
+      v.object({
+        ruleId: v.string(),
+        severity: v.union(v.literal('high'), v.literal('medium'), v.literal('low')),
+        /** First file path that triggered this rule. */
+        matchedPath: v.string(),
+        /** Total changed files that triggered this rule. */
+        matchCount: v.number(),
+        description: v.string(),
+        recommendation: v.string(),
+      }),
+    ),
+    summary: v.string(),
+    scannedAt: v.number(),
+  })
+    .index('by_repository_and_scanned_at', ['repositoryId', 'scannedAt'])
+    .index('by_tenant_and_scanned_at', ['tenantId', 'scannedAt']),
+
+  // WS-76 — Email Security Configuration Drift Detector
+  emailSecurityDriftResults: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    /** Git commit SHA that triggered this scan. */
+    commitSha: v.string(),
+    /** Branch where the push occurred. */
+    branch: v.string(),
+    /** 0–100 composite risk score (0=clean, 100=maximally risky). */
+    riskScore: v.number(),
+    riskLevel: v.union(
+      v.literal('critical'),
+      v.literal('high'),
+      v.literal('medium'),
+      v.literal('low'),
+      v.literal('none'),
+    ),
+    totalFindings: v.number(),
+    highCount: v.number(),
+    mediumCount: v.number(),
+    lowCount: v.number(),
+    /** One finding per triggered email security rule (deduped). */
+    findings: v.array(
+      v.object({
+        ruleId: v.string(),
+        severity: v.union(v.literal('high'), v.literal('medium'), v.literal('low')),
+        /** First file path that triggered this rule. */
+        matchedPath: v.string(),
+        /** Total changed files that triggered this rule. */
+        matchCount: v.number(),
+        description: v.string(),
+        recommendation: v.string(),
+      }),
+    ),
+    summary: v.string(),
+    scannedAt: v.number(),
+  })
+    .index('by_repository_and_scanned_at', ['repositoryId', 'scannedAt'])
+    .index('by_tenant_and_scanned_at', ['tenantId', 'scannedAt']),
+
+  // WS-75 — Web Server & Reverse Proxy Security Configuration Drift Detector
+  webServerSecurityDriftResults: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    /** Git commit SHA that triggered this scan. */
+    commitSha: v.string(),
+    /** Branch where the push occurred. */
+    branch: v.string(),
+    /** 0–100 composite risk score (0=clean, 100=maximally risky). */
+    riskScore: v.number(),
+    riskLevel: v.union(
+      v.literal('critical'),
+      v.literal('high'),
+      v.literal('medium'),
+      v.literal('low'),
+      v.literal('none'),
+    ),
+    totalFindings: v.number(),
+    highCount: v.number(),
+    mediumCount: v.number(),
+    lowCount: v.number(),
+    /** One finding per triggered web server security rule (deduped). */
+    findings: v.array(
+      v.object({
+        ruleId: v.string(),
+        severity: v.union(v.literal('high'), v.literal('medium'), v.literal('low')),
+        /** First file path that triggered this rule. */
+        matchedPath: v.string(),
+        /** Total changed files that triggered this rule. */
+        matchCount: v.number(),
+        description: v.string(),
+        recommendation: v.string(),
+      }),
+    ),
+    summary: v.string(),
+    scannedAt: v.number(),
+  })
+    .index('by_repository_and_scanned_at', ['repositoryId', 'scannedAt'])
+    .index('by_tenant_and_scanned_at', ['tenantId', 'scannedAt']),
+
+  // WS-74 — Mobile Application Security Configuration Drift Detector
+  mobileAppSecurityDriftResults: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    /** Git commit SHA that triggered this scan. */
+    commitSha: v.string(),
+    /** Branch where the push occurred. */
+    branch: v.string(),
+    /** 0–100 composite risk score (0=clean, 100=maximally risky). */
+    riskScore: v.number(),
+    riskLevel: v.union(
+      v.literal('critical'),
+      v.literal('high'),
+      v.literal('medium'),
+      v.literal('low'),
+      v.literal('none'),
+    ),
+    totalFindings: v.number(),
+    highCount: v.number(),
+    mediumCount: v.number(),
+    lowCount: v.number(),
+    /** One finding per triggered mobile security rule (deduped). */
+    findings: v.array(
+      v.object({
+        ruleId: v.string(),
+        severity: v.union(v.literal('high'), v.literal('medium'), v.literal('low')),
+        /** First file path that triggered this rule. */
+        matchedPath: v.string(),
+        /** Total changed files that triggered this rule. */
+        matchCount: v.number(),
+        description: v.string(),
+        recommendation: v.string(),
+      }),
+    ),
+    summary: v.string(),
+    scannedAt: v.number(),
+  })
+    .index('by_repository_and_scanned_at', ['repositoryId', 'scannedAt'])
+    .index('by_tenant_and_scanned_at', ['tenantId', 'scannedAt']),
+
+  // WS-73 — CI/CD Pipeline Security Configuration Drift Detector
+  cicdPipelineSecurityDriftResults: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    /** Git commit SHA that triggered this scan. */
+    commitSha: v.string(),
+    /** Branch where the push occurred. */
+    branch: v.string(),
+    /** 0–100 composite risk score (0=clean, 100=maximally risky). */
+    riskScore: v.number(),
+    riskLevel: v.union(
+      v.literal('critical'),
+      v.literal('high'),
+      v.literal('medium'),
+      v.literal('low'),
+      v.literal('none'),
+    ),
+    totalFindings: v.number(),
+    highCount: v.number(),
+    mediumCount: v.number(),
+    lowCount: v.number(),
+    /** One finding per triggered CI/CD pipeline security rule (deduped). */
+    findings: v.array(
+      v.object({
+        ruleId: v.string(),
+        severity: v.union(v.literal('high'), v.literal('medium'), v.literal('low')),
+        /** First file path that triggered this rule. */
+        matchedPath: v.string(),
+        /** Total changed files that triggered this rule. */
+        matchCount: v.number(),
+        description: v.string(),
+        recommendation: v.string(),
+      }),
+    ),
+    summary: v.string(),
+    scannedAt: v.number(),
+  })
+    .index('by_repository_and_scanned_at', ['repositoryId', 'scannedAt'])
+    .index('by_tenant_and_scanned_at', ['tenantId', 'scannedAt']),
+
+  // WS-72 — Service Mesh & Zero-Trust Network Security Configuration Drift Detector
+  serviceMeshSecurityDriftResults: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    /** Git commit SHA that triggered this scan. */
+    commitSha: v.string(),
+    /** Branch where the push occurred. */
+    branch: v.string(),
+    /** 0–100 composite risk score (0=clean, 100=maximally risky). */
+    riskScore: v.number(),
+    riskLevel: v.union(
+      v.literal('critical'),
+      v.literal('high'),
+      v.literal('medium'),
+      v.literal('low'),
+      v.literal('none'),
+    ),
+    totalFindings: v.number(),
+    highCount: v.number(),
+    mediumCount: v.number(),
+    lowCount: v.number(),
+    /** One finding per triggered service mesh security rule (deduped). */
+    findings: v.array(
+      v.object({
+        ruleId: v.string(),
+        severity: v.union(v.literal('high'), v.literal('medium'), v.literal('low')),
+        /** First file path that triggered this rule. */
+        matchedPath: v.string(),
+        /** Total changed files that triggered this rule. */
+        matchCount: v.number(),
+        description: v.string(),
+        recommendation: v.string(),
+      }),
+    ),
+    summary: v.string(),
+    scannedAt: v.number(),
+  })
+    .index('by_repository_and_scanned_at', ['repositoryId', 'scannedAt'])
+    .index('by_tenant_and_scanned_at', ['tenantId', 'scannedAt']),
+
+  // WS-71 — Observability & Security Monitoring Configuration Drift Detector
+  observabilitySecurityDriftResults: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    /** Git commit SHA that triggered this scan. */
+    commitSha: v.string(),
+    /** Branch where the push occurred. */
+    branch: v.string(),
+    /** 0–100 composite risk score (0=clean, 100=maximally risky). */
+    riskScore: v.number(),
+    riskLevel: v.union(
+      v.literal('critical'),
+      v.literal('high'),
+      v.literal('medium'),
+      v.literal('low'),
+      v.literal('none'),
+    ),
+    totalFindings: v.number(),
+    highCount: v.number(),
+    mediumCount: v.number(),
+    lowCount: v.number(),
+    /** One finding per triggered observability security rule (deduped). */
+    findings: v.array(
+      v.object({
+        ruleId: v.string(),
+        severity: v.union(v.literal('high'), v.literal('medium'), v.literal('low')),
+        /** First file path that triggered this rule. */
+        matchedPath: v.string(),
+        /** Total changed files that triggered this rule. */
+        matchCount: v.number(),
+        description: v.string(),
+        recommendation: v.string(),
+      }),
+    ),
+    summary: v.string(),
+    scannedAt: v.number(),
+  })
+    .index('by_repository_and_scanned_at', ['repositoryId', 'scannedAt'])
+    .index('by_tenant_and_scanned_at', ['tenantId', 'scannedAt']),
+
+  // WS-70 — Identity & Privileged Access Management Configuration Drift Detector
+  identityAccessDriftResults: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    /** Git commit SHA that triggered this scan. */
+    commitSha: v.string(),
+    /** Branch where the push occurred. */
+    branch: v.string(),
+    /** 0–100 composite risk score (0=clean, 100=maximally risky). */
+    riskScore: v.number(),
+    riskLevel: v.union(
+      v.literal('critical'),
+      v.literal('high'),
+      v.literal('medium'),
+      v.literal('low'),
+      v.literal('none'),
+    ),
+    totalFindings: v.number(),
+    highCount: v.number(),
+    mediumCount: v.number(),
+    lowCount: v.number(),
+    /** One finding per triggered identity access rule (deduped). */
+    findings: v.array(
+      v.object({
+        ruleId: v.string(),
+        severity: v.union(v.literal('high'), v.literal('medium'), v.literal('low')),
+        /** First file path that triggered this rule. */
+        matchedPath: v.string(),
+        /** Total changed files that triggered this rule. */
+        matchCount: v.number(),
+        description: v.string(),
+        recommendation: v.string(),
+      }),
+    ),
+    summary: v.string(),
+    scannedAt: v.number(),
+  })
+    .index('by_repository_and_scanned_at', ['repositoryId', 'scannedAt'])
+    .index('by_tenant_and_scanned_at', ['tenantId', 'scannedAt']),
+
+  // WS-69 — Developer Security Tooling & SAST Configuration Drift Detector
+  devSecToolsDriftResults: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    /** Git commit SHA that triggered this scan. */
+    commitSha: v.string(),
+    /** Branch where the push occurred. */
+    branch: v.string(),
+    /** 0–100 composite risk score (0=clean, 100=maximally risky). */
+    riskScore: v.number(),
+    riskLevel: v.union(
+      v.literal('critical'),
+      v.literal('high'),
+      v.literal('medium'),
+      v.literal('low'),
+      v.literal('none'),
+    ),
+    totalFindings: v.number(),
+    highCount: v.number(),
+    mediumCount: v.number(),
+    lowCount: v.number(),
+    /** One finding per triggered dev-sec-tools rule (deduped). */
+    findings: v.array(
+      v.object({
+        ruleId: v.string(),
+        severity: v.union(v.literal('high'), v.literal('medium'), v.literal('low')),
+        /** First file path that triggered this rule. */
+        matchedPath: v.string(),
+        /** Total changed files that triggered this rule. */
+        matchCount: v.number(),
+        description: v.string(),
+        recommendation: v.string(),
+      }),
+    ),
+    summary: v.string(),
+    scannedAt: v.number(),
+  })
+    .index('by_repository_and_scanned_at', ['repositoryId', 'scannedAt'])
+    .index('by_tenant_and_scanned_at', ['tenantId', 'scannedAt']),
+
+  // WS-68 — Network Perimeter & Firewall Configuration Drift Detector
+  networkFirewallDriftResults: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    /** Git commit SHA that triggered this scan. */
+    commitSha: v.string(),
+    /** Branch where the push occurred. */
+    branch: v.string(),
+    /** 0–100 composite risk score (0=clean, 100=maximally risky). */
+    riskScore: v.number(),
+    riskLevel: v.union(
+      v.literal('critical'),
+      v.literal('high'),
+      v.literal('medium'),
+      v.literal('low'),
+      v.literal('none'),
+    ),
+    totalFindings: v.number(),
+    highCount: v.number(),
+    mediumCount: v.number(),
+    lowCount: v.number(),
+    /** One finding per triggered network firewall rule (deduped). */
+    findings: v.array(
+      v.object({
+        ruleId: v.string(),
+        severity: v.union(v.literal('high'), v.literal('medium'), v.literal('low')),
+        /** First file path that triggered this rule. */
+        matchedPath: v.string(),
+        /** Total changed files that triggered this rule. */
+        matchCount: v.number(),
+        description: v.string(),
+        recommendation: v.string(),
+      }),
+    ),
+    summary: v.string(),
+    scannedAt: v.number(),
+  })
+    .index('by_repository_and_scanned_at', ['repositoryId', 'scannedAt'])
+    .index('by_tenant_and_scanned_at', ['tenantId', 'scannedAt']),
+
+  // WS-67 — Runtime Security Policy & Enforcement Configuration Drift Detector
+  runtimeSecurityDriftResults: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    /** Git commit SHA that triggered this scan. */
+    commitSha: v.string(),
+    /** Branch where the push occurred. */
+    branch: v.string(),
+    /** 0–100 composite risk score (0=clean, 100=maximally risky). */
+    riskScore: v.number(),
+    riskLevel: v.union(
+      v.literal('critical'),
+      v.literal('high'),
+      v.literal('medium'),
+      v.literal('low'),
+      v.literal('none'),
+    ),
+    totalFindings: v.number(),
+    highCount: v.number(),
+    mediumCount: v.number(),
+    lowCount: v.number(),
+    /** One finding per triggered runtime security rule (deduped). */
+    findings: v.array(
+      v.object({
+        ruleId: v.string(),
+        severity: v.union(v.literal('high'), v.literal('medium'), v.literal('low')),
+        /** First file path that triggered this rule. */
+        matchedPath: v.string(),
+        /** Total changed files that triggered this rule. */
+        matchCount: v.number(),
+        description: v.string(),
+        recommendation: v.string(),
+      }),
+    ),
+    summary: v.string(),
+    scannedAt: v.number(),
+  })
+    .index('by_repository_and_scanned_at', ['repositoryId', 'scannedAt'])
+    .index('by_tenant_and_scanned_at', ['tenantId', 'scannedAt']),
+
+  // WS-66 — Cryptographic Certificate & PKI Configuration Drift Detector
+  certPkiDriftResults: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    /** Git commit SHA that triggered this scan. */
+    commitSha: v.string(),
+    /** Branch where the push occurred. */
+    branch: v.string(),
+    /** 0–100 composite risk score (0=clean, 100=maximally risky). */
+    riskScore: v.number(),
+    riskLevel: v.union(
+      v.literal('critical'),
+      v.literal('high'),
+      v.literal('medium'),
+      v.literal('low'),
+      v.literal('none'),
+    ),
+    totalFindings: v.number(),
+    highCount: v.number(),
+    mediumCount: v.number(),
+    lowCount: v.number(),
+    /** One finding per triggered cert/PKI rule (deduped). */
+    findings: v.array(
+      v.object({
+        ruleId: v.string(),
+        severity: v.union(v.literal('high'), v.literal('medium'), v.literal('low')),
+        /** First file path that triggered this rule. */
+        matchedPath: v.string(),
+        /** Total changed files that triggered this rule. */
+        matchCount: v.number(),
+        description: v.string(),
+        recommendation: v.string(),
+      }),
+    ),
+    summary: v.string(),
+    scannedAt: v.number(),
+  })
+    .index('by_repository_and_scanned_at', ['repositoryId', 'scannedAt'])
+    .index('by_tenant_and_scanned_at', ['tenantId', 'scannedAt']),
+
+  // WS-65 — API Security Configuration Drift Detector
+  apiSecurityDriftResults: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    /** Git commit SHA that triggered this scan. */
+    commitSha: v.string(),
+    /** Branch where the push occurred. */
+    branch: v.string(),
+    /** 0–100 composite risk score (0=clean, 100=maximally risky). */
+    riskScore: v.number(),
+    riskLevel: v.union(
+      v.literal('critical'),
+      v.literal('high'),
+      v.literal('medium'),
+      v.literal('low'),
+      v.literal('none'),
+    ),
+    totalFindings: v.number(),
+    highCount: v.number(),
+    mediumCount: v.number(),
+    lowCount: v.number(),
+    /** One finding per triggered API security rule (deduped). */
+    findings: v.array(
+      v.object({
+        ruleId: v.string(),
+        severity: v.union(v.literal('high'), v.literal('medium'), v.literal('low')),
         /** First file path that triggered this rule. */
         matchedPath: v.string(),
         /** Total changed files that triggered this rule. */
@@ -2938,4 +4374,297 @@ export default defineSchema({
   })
     .index('by_repository_and_scanned_at', ['repositoryId', 'scannedAt'])
     .index('by_tenant_and_scanned_at', ['tenantId', 'scannedAt']),
+
+  // WS-98 — Zero-Day Anomaly Detection (spec §3.1.3)
+  zeroDayDetections: defineTable({
+    tenantId:     v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    /** Commit SHA or event reference that triggered the scan. */
+    ref: v.string(),
+    signals: v.array(v.object({
+      signalType: v.string(),
+      confidence: v.number(),
+      evidence: v.string(),
+      affectedFiles: v.array(v.string()),
+    })),
+    anomalyScore: v.number(),
+    category: v.union(
+      v.literal('potential_zero_day'),
+      v.literal('suspicious_change'),
+      v.literal('novel_pattern'),
+      v.literal('benign'),
+    ),
+    recommendation: v.string(),
+    /** Max cosine similarity from the upstream fingerprint scan (context). */
+    fingerprintMatchConfidence: v.optional(v.number()),
+    detectedAt: v.number(),
+  })
+    .index('by_repository_and_detected_at', ['repositoryId', 'detectedAt'])
+    .index('by_tenant_and_detected_at', ['tenantId', 'detectedAt']),
+
+  // WS-99 — Security Program Maturity Model
+  maturityAssessments: defineTable({
+    tenantId:     v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    overallLevel: v.number(),   // 1–5
+    overallScore: v.number(),   // 0–100
+    bottleneck: v.string(),
+    dimensions: v.array(v.object({
+      dimension: v.string(),
+      label: v.string(),
+      level: v.number(),
+      score: v.number(),
+      gaps: v.array(v.string()),
+    })),
+    advancementRoadmap: v.array(v.string()),
+    assessedAt: v.number(),
+  })
+    .index('by_repository_and_assessed_at', ['repositoryId', 'assessedAt'])
+    .index('by_tenant_and_assessed_at', ['tenantId', 'assessedAt']),
+
+  // WS-100 — Business Impact Assessment (spec §3.5.4)
+  businessImpactSnapshots: defineTable({
+    tenantId:     v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    dataExposureScore:       v.number(),
+    regulatoryExposureScore: v.number(),
+    revenueImpactScore:      v.number(),
+    reputationScore:         v.number(),
+    remediationCostScore:    v.number(),
+    overallScore: v.number(),
+    impactLevel: v.union(
+      v.literal('critical'), v.literal('high'), v.literal('medium'),
+      v.literal('low'),      v.literal('minimal'),
+    ),
+    estimatedRecordsAtRisk:      v.number(),
+    estimatedFineRangeMin:       v.number(),
+    estimatedFineRangeMax:       v.number(),
+    estimatedRemediationCostMin: v.number(),
+    estimatedRemediationCostMax: v.number(),
+    topExposures: v.array(v.string()),
+    assessedAt:   v.number(),
+  })
+    .index('by_repository_and_assessed_at', ['repositoryId', 'assessedAt'])
+    .index('by_tenant_and_assessed_at', ['tenantId', 'assessedAt']),
+
+  // WS-101 — AI/ML Dependency Security Drift Detector
+  aiMlSecurityDriftResults: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    /** Git commit SHA that triggered this scan. */
+    commitSha: v.string(),
+    /** Branch where the push occurred. */
+    branch: v.string(),
+    /** 0–100 composite risk score (0=clean, 100=maximally risky). */
+    riskScore: v.number(),
+    riskLevel: v.union(
+      v.literal('critical'),
+      v.literal('high'),
+      v.literal('medium'),
+      v.literal('low'),
+      v.literal('none'),
+    ),
+    totalFindings: v.number(),
+    highCount: v.number(),
+    mediumCount: v.number(),
+    lowCount: v.number(),
+    /** One finding per triggered AI/ML security rule (deduped). */
+    findings: v.array(
+      v.object({
+        ruleId: v.string(),
+        severity: v.union(
+          v.literal('high'),
+          v.literal('medium'),
+          v.literal('low'),
+        ),
+        /** First file path that triggered this rule. */
+        matchedPath: v.string(),
+        /** Total changed files that triggered this rule. */
+        matchCount: v.number(),
+        description: v.string(),
+        recommendation: v.string(),
+      }),
+    ),
+    summary: v.string(),
+    scannedAt: v.number(),
+  })
+    .index('by_repository_and_scanned_at', ['repositoryId', 'scannedAt'])
+    .index('by_tenant_and_scanned_at', ['tenantId', 'scannedAt']),
+
+  // WS-105 — Secret Management Configuration Drift Detector
+  secretMgmtDriftResults: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    commitSha: v.string(),
+    branch: v.string(),
+    riskScore: v.number(),
+    riskLevel: v.union(
+      v.literal('critical'),
+      v.literal('high'),
+      v.literal('medium'),
+      v.literal('low'),
+      v.literal('none'),
+    ),
+    totalFindings: v.number(),
+    highCount: v.number(),
+    mediumCount: v.number(),
+    lowCount: v.number(),
+    findings: v.array(
+      v.object({
+        ruleId: v.string(),
+        severity: v.union(
+          v.literal('high'),
+          v.literal('medium'),
+          v.literal('low'),
+        ),
+        matchedPath: v.string(),
+        matchCount: v.number(),
+        description: v.string(),
+        recommendation: v.string(),
+      }),
+    ),
+    summary: v.string(),
+    scannedAt: v.number(),
+  })
+    .index('by_repository_and_scanned_at', ['repositoryId', 'scannedAt'])
+    .index('by_tenant_and_scanned_at', ['tenantId', 'scannedAt']),
+
+  // WS-103 — Dependency Manager Security Configuration Drift Detector
+  depMgrSecurityDriftResults: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    commitSha: v.string(),
+    branch: v.string(),
+    riskScore: v.number(),
+    riskLevel: v.union(
+      v.literal('critical'),
+      v.literal('high'),
+      v.literal('medium'),
+      v.literal('low'),
+      v.literal('none'),
+    ),
+    totalFindings: v.number(),
+    highCount: v.number(),
+    mediumCount: v.number(),
+    lowCount: v.number(),
+    findings: v.array(
+      v.object({
+        ruleId: v.string(),
+        severity: v.union(
+          v.literal('high'),
+          v.literal('medium'),
+          v.literal('low'),
+        ),
+        matchedPath: v.string(),
+        matchCount: v.number(),
+        description: v.string(),
+        recommendation: v.string(),
+      }),
+    ),
+    summary: v.string(),
+    scannedAt: v.number(),
+  })
+    .index('by_repository_and_scanned_at', ['repositoryId', 'scannedAt'])
+    .index('by_tenant_and_scanned_at', ['tenantId', 'scannedAt']),
+
+  // WS-109 — Supply Chain Build Integrity & Attestation Drift Detector
+  supplyChainAttestationDriftResults: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    commitSha: v.string(),
+    branch: v.string(),
+    riskScore: v.number(),
+    riskLevel: v.union(
+      v.literal('critical'),
+      v.literal('high'),
+      v.literal('medium'),
+      v.literal('low'),
+      v.literal('none'),
+    ),
+    totalFindings: v.number(),
+    highCount: v.number(),
+    mediumCount: v.number(),
+    lowCount: v.number(),
+    findings: v.array(
+      v.object({
+        ruleId: v.string(),
+        severity: v.union(v.literal('high'), v.literal('medium'), v.literal('low')),
+        matchedPath: v.string(),
+        matchCount: v.number(),
+        description: v.string(),
+        recommendation: v.string(),
+      }),
+    ),
+    summary: v.string(),
+    scannedAt: v.number(),
+  })
+    .index('by_repository_and_scanned_at', ['repositoryId', 'scannedAt'])
+    .index('by_tenant_and_scanned_at', ['tenantId', 'scannedAt']),
+
+  // WS-107 — Kubernetes Admission Controller & Policy Engine Configuration Drift Detector
+  k8sAdmissionDriftResults: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    commitSha: v.string(),
+    branch: v.string(),
+    riskScore: v.number(),
+    riskLevel: v.union(
+      v.literal('critical'),
+      v.literal('high'),
+      v.literal('medium'),
+      v.literal('low'),
+      v.literal('none'),
+    ),
+    totalFindings: v.number(),
+    highCount: v.number(),
+    mediumCount: v.number(),
+    lowCount: v.number(),
+    findings: v.array(
+      v.object({
+        ruleId: v.string(),
+        severity: v.union(v.literal('high'), v.literal('medium'), v.literal('low')),
+        matchedPath: v.string(),
+        matchCount: v.number(),
+        description: v.string(),
+        recommendation: v.string(),
+      }),
+    ),
+    summary: v.string(),
+    scannedAt: v.number(),
+  })
+    .index('by_repository_and_scanned_at', ['repositoryId', 'scannedAt'])
+    .index('by_tenant_and_scanned_at', ['tenantId', 'scannedAt']),
+
+  // WS-96 — Configuration Drift Aggregate Health Score
+  driftPostureResults: defineTable({
+    tenantId:     v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    overallScore: v.number(),
+    overallGrade: v.union(
+      v.literal('A'), v.literal('B'), v.literal('C'),
+      v.literal('D'), v.literal('F'),
+    ),
+    trend: v.union(
+      v.literal('improving'), v.literal('stable'),
+      v.literal('degrading'), v.literal('new'),
+    ),
+    categoryScores: v.array(v.object({
+      category:           v.string(),
+      label:              v.string(),
+      score:              v.number(),
+      weight:             v.number(),
+      grade:              v.string(),
+      workstreamsScanned: v.number(),
+      worstRiskLevel:     v.string(),
+      signals:            v.array(v.string()),
+    })),
+    totalWorkstreamsScanned: v.number(),
+    criticalDriftCount:      v.number(),
+    highDriftCount:          v.number(),
+    topRisks:   v.array(v.string()),
+    summary:    v.string(),
+    computedAt: v.number(),
+  })
+    .index('by_repository_and_computed_at', ['repositoryId', 'computedAt'])
+    .index('by_tenant_and_computed_at', ['tenantId', 'computedAt']),
 })

