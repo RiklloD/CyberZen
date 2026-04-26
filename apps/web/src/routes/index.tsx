@@ -10,7 +10,7 @@ import {
 	Sparkles,
 	Waypoints,
 } from "lucide-react";
-import { api } from "../../convex/_generated/api";
+import { api } from "../lib/convex";
 import StatusPill from "../components/StatusPill";
 import { TENANT_SLUG } from "../lib/config";
 import {
@@ -320,3 +320,4 @@ function DashboardPage() {
 		</main>
 	);
 }
+

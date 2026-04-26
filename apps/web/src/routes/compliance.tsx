@@ -3,7 +3,7 @@ import { useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { FileCheck2 } from "lucide-react";
 import { useState } from "react";
-import { api } from "../../convex/_generated/api";
+import { api } from "../lib/convex";
 import { TENANT_SLUG } from "../lib/config";
 import StatusPill from "../components/StatusPill";
 import {
@@ -328,3 +328,4 @@ function RepoComplianceIntelligence({
 		</div>
 	);
 }
+

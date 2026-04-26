@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { Shield } from "lucide-react";
-import { api } from "../../convex/_generated/api";
+import { api } from "../lib/convex";
 import { TENANT_SLUG } from "../lib/config";
 import StatusPill from "../components/StatusPill";
 import { disclosureTone, formatTimestamp, syncTone } from "../lib/utils";
@@ -266,3 +266,4 @@ function BreachIntelPage() {
 		</main>
 	);
 }
+
