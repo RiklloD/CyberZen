@@ -7,7 +7,7 @@
   ],
   "scripts": {
     "dev": "bun --cwd apps/web run dev",
-    "build": "bun --cwd apps/web run convex:codegen && bun --cwd apps/web run build",
+    "build": "cd apps/web && bun run convex:codegen && bun run build",
     "test": "bun --cwd apps/web run test",
     "check": "bun --cwd apps/web run check",
     "lint": "bun --cwd apps/web run lint",
