@@ -1,6 +1,6 @@
 import { r as reactExports, j as jsxRuntimeExports } from "../_libs/react.mjs";
-import { a as api } from "./router-XsWVnAhB.mjs";
-import { T as TENANT_SLUG } from "./config-CgDsmXdW.mjs";
+import { a as api } from "./router-BK-LlCXj.mjs";
+import { T as TENANT_SLUG } from "./config-DL9xF4p6.mjs";
 import { S as StatusPill } from "./StatusPill-CBg4y-u3.mjs";
 import { f as formatTimestamp, r as repositoryHealthTone, b as blastTierTone, a as attackSurfaceTone, t as trendTone, c as slaComplianceTone, p as priorityTierTone, m as maturityTone, l as learningTrendTone, d as multiplierTone, h as honeypotScoreTone } from "./utils-Dorwyjrb.mjs";
 import "../_libs/posthog__react.mjs";

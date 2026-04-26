@@ -1,3 +1,9 @@
 {
-  "outputDirectory": "apps/web/.vercel/output"
+  "outputDirectory": "apps/web/dist",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
 }

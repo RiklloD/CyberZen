@@ -239,53 +239,56 @@ function RootDocument({ children }) {
       /* @__PURE__ */ jsxRuntimeExports.jsx(HeadContent, {})
     ] }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs("body", { className: "font-sans antialiased [overflow-wrap:anywhere] selection:bg-[rgba(158,255,100,0.24)]", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx(AppConvexProvider, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(PostHogProvider, { children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "app-shell", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(Sidebar, {}),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "app-content", children })
-      ] }) }) }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(AppConvexProvider, { children: /* @__PURE__ */ jsxRuntimeExports.jsxs(PostHogProvider, { children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "app-shell", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Sidebar, {}),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "app-content", children })
+        ] }),
+        false
+      ] }) }),
       /* @__PURE__ */ jsxRuntimeExports.jsx(Scripts, {})
     ] })
   ] });
 }
 const api = anyApi;
 componentsGeneric();
-const $$splitComponentImporter$b = () => import("./supply-chain-BmtV47Pm.mjs");
+const $$splitComponentImporter$b = () => import("./supply-chain-ZsXifZfn.mjs");
 const Route$b = createFileRoute("/supply-chain")({
   component: lazyRouteComponent($$splitComponentImporter$b, "component")
 });
-const $$splitComponentImporter$a = () => import("./sbom-oSI5il6u.mjs");
+const $$splitComponentImporter$a = () => import("./sbom-DHjAeg-v.mjs");
 const Route$a = createFileRoute("/sbom")({
   component: lazyRouteComponent($$splitComponentImporter$a, "component")
 });
-const $$splitComponentImporter$9 = () => import("./repositories-DvDz-2e3.mjs");
+const $$splitComponentImporter$9 = () => import("./repositories-CUavfh89.mjs");
 const Route$9 = createFileRoute("/repositories")({
   component: lazyRouteComponent($$splitComponentImporter$9, "component")
 });
-const $$splitComponentImporter$8 = () => import("./remediation-BfPtMoS4.mjs");
+const $$splitComponentImporter$8 = () => import("./remediation-CZ4OqBiQ.mjs");
 const Route$8 = createFileRoute("/remediation")({
   component: lazyRouteComponent($$splitComponentImporter$8, "component")
 });
-const $$splitComponentImporter$7 = () => import("./integrations-BrTHNObh.mjs");
+const $$splitComponentImporter$7 = () => import("./integrations-wAfDRvCb.mjs");
 const Route$7 = createFileRoute("/integrations")({
   component: lazyRouteComponent($$splitComponentImporter$7, "component")
 });
-const $$splitComponentImporter$6 = () => import("./findings-BCRZHiL6.mjs");
+const $$splitComponentImporter$6 = () => import("./findings-nPgHwOxT.mjs");
 const Route$6 = createFileRoute("/findings")({
   component: lazyRouteComponent($$splitComponentImporter$6, "component")
 });
-const $$splitComponentImporter$5 = () => import("./compliance-CmCA9vRU.mjs");
+const $$splitComponentImporter$5 = () => import("./compliance-Cp_6EZwt.mjs");
 const Route$5 = createFileRoute("/compliance")({
   component: lazyRouteComponent($$splitComponentImporter$5, "component")
 });
-const $$splitComponentImporter$4 = () => import("./ci-cd-DKyYVtB9.mjs");
+const $$splitComponentImporter$4 = () => import("./ci-cd-KEd4neCE.mjs");
 const Route$4 = createFileRoute("/ci-cd")({
   component: lazyRouteComponent($$splitComponentImporter$4, "component")
 });
-const $$splitComponentImporter$3 = () => import("./breach-intel-DkBG9wkm.mjs");
+const $$splitComponentImporter$3 = () => import("./breach-intel-BMIuqomo.mjs");
 const Route$3 = createFileRoute("/breach-intel")({
   component: lazyRouteComponent($$splitComponentImporter$3, "component")
 });
-const $$splitComponentImporter$2 = () => import("./agents-rQyNDT01.mjs");
+const $$splitComponentImporter$2 = () => import("./agents-6vdPJXAk.mjs");
 const Route$2 = createFileRoute("/agents")({
   component: lazyRouteComponent($$splitComponentImporter$2, "component")
 });
@@ -293,7 +296,7 @@ const $$splitComponentImporter$1 = () => import("./about-BkeGnZFF.mjs");
 const Route$1 = createFileRoute("/about")({
   component: lazyRouteComponent($$splitComponentImporter$1, "component")
 });
-const $$splitComponentImporter = () => import("./index-Pk204zC0.mjs");
+const $$splitComponentImporter = () => import("./index-DxkcLMMQ.mjs");
 const Route = createFileRoute("/")({
   component: lazyRouteComponent($$splitComponentImporter, "component")
 });
