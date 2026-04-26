@@ -1,9 +1,20 @@
+import os
+
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
+from posthog import Posthog
 from pydantic import BaseModel
 
 from .analyzers.import_graph import analyze_attack_surface, AttackSurfaceReport
 from .analyzers.llm_callchain import analyze_llm_callchains, LlmCallChainReport
 from .analyzers.agentic_workflow import analyze_agentic_workflows, AgentWorkflowReport
+
+load_dotenv()
+
+posthog = Posthog(
+    api_key=os.environ["POSTHOG_API_KEY"],
+    host=os.environ.get("POSTHOG_HOST", "https://eu.i.posthog.com"),
+)
 
 
 class ServiceStatus(BaseModel):
@@ -114,9 +125,26 @@ def analyze_llm(req: LlmCallChainRequest) -> LlmCallChainResponse:
     try:
         report: LlmCallChainReport = analyze_llm_callchains(req.repository_path)
     except FileNotFoundError as e:
+        posthog.capture("sentinel-agent-core", "analysis_failed", {
+            "analysis_type": "llm_callchains",
+            "error": "not_found",
+        })
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
+        posthog.capture("sentinel-agent-core", "analysis_failed", {
+            "analysis_type": "llm_callchains",
+            "error": str(e),
+        })
         raise HTTPException(status_code=500, detail=f"Analysis error: {e}")
+
+    posthog.capture("sentinel-agent-core", "analysis_completed", {
+        "analysis_type": "llm_callchains",
+        "total_files_scanned": report.total_files_scanned,
+        "frameworks_detected": report.frameworks_detected,
+        "direct_injection_surface": report.direct_injection_surface,
+        "indirect_injection_surface": report.indirect_injection_surface,
+        "call_sites_count": len(report.call_sites),
+    })
 
     return LlmCallChainResponse(
         repository_path=report.repository_path,
@@ -148,9 +176,26 @@ def analyze_surface(req: AttackSurfaceRequest) -> AttackSurfaceResponse:
     try:
         report: AttackSurfaceReport = analyze_attack_surface(req.repository_path)
     except FileNotFoundError as e:
+        posthog.capture("sentinel-agent-core", "analysis_failed", {
+            "analysis_type": "attack_surface",
+            "error": "not_found",
+        })
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
+        posthog.capture("sentinel-agent-core", "analysis_failed", {
+            "analysis_type": "attack_surface",
+            "error": str(e),
+        })
         raise HTTPException(status_code=500, detail=f"Analysis error: {e}")
+
+    posthog.capture("sentinel-agent-core", "analysis_completed", {
+        "analysis_type": "attack_surface",
+        "total_files_analyzed": report.total_files_analyzed,
+        "total_packages_analyzed": report.total_packages_analyzed,
+        "attack_surface_reduction_score": report.attack_surface_reduction_score(),
+        "unused_packages_count": len(report.unused_packages),
+        "unreachable_files_count": len(report.unreachable_files),
+    })
 
     return AttackSurfaceResponse(
         repository_path=report.repository_path,
@@ -179,9 +224,27 @@ def analyze_agentic(req: AgenticWorkflowRequest) -> AgenticWorkflowResponse:
     try:
         report: AgentWorkflowReport = analyze_agentic_workflows(req.repository_path)
     except FileNotFoundError as e:
+        posthog.capture("sentinel-agent-core", "analysis_failed", {
+            "analysis_type": "agentic_workflows",
+            "error": "not_found",
+        })
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
+        posthog.capture("sentinel-agent-core", "analysis_failed", {
+            "analysis_type": "agentic_workflows",
+            "error": str(e),
+        })
         raise HTTPException(status_code=500, detail=f"Analysis error: {e}")
+
+    posthog.capture("sentinel-agent-core", "analysis_completed", {
+        "analysis_type": "agentic_workflows",
+        "total_files_scanned": report.total_files_scanned,
+        "frameworks_detected": report.frameworks_detected,
+        "critical_count": report.critical_count,
+        "high_count": report.high_count,
+        "medium_count": report.medium_count,
+        "findings_count": len(report.findings),
+    })
 
     return AgenticWorkflowResponse(
         repository_path=report.repository_path,

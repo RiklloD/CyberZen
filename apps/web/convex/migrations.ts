@@ -1,4 +1,5 @@
 import { v } from 'convex/values'
+import type { Id } from './_generated/dataModel'
 import { internalMutation } from './_generated/server'
 import {
   buildDisclosureMatchSummary,
@@ -7,7 +8,7 @@ import {
 } from './lib/breachMatching'
 
 type BackfillBreachDisclosure = {
-  _id: string
+  _id: Id<'breachDisclosures'>
   packageName: string
   ecosystem: string
   sourceName: string
@@ -16,7 +17,7 @@ type BackfillBreachDisclosure = {
   publishedAt: number
   affectedVersions: string[]
   fixVersion?: string
-  repositoryId?: string
+  repositoryId?: Id<'repositories'>
   aliases?: string[]
   sourceRef?: string
   sourceType?:
@@ -57,7 +58,7 @@ type BackfillBreachDisclosure = {
 }
 
 type BackfillSbomComponent = {
-  _id: string
+  _id: Id<'sbomComponents'>
   name: string
   normalizedName?: string
 }
