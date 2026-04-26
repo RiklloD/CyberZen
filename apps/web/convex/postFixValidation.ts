@@ -1,4 +1,3 @@
-"use node";
 /**
  * Post-Fix Validation Loop — spec §3.6.5
  *
@@ -281,3 +280,4 @@ export const reopenFinding = internalMutation({
     });
   },
 });
+

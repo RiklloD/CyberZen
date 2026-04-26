@@ -9,9 +9,69 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SupplyChainRouteImport } from './routes/supply-chain'
+import { Route as SbomRouteImport } from './routes/sbom'
+import { Route as RepositoriesRouteImport } from './routes/repositories'
+import { Route as RemediationRouteImport } from './routes/remediation'
+import { Route as IntegrationsRouteImport } from './routes/integrations'
+import { Route as FindingsRouteImport } from './routes/findings'
+import { Route as ComplianceRouteImport } from './routes/compliance'
+import { Route as CiCdRouteImport } from './routes/ci-cd'
+import { Route as BreachIntelRouteImport } from './routes/breach-intel'
+import { Route as AgentsRouteImport } from './routes/agents'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 
+const SupplyChainRoute = SupplyChainRouteImport.update({
+  id: '/supply-chain',
+  path: '/supply-chain',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SbomRoute = SbomRouteImport.update({
+  id: '/sbom',
+  path: '/sbom',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RepositoriesRoute = RepositoriesRouteImport.update({
+  id: '/repositories',
+  path: '/repositories',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RemediationRoute = RemediationRouteImport.update({
+  id: '/remediation',
+  path: '/remediation',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IntegrationsRoute = IntegrationsRouteImport.update({
+  id: '/integrations',
+  path: '/integrations',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FindingsRoute = FindingsRouteImport.update({
+  id: '/findings',
+  path: '/findings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ComplianceRoute = ComplianceRouteImport.update({
+  id: '/compliance',
+  path: '/compliance',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CiCdRoute = CiCdRouteImport.update({
+  id: '/ci-cd',
+  path: '/ci-cd',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BreachIntelRoute = BreachIntelRouteImport.update({
+  id: '/breach-intel',
+  path: '/breach-intel',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AgentsRoute = AgentsRouteImport.update({
+  id: '/agents',
+  path: '/agents',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AboutRoute = AboutRouteImport.update({
   id: '/about',
   path: '/about',
@@ -26,31 +86,178 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/agents': typeof AgentsRoute
+  '/breach-intel': typeof BreachIntelRoute
+  '/ci-cd': typeof CiCdRoute
+  '/compliance': typeof ComplianceRoute
+  '/findings': typeof FindingsRoute
+  '/integrations': typeof IntegrationsRoute
+  '/remediation': typeof RemediationRoute
+  '/repositories': typeof RepositoriesRoute
+  '/sbom': typeof SbomRoute
+  '/supply-chain': typeof SupplyChainRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/agents': typeof AgentsRoute
+  '/breach-intel': typeof BreachIntelRoute
+  '/ci-cd': typeof CiCdRoute
+  '/compliance': typeof ComplianceRoute
+  '/findings': typeof FindingsRoute
+  '/integrations': typeof IntegrationsRoute
+  '/remediation': typeof RemediationRoute
+  '/repositories': typeof RepositoriesRoute
+  '/sbom': typeof SbomRoute
+  '/supply-chain': typeof SupplyChainRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/agents': typeof AgentsRoute
+  '/breach-intel': typeof BreachIntelRoute
+  '/ci-cd': typeof CiCdRoute
+  '/compliance': typeof ComplianceRoute
+  '/findings': typeof FindingsRoute
+  '/integrations': typeof IntegrationsRoute
+  '/remediation': typeof RemediationRoute
+  '/repositories': typeof RepositoriesRoute
+  '/sbom': typeof SbomRoute
+  '/supply-chain': typeof SupplyChainRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/about'
+  fullPaths:
+    | '/'
+    | '/about'
+    | '/agents'
+    | '/breach-intel'
+    | '/ci-cd'
+    | '/compliance'
+    | '/findings'
+    | '/integrations'
+    | '/remediation'
+    | '/repositories'
+    | '/sbom'
+    | '/supply-chain'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/about'
-  id: '__root__' | '/' | '/about'
+  to:
+    | '/'
+    | '/about'
+    | '/agents'
+    | '/breach-intel'
+    | '/ci-cd'
+    | '/compliance'
+    | '/findings'
+    | '/integrations'
+    | '/remediation'
+    | '/repositories'
+    | '/sbom'
+    | '/supply-chain'
+  id:
+    | '__root__'
+    | '/'
+    | '/about'
+    | '/agents'
+    | '/breach-intel'
+    | '/ci-cd'
+    | '/compliance'
+    | '/findings'
+    | '/integrations'
+    | '/remediation'
+    | '/repositories'
+    | '/sbom'
+    | '/supply-chain'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
+  AgentsRoute: typeof AgentsRoute
+  BreachIntelRoute: typeof BreachIntelRoute
+  CiCdRoute: typeof CiCdRoute
+  ComplianceRoute: typeof ComplianceRoute
+  FindingsRoute: typeof FindingsRoute
+  IntegrationsRoute: typeof IntegrationsRoute
+  RemediationRoute: typeof RemediationRoute
+  RepositoriesRoute: typeof RepositoriesRoute
+  SbomRoute: typeof SbomRoute
+  SupplyChainRoute: typeof SupplyChainRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/supply-chain': {
+      id: '/supply-chain'
+      path: '/supply-chain'
+      fullPath: '/supply-chain'
+      preLoaderRoute: typeof SupplyChainRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sbom': {
+      id: '/sbom'
+      path: '/sbom'
+      fullPath: '/sbom'
+      preLoaderRoute: typeof SbomRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/repositories': {
+      id: '/repositories'
+      path: '/repositories'
+      fullPath: '/repositories'
+      preLoaderRoute: typeof RepositoriesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/remediation': {
+      id: '/remediation'
+      path: '/remediation'
+      fullPath: '/remediation'
+      preLoaderRoute: typeof RemediationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/integrations': {
+      id: '/integrations'
+      path: '/integrations'
+      fullPath: '/integrations'
+      preLoaderRoute: typeof IntegrationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/findings': {
+      id: '/findings'
+      path: '/findings'
+      fullPath: '/findings'
+      preLoaderRoute: typeof FindingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/compliance': {
+      id: '/compliance'
+      path: '/compliance'
+      fullPath: '/compliance'
+      preLoaderRoute: typeof ComplianceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ci-cd': {
+      id: '/ci-cd'
+      path: '/ci-cd'
+      fullPath: '/ci-cd'
+      preLoaderRoute: typeof CiCdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/breach-intel': {
+      id: '/breach-intel'
+      path: '/breach-intel'
+      fullPath: '/breach-intel'
+      preLoaderRoute: typeof BreachIntelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/agents': {
+      id: '/agents'
+      path: '/agents'
+      fullPath: '/agents'
+      preLoaderRoute: typeof AgentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/about': {
       id: '/about'
       path: '/about'
@@ -71,6 +278,16 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
+  AgentsRoute: AgentsRoute,
+  BreachIntelRoute: BreachIntelRoute,
+  CiCdRoute: CiCdRoute,
+  ComplianceRoute: ComplianceRoute,
+  FindingsRoute: FindingsRoute,
+  IntegrationsRoute: IntegrationsRoute,
+  RemediationRoute: RemediationRoute,
+  RepositoriesRoute: RepositoriesRoute,
+  SbomRoute: SbomRoute,
+  SupplyChainRoute: SupplyChainRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

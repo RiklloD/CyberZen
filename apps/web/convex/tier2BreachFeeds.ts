@@ -1,4 +1,3 @@
-"use node";
 /**
  * Tier 2 Breach Intelligence Feeds — spec §3.10.2
  *
@@ -310,3 +309,4 @@ export const syncPacketStormAdvisories = action({
     return { total: items.length, imported, skipped }
   },
 })
+

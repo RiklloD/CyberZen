@@ -1,4 +1,3 @@
-"use node";
 /**
  * GitLab Webhook Integration — Push Hook + Merge Request Hook
  *

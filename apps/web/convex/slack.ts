@@ -1,4 +1,3 @@
-"use node";
 /**
  * Sentinel Slack Integration
  *
@@ -473,3 +472,4 @@ export const listRepoSummariesBySlug = internalQuery({
     return results;
   },
 });
+

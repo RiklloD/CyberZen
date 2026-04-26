@@ -1,4 +1,3 @@
-"use node";
 /**
  * SIEM Intel — Convex entrypoints for Splunk + Elastic push delivery (spec §4.6.5).
  *

@@ -1,4 +1,3 @@
-"use node";
 /**
  * Tier 3 Breach Intelligence Feeds — spec §3.10.2
  *
@@ -365,3 +364,4 @@ export const getTier3SignalSummary = query({
     }
   },
 })
+

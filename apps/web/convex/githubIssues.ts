@@ -1,4 +1,3 @@
-"use node";
 /**
  * GitHub Issues Integration — spec §4.6.4
  *
@@ -198,3 +197,4 @@ export const patchFindingWithGithubIssue = internalMutation({
     });
   },
 });
+

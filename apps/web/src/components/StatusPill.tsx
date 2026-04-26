@@ -1,15 +1,18 @@
+/* Linear-style chip: transparent backgrounds, colored text, subtle borders */
+
 type Tone = "neutral" | "success" | "warning" | "danger" | "info";
 
-const toneClassNames: Record<Tone, string> = {
+const toneStyles: Record<Tone, string> = {
 	neutral:
-		"border-[rgba(94,113,119,0.2)] bg-[rgba(94,113,119,0.08)] text-[var(--sea-ink-soft)]",
+		"border-[rgba(130,122,110,0.22)] bg-[rgba(130,122,110,0.07)] text-[var(--sea-ink-soft)]",
 	success:
-		"border-[rgba(91,212,158,0.24)] bg-[rgba(91,212,158,0.1)] text-[var(--success)]",
+		"border-[rgba(5,150,105,0.26)] bg-[rgba(5,150,105,0.08)] text-[var(--success)]",
 	warning:
-		"border-[rgba(242,165,59,0.26)] bg-[rgba(242,165,59,0.12)] text-[var(--warning)]",
+		"border-[rgba(217,119,6,0.28)] bg-[rgba(217,119,6,0.09)] text-[var(--warning)]",
 	danger:
-		"border-[rgba(255,107,107,0.24)] bg-[rgba(255,107,107,0.11)] text-[var(--danger)]",
-	info: "border-[rgba(101,214,210,0.24)] bg-[rgba(101,214,210,0.1)] text-[var(--teal)]",
+		"border-[rgba(220,38,38,0.26)] bg-[rgba(220,38,38,0.09)] text-[var(--danger)]",
+	info:
+		"border-[rgba(30,157,154,0.26)] bg-[rgba(30,157,154,0.08)] text-[var(--teal)]",
 };
 
 export default function StatusPill({
@@ -21,7 +24,7 @@ export default function StatusPill({
 }) {
 	return (
 		<span
-			className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[0.68rem] font-semibold tracking-[0.14em] uppercase ${toneClassNames[tone]}`}
+			className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[0.65rem] font-semibold tracking-[0.12em] uppercase leading-none ${toneStyles[tone]}`}
 		>
 			{label}
 		</span>

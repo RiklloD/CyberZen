@@ -13,6 +13,7 @@ export const env = createEnv({
 		VITE_CONVEX_URL: z.string().url().optional(),
 		VITE_POSTHOG_KEY: z.string().min(1).optional(),
 		VITE_POSTHOG_HOST: z.string().url().default("https://us.i.posthog.com"),
+		VITE_TENANT_SLUG: z.string().min(1).default("atlas-fintech"),
 	},
 
 	runtimeEnv: import.meta.env,

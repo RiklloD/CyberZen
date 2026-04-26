@@ -1,4 +1,3 @@
-"use node";
 /**
  * CircleCI Webhook Integration (spec §4.6.1 — CI provider coverage)
  *

@@ -25,7 +25,7 @@ const buildOrder = [
 
 function ArchitecturePage() {
 	return (
-		<main className="page-wrap px-4 pb-14 pt-10">
+		<main className="page-body-padded">
 			<section className="panel rounded-[2rem] px-6 py-8 sm:px-10 sm:py-10">
 				<p className="island-kicker mb-4">Architecture synthesis</p>
 				<h1 className="display-title max-w-3xl text-4xl leading-[1.02] text-[var(--sea-ink)] sm:text-6xl">

@@ -1,4 +1,3 @@
-"use node";
 
 import { ConvexError, v } from 'convex/values'
 import type { FunctionReturnType } from 'convex/server'
@@ -1054,3 +1053,4 @@ export const syncGoVulnAdvisories = action({
     return { total: imported + skipped, imported, skipped }
   },
 })
+

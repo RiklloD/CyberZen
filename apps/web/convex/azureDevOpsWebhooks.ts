@@ -1,4 +1,3 @@
-"use node";
 /**
  * Azure DevOps Webhook Integration (spec §4.6.1)
  *

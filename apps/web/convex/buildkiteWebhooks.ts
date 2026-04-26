@@ -1,4 +1,3 @@
-"use node";
 /**
  * Buildkite Webhook Integration (spec §4.6.1 — CI provider coverage)
  *

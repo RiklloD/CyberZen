@@ -1,4 +1,3 @@
-"use node";
 /**
  * Datadog Custom Metrics Integration — spec §4.6.5
  *
@@ -147,3 +146,4 @@ export const pushAllTenantMetrics = internalAction({
     return { pushed: pushCount > 0, tenantCount: pushCount };
   },
 });
+

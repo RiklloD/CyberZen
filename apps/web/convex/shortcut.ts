@@ -1,4 +1,3 @@
-"use node";
 /**
  * Shortcut Integration — spec §4.6.4
  *
@@ -325,3 +324,4 @@ export const patchFindingWithShortcutKey = internalMutation({
     });
   },
 });
+

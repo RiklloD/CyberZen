@@ -1,4 +1,3 @@
-"use node";
 /**
  * Sentinel Opsgenie Integration — Alerts API v2
  *
@@ -260,3 +259,4 @@ export const resolveOpsgenieAlert = internalAction({
     return { closed: result.ok, status: result.status, alias };
   },
 });
+

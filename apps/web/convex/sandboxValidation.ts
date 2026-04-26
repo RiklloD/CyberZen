@@ -1,4 +1,3 @@
-"use node";
 /**
  * Sentinel Sandbox Validation — Convex action layer.
  *
@@ -417,3 +416,4 @@ export const dispatchValidatedWebhook = internalAction({
     );
   },
 });
+

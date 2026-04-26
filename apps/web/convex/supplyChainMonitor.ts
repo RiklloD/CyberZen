@@ -1,4 +1,3 @@
-"use node";
 /**
  * Supply Chain Social Layer Monitor — Phase 1 Real Implementation (spec §3.2)
  *
@@ -617,3 +616,4 @@ export const storeSupplyChainAnalysis = internalMutation({
     }
   },
 });
+

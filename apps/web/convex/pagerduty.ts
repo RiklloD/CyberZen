@@ -1,4 +1,3 @@
-"use node";
 /**
  * PagerDuty Integration — Events API v2
  *
@@ -250,3 +249,4 @@ export const resolveIncident = internalAction({
     });
   },
 });
+

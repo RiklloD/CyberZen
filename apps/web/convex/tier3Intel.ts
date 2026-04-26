@@ -1,4 +1,3 @@
-'use node'
 // Tier 3 Threat Intelligence — CISA KEV + Telegram + dark-web signals.
 //
 // Actions (network I/O, "use node" required):
@@ -293,3 +292,4 @@ export const triggerCisaKevSync = mutation({
     return { scheduled: true }
   },
 })
+

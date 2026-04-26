@@ -1,4 +1,3 @@
-"use node";
 /**
  * Jira Cloud Integration — spec §4.6.4
  *
@@ -226,3 +225,4 @@ export const patchFindingWithJiraKey = internalMutation({
     });
   },
 });
+

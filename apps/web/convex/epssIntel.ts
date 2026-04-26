@@ -1,4 +1,3 @@
-'use node'
 // WS-34 — EPSS Score Integration.
 //
 // The Exploit Prediction Scoring System (EPSS) from FIRST.org provides a

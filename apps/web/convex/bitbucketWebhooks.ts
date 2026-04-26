@@ -1,4 +1,3 @@
-"use node";
 /**
  * Bitbucket Webhook Integration (spec §4.6.1)
  *

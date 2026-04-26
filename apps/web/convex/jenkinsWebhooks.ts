@@ -1,4 +1,3 @@
-"use node";
 /**
  * Jenkins Webhook Integration (spec §4.6.2 — last remaining CI provider)
  *

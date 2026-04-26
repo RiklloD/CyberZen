@@ -1,4 +1,3 @@
-"use node";
 /**
  * Linear Integration — spec §4.6.4
  *
@@ -320,3 +319,4 @@ function buildLinearDescription(args: {
 
   return lines.join("\n");
 }
+

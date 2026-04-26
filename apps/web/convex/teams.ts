@@ -1,4 +1,3 @@
-"use node";
 /**
  * Sentinel Microsoft Teams Integration
  *
@@ -208,3 +207,4 @@ export const listRepoSummariesBySlug = internalQuery({
     return results;
   },
 });
+
