@@ -8,6 +8,7 @@ dist/
 !.env.*.example
 apps/web/node_modules/
 apps/web/.tanstack/
+apps/web/.vercel/
 apps/web/.convex/
 apps/web/convex/_generated/
 __pycache__/
