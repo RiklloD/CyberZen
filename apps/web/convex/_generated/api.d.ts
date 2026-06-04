@@ -88,6 +88,7 @@ import type * as findings from "../findings.js";
 import type * as gamificationIntel from "../gamificationIntel.js";
 import type * as gateEnforcement from "../gateEnforcement.js";
 import type * as gitIntegrityIntel from "../gitIntegrityIntel.js";
+import type * as githubIntegration from "../githubIntegration.js";
 import type * as githubIssues from "../githubIssues.js";
 import type * as githubWebhooks from "../githubWebhooks.js";
 import type * as gitlabWebhooks from "../gitlabWebhooks.js";
@@ -420,6 +421,7 @@ declare const fullApi: ApiFromModules<{
   gamificationIntel: typeof gamificationIntel;
   gateEnforcement: typeof gateEnforcement;
   gitIntegrityIntel: typeof gitIntegrityIntel;
+  githubIntegration: typeof githubIntegration;
   githubIssues: typeof githubIssues;
   githubWebhooks: typeof githubWebhooks;
   gitlabWebhooks: typeof gitlabWebhooks;

@@ -7,6 +7,7 @@ import {
 	Boxes,
 	FlaskConical,
 	GitMerge,
+	Plus,
 	Rocket,
 	ShieldCheck,
 	Sparkles,
@@ -157,12 +158,21 @@ function DashboardPage() {
 					<>
 						<div className="mb-4 flex items-center justify-between">
 							<h2 className="section-title">Repositories</h2>
-							<Link
-								to="/repositories"
-								className="text-xs font-semibold text-[var(--lagoon-deep)] hover:underline"
-							>
-								View all →
-							</Link>
+							<div className="flex items-center gap-4">
+								<Link
+									to="/onboarding"
+									className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--lagoon-deep)] hover:underline"
+								>
+									<Plus size={13} />
+									Propose repository
+								</Link>
+								<Link
+									to="/repositories"
+									className="text-xs font-semibold text-[var(--lagoon-deep)] hover:underline"
+								>
+									View all →
+								</Link>
+							</div>
 						</div>
 						<div className="repo-grid mb-6">
 							{repositories.slice(0, 6).map((repo: OverviewData["repositories"][number]) => (

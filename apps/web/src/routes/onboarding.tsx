@@ -1,8 +1,8 @@
 import { useAuthToken } from "@convex-dev/auth/react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMutation } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { Building2, Plus, Rocket, Trash2 } from "lucide-react";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import StatusPill from "../components/StatusPill";
 import { api } from "../lib/convex";
 import { useTenantSlug } from "../lib/workspace";
@@ -15,6 +15,20 @@ type RepoDraft = {
 	defaultBranch: string;
 	primaryLanguage: string;
 	visibility: "private" | "public";
+};
+
+type GithubRepoOption = {
+	id: number;
+	fullName: string;
+	name: string;
+	defaultBranch: string;
+	primaryLanguage: string;
+	visibility: "private" | "public";
+	description?: string;
+	htmlUrl: string;
+	archived: boolean;
+	fork: boolean;
+	updatedAt?: string;
 };
 
 type DeploymentMode = "cloud_saas" | "vpc_injection" | "on_prem";
@@ -93,6 +107,92 @@ function OnboardingPage() {
 	const createWorkspaceInvite = useMutation(
 		api.workspaceAuth.createWorkspaceInvite,
 	);
+
+	// VCS providers the current user has linked via OAuth (GitHub, GitLab, ...).
+	const linkedProviders = useQuery(
+		api.githubIntegration.listLinkedProviders,
+		{ tenantSlug: TENANT },
+	);
+	// Tenant-level integration health so we only show providers that are
+	// both linked to the user AND configured for the workspace.
+	const integrationStatus = useQuery(
+		api.integrations.listIntegrationStatusForTenant,
+		{ tenantSlug: TENANT },
+	);
+	const listGithubRepos = useAction(api.githubIntegration.listGithubRepos);
+	const [githubRepos, setGithubRepos] = useState<{
+		login: string;
+		repos: GithubRepoOption[];
+	} | null>(null);
+	const [githubReposError, setGithubReposError] = useState<string | null>(null);
+	const [githubReposLoading, setGithubReposLoading] = useState(false);
+
+	// Compute the set of VCS providers that are linked AND connected.
+	const availableProviders = (() => {
+		const linked = linkedProviders ?? [];
+		if (linked.length === 0) {
+			return [] as Array<"github" | "gitlab">;
+		}
+
+		const connectedSlugs = new Set(
+			(integrationStatus ?? [])
+				.filter((status: { configured: boolean }) => status.configured)
+				.map((status: { integrationSlug: string }) => status.integrationSlug),
+		);
+
+		// Map auth provider names → tenant integration slugs.
+		// The OAuth provider string is "github" / "gitlab"; the integration
+		// catalog slugs are "github" / "gitlab" today (1:1).
+		return linked
+			.map(
+				(link: { provider: string }) => link.provider as "github" | "gitlab",
+			)
+			.filter(
+				(provider: "github" | "gitlab") =>
+					connectedSlugs.size === 0 || connectedSlugs.has(provider),
+			);
+	})();
+
+	// If the user has GitHub linked, fetch the repos from the OAuth account.
+	useEffect(() => {
+		if (!linkedProviders) return;
+		const hasGithub = linkedProviders.some(
+			(provider: { provider: string }) => provider.provider === "github",
+		);
+		if (!hasGithub || githubRepos || githubReposLoading) return;
+
+		setGithubReposLoading(true);
+		setGithubReposError(null);
+		listGithubRepos({ tenantSlug: TENANT, perPage: 100 })
+			.then((result) => {
+				setGithubRepos({
+					login: result.login,
+					repos: result.repos as GithubRepoOption[],
+				});
+			})
+			.catch((err: unknown) => {
+				setGithubReposError(
+					err instanceof Error ? err.message : "Failed to load GitHub repos.",
+				);
+			})
+			.finally(() => setGithubReposLoading(false));
+	}, [linkedProviders, listGithubRepos, TENANT, githubRepos, githubReposLoading]);
+
+	// If the user picks a provider that no longer has linked+connected status,
+	// reset the field so the form can never submit an invalid combination.
+	useEffect(() => {
+		setRepositories((current) =>
+			current.map((repo) => {
+				if (availableProviders.length === 0) return repo;
+				if (availableProviders.includes(repo.provider)) return repo;
+				return { ...repo, provider: availableProviders[0] };
+			}),
+		);
+		// We intentionally don't depend on `repositories` — this effect should
+		// only run when the available set changes, not on every edit.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [availableProviders.length, availableProviders[0]]);
+
 	const [companyName, setCompanyName] = useState(humanizeSlug(TENANT));
 	const [deploymentMode, setDeploymentMode] =
 		useState<DeploymentMode>("cloud_saas");
@@ -522,115 +622,194 @@ function OnboardingPage() {
 							</div>
 
 							<div className="space-y-3">
-								{repositories.map((repo) => (
-									<div
-										key={repo.id}
-										className="grid gap-3 rounded-2xl border border-[var(--line)] bg-[var(--surface-strong)] p-4 lg:grid-cols-[1.6fr_0.9fr_0.9fr_1fr_0.8fr_auto]"
-									>
-										<label className="block">
-											<span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--sea-ink-soft)]">
-												Full name
-											</span>
-											<input
-												value={repo.fullName}
-												onChange={(event) =>
-													updateRepository(repo.id, {
-														fullName: event.target.value,
-													})
-												}
-												className="w-full rounded-2xl border border-[var(--line)] bg-[var(--bg-panel)] px-3 py-2.5 text-sm text-[var(--sea-ink)] outline-none transition focus:border-[var(--accent-line)] focus:ring-2 focus:ring-[rgba(47,207,132,0.14)]"
-												placeholder="acme/payments-api"
-											/>
-										</label>
+									{repositories.map((repo) => {
+										const providerOptions: RepoDraft["provider"][] =
+											availableProviders.length > 0
+												? availableProviders
+												: [repo.provider];
+										const showRepoDropdown =
+											repo.provider === "github" &&
+											(githubRepos?.repos.length ?? 0) > 0;
 
-										<label className="block">
-											<span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--sea-ink-soft)]">
-												Provider
-											</span>
-											<select
-												value={repo.provider}
-												onChange={(event) =>
-													updateRepository(repo.id, {
-														provider: event.target
-															.value as RepoDraft["provider"],
-													})
-												}
-												className="w-full rounded-2xl border border-[var(--line)] bg-[var(--bg-panel)] px-3 py-2.5 text-sm text-[var(--sea-ink)] outline-none transition focus:border-[var(--accent-line)] focus:ring-2 focus:ring-[rgba(47,207,132,0.14)]"
+										return (
+											<div
+												key={repo.id}
+												className="rounded-2xl border border-[var(--line)] bg-[var(--surface-strong)] p-4"
 											>
-												<option value="github">GitHub</option>
-												<option value="gitlab">GitLab</option>
-											</select>
-										</label>
+												<div className="grid gap-3 lg:grid-cols-[1.6fr_0.9fr_auto]">
+													<label className="block">
+														<span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--sea-ink-soft)]">
+															Repository
+															{githubRepos?.login ? (
+																<span className="ml-2 normal-case tracking-normal text-[var(--sea-ink-soft)]">
+																	from {githubRepos.login}
+																</span>
+															) : null}
+														</span>
+														{showRepoDropdown ? (
+															<select
+																value={repo.fullName}
+																onChange={(event) => {
+																	const picked = githubRepos?.repos.find(
+																		(r) => r.fullName === event.target.value,
+																	);
+																	if (!picked) {
+																		updateRepository(repo.id, {
+																			fullName: event.target.value,
+																		});
+																		return;
+																	}
+																	updateRepository(repo.id, {
+																		fullName: picked.fullName,
+																		defaultBranch: picked.defaultBranch,
+																		primaryLanguage: picked.primaryLanguage,
+																		visibility: picked.visibility,
+																	});
+																}}
+																className="w-full rounded-2xl border border-[var(--line)] bg-[var(--bg-panel)] px-3 py-2.5 text-sm text-[var(--sea-ink)] outline-none transition focus:border-[var(--accent-line)] focus:ring-2 focus:ring-[rgba(47,207,132,0.14)]"
+															>
+																<option value="" disabled>
+																	{githubReposLoading
+																		? "Loading GitHub repos…"
+																		: "Pick a repository"}
+																</option>
+																{githubRepos?.repos.map((option) => (
+																	<option
+																		key={option.id}
+																		value={option.fullName}
+																	>
+																		{option.fullName}
+																		{option.archived ? " · archived" : ""}
+																		{option.fork ? " · fork" : ""}
+																	</option>
+																))}
+															</select>
+														) : (
+															<input
+																value={repo.fullName}
+																onChange={(event) =>
+																	updateRepository(repo.id, {
+																		fullName: event.target.value,
+																	})
+																}
+																className="w-full rounded-2xl border border-[var(--line)] bg-[var(--bg-panel)] px-3 py-2.5 text-sm text-[var(--sea-ink)] outline-none transition focus:border-[var(--accent-line)] focus:ring-2 focus:ring-[rgba(47,207,132,0.14)]"
+																placeholder="acme/payments-api"
+															/>
+														)}
+														{repo.provider === "github" &&
+															!showRepoDropdown &&
+															(githubReposLoading ? (
+																<p className="mt-1.5 text-[11px] text-[var(--sea-ink-soft)]">
+																	Loading GitHub repos…
+																</p>
+															) : githubReposError ? (
+																<p className="mt-1.5 text-[11px] text-[var(--danger)]">
+																	{githubReposError}
+																</p>
+															) : (
+																<p className="mt-1.5 text-[11px] text-[var(--sea-ink-soft)]">
+																	No GitHub repos available — type the
+																	full name manually.
+																</p>
+															))}
+													</label>
 
-										<label className="block">
-											<span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--sea-ink-soft)]">
-												Default branch
-											</span>
-											<input
-												value={repo.defaultBranch}
-												onChange={(event) =>
-													updateRepository(repo.id, {
-														defaultBranch: event.target.value,
-													})
-												}
-												className="w-full rounded-2xl border border-[var(--line)] bg-[var(--bg-panel)] px-3 py-2.5 text-sm text-[var(--sea-ink)] outline-none transition focus:border-[var(--accent-line)] focus:ring-2 focus:ring-[rgba(47,207,132,0.14)]"
-												placeholder="main"
-											/>
-										</label>
+													<label className="block">
+														<span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--sea-ink-soft)]">
+															Provider
+														</span>
+														<select
+															value={repo.provider}
+															onChange={(event) =>
+																updateRepository(repo.id, {
+																	provider: event.target
+																		.value as RepoDraft["provider"],
+																})
+															}
+															className="w-full rounded-2xl border border-[var(--line)] bg-[var(--bg-panel)] px-3 py-2.5 text-sm text-[var(--sea-ink)] outline-none transition focus:border-[var(--accent-line)] focus:ring-2 focus:ring-[rgba(47,207,132,0.14)]"
+														>
+															{providerOptions.includes("github") && (
+																<option value="github">GitHub</option>
+															)}
+															{providerOptions.includes("gitlab") && (
+																<option value="gitlab">GitLab</option>
+															)}
+														</select>
+													</label>
 
-										<label className="block">
-											<span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--sea-ink-soft)]">
-												Language
-											</span>
-											<input
-												value={repo.primaryLanguage}
-												onChange={(event) =>
-													updateRepository(repo.id, {
-														primaryLanguage: event.target.value,
-													})
-												}
-												className="w-full rounded-2xl border border-[var(--line)] bg-[var(--bg-panel)] px-3 py-2.5 text-sm text-[var(--sea-ink)] outline-none transition focus:border-[var(--accent-line)] focus:ring-2 focus:ring-[rgba(47,207,132,0.14)]"
-												placeholder="TypeScript"
-											/>
-										</label>
+													<div className="flex items-end">
+														<button
+															type="button"
+															onClick={() => removeRepository(repo.id)}
+															disabled={repositories.length === 1}
+															className="signal-button secondary-button w-full justify-center"
+															style={{
+																padding: "0.74rem 0.9rem",
+																fontSize: "0.8rem",
+															}}
+														>
+															<Trash2 size={14} className="mr-1.5" />
+															Remove
+														</button>
+													</div>
+												</div>
 
-										<label className="block">
-											<span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--sea-ink-soft)]">
-												Visibility
-											</span>
-											<select
-												value={repo.visibility}
-												onChange={(event) =>
-													updateRepository(repo.id, {
-														visibility: event.target
-															.value as RepoDraft["visibility"],
-													})
-												}
-												className="w-full rounded-2xl border border-[var(--line)] bg-[var(--bg-panel)] px-3 py-2.5 text-sm text-[var(--sea-ink)] outline-none transition focus:border-[var(--accent-line)] focus:ring-2 focus:ring-[rgba(47,207,132,0.14)]"
-											>
-												<option value="private">Private</option>
-												<option value="public">Public</option>
-											</select>
-										</label>
+												<div className="mt-3 grid gap-3 lg:grid-cols-[1fr_1fr_0.8fr]">
+													<label className="block">
+														<span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--sea-ink-soft)]">
+															Default branch
+														</span>
+														<input
+															value={repo.defaultBranch}
+															onChange={(event) =>
+																updateRepository(repo.id, {
+																	defaultBranch: event.target.value,
+																})
+															}
+															className="w-full rounded-2xl border border-[var(--line)] bg-[var(--bg-panel)] px-3 py-2.5 text-sm text-[var(--sea-ink)] outline-none transition focus:border-[var(--accent-line)] focus:ring-2 focus:ring-[rgba(47,207,132,0.14)]"
+															placeholder="main"
+														/>
+													</label>
 
-										<div className="flex items-end">
-											<button
-												type="button"
-												onClick={() => removeRepository(repo.id)}
-												disabled={repositories.length === 1}
-												className="signal-button secondary-button w-full justify-center"
-												style={{
-													padding: "0.74rem 0.9rem",
-													fontSize: "0.8rem",
-												}}
-											>
-												<Trash2 size={14} className="mr-1.5" />
-												Remove
-											</button>
-										</div>
-									</div>
-								))}
-							</div>
+													<label className="block">
+														<span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--sea-ink-soft)]">
+															Language
+														</span>
+														<input
+															value={repo.primaryLanguage}
+															onChange={(event) =>
+																updateRepository(repo.id, {
+																	primaryLanguage: event.target.value,
+																})
+															}
+															className="w-full rounded-2xl border border-[var(--line)] bg-[var(--bg-panel)] px-3 py-2.5 text-sm text-[var(--sea-ink)] outline-none transition focus:border-[var(--accent-line)] focus:ring-2 focus:ring-[rgba(47,207,132,0.14)]"
+															placeholder="TypeScript"
+														/>
+													</label>
+
+													<label className="block">
+														<span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--sea-ink-soft)]">
+															Visibility
+														</span>
+														<select
+															value={repo.visibility}
+															onChange={(event) =>
+																updateRepository(repo.id, {
+																	visibility: event.target
+																		.value as RepoDraft["visibility"],
+																})
+															}
+															className="w-full rounded-2xl border border-[var(--line)] bg-[var(--bg-panel)] px-3 py-2.5 text-sm text-[var(--sea-ink)] outline-none transition focus:border-[var(--accent-line)] focus:ring-2 focus:ring-[rgba(47,207,132,0.14)]"
+														>
+															<option value="private">Private</option>
+															<option value="public">Public</option>
+														</select>
+													</label>
+												</div>
+											</div>
+										);
+									})}
+								</div>
 
 							<button
 								type="button"
