@@ -1,7 +1,7 @@
 import { useAuthToken } from "@convex-dev/auth/react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useAction, useMutation, useQuery } from "convex/react";
-import { Building2, Plus, Rocket, Trash2 } from "lucide-react";
+import { Building2, Github, Plus, Rocket, Trash2 } from "lucide-react";
 import { type FormEvent, useEffect, useState } from "react";
 import StatusPill from "../components/StatusPill";
 import { api } from "../lib/convex";
@@ -126,6 +126,33 @@ function OnboardingPage() {
 	} | null>(null);
 	const [githubReposError, setGithubReposError] = useState<string | null>(null);
 	const [githubReposLoading, setGithubReposLoading] = useState(false);
+
+	// Connection state for the application-managed GitHub OAuth flow
+	// (see convex/githubOAuth.ts). The user is "connected" once we
+	// have a stored `userGithubTokens` row, which is what unlocks
+	// `/user/repos` and populates the repo dropdown.
+	const githubConnection = useQuery(api.githubOAuth.getGithubConnectionStatus);
+	const startGithubConnect = useAction(api.githubOAuth.startGithubConnect);
+	const [githubConnectBusy, setGithubConnectBusy] = useState(false);
+	const [githubConnectError, setGithubConnectError] = useState<string | null>(null);
+
+	// If the user came back from the GitHub OAuth callback, surface a
+	// banner. The query string is read once on mount via window.location.
+	useEffect(() => {
+		if (typeof window === "undefined") return;
+		const params = new URLSearchParams(window.location.search);
+		if (params.get("github") === "error") {
+			setGithubConnectError(
+				params.get("reason") ?? "GitHub connection failed.",
+			);
+			// Strip the query so a refresh doesn't re-show the banner.
+			window.history.replaceState(
+				{},
+				"",
+				window.location.pathname + window.location.hash,
+			);
+		}
+	}, []);
 
 	// Compute the set of VCS providers that are linked AND connected.
 	const availableProviders = (() => {
@@ -621,6 +648,64 @@ function OnboardingPage() {
 								</p>
 							</div>
 
+							{githubConnectError && (
+								<div className="mb-3 rounded-2xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+									GitHub connection failed: {githubConnectError}
+								</div>
+							)}
+
+							{availableProviders.includes("github") &&
+								githubConnection &&
+								!githubConnection.connected && (
+									<div className="mb-3 flex flex-col gap-2 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4 sm:flex-row sm:items-center sm:justify-between">
+										<div className="flex items-start gap-3">
+											<span className="metric-icon shrink-0">
+												<Github size={14} />
+											</span>
+											<div>
+												<p className="text-sm font-semibold text-[var(--sea-ink)]">
+													Connect GitHub to pick from your repos
+												</p>
+												<p className="text-xs text-[var(--sea-ink-soft)]">
+													Authorize the CyberZen GitHub app with the
+													{" "}
+													<code className="rounded bg-[var(--surface-strong)] px-1 py-0.5">
+														public_repo
+													</code>
+													{" "}scope so we can list them here.
+												</p>
+											</div>
+										</div>
+										<button
+											type="button"
+											disabled={githubConnectBusy}
+											onClick={async () => {
+												setGithubConnectBusy(true);
+												setGithubConnectError(null);
+												try {
+													const result = await startGithubConnect({
+														tenantSlug: TENANT,
+														returnTo: "/onboarding",
+													});
+													window.location.assign(result.authorizeUrl);
+												} catch (err) {
+													setGithubConnectError(
+														err instanceof Error
+															? err.message
+															: "Failed to start GitHub OAuth.",
+													);
+													setGithubConnectBusy(false);
+												}
+											}}
+											className="signal-button h-fit self-start whitespace-nowrap sm:self-auto"
+										>
+											{githubConnectBusy
+												? "Redirecting…"
+												: "Connect GitHub"}
+										</button>
+									</div>
+								)}
+
 							<div className="space-y-3">
 									{repositories.map((repo) => {
 										const providerOptions: RepoDraft["provider"][] =
@@ -705,6 +790,12 @@ function OnboardingPage() {
 															) : githubReposError ? (
 																<p className="mt-1.5 text-[11px] text-[var(--danger)]">
 																	{githubReposError}
+																</p>
+															) : githubConnection &&
+															  !githubConnection.connected ? (
+																<p className="mt-1.5 text-[11px] text-[var(--sea-ink-soft)]">
+																	Connect GitHub above to pick from your repos, or
+																	type the full name (e.g. <code>acme/payments-api</code>).
 																</p>
 															) : (
 																<p className="mt-1.5 text-[11px] text-[var(--sea-ink-soft)]">

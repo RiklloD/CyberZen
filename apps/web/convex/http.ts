@@ -10,6 +10,94 @@ const http = httpRouter()
 
 auth.addHttpRoutes(http)
 
+// ─── §5.4 Application-managed GitHub OAuth callback ──────────────────
+//
+// GitHub redirects the browser here with `?code=...&state=...` after
+// the user authorizes the CyberZen OAuth app. We validate `state`
+// (CSRF), exchange `code` for a token, fetch the user's login, store
+// the row, and 302 the user back to the SPA.
+http.route({
+    path: '/api/github/oauth/callback',
+    method: 'GET',
+    handler: httpAction(async (ctx, request) => {
+        const url = new URL(request.url);
+        const code = url.searchParams.get('code');
+        const state = url.searchParams.get('state');
+        const errorParam = url.searchParams.get('error');
+        const errorDescription = url.searchParams.get('error_description');
+
+        const siteUrl = process.env['CONVEX_SITE_URL'] ?? '';
+        const appUrl = process.env['SITE_URL'] ?? siteUrl;
+        const target = (path: string) =>
+            new URL(path, appUrl || siteUrl).toString();
+
+        // The user denied the authorization on github.com.
+        if (errorParam) {
+            return Response.redirect(
+                target(
+                    `/onboarding?github=error&reason=${encodeURIComponent(
+                        errorDescription ?? errorParam,
+                    )}`,
+                ),
+                302,
+            );
+        }
+
+        if (!code || !state) {
+            return new Response(
+                'Missing required OAuth parameters (code, state).',
+                { status: 400 },
+            );
+        }
+
+        // Consume the state row (atomic, single-use). If the state
+        // is unknown or expired, refuse the request.
+        const stateRow = await ctx.runMutation(
+            internal.githubOAuth.consumeOAuthState,
+            { state },
+        );
+        if (!stateRow) {
+            return new Response(
+                'OAuth state is invalid or has expired. Please retry the connection.',
+                { status: 400 },
+            );
+        }
+
+        try {
+            const token = await ctx.runAction(
+                internal.githubOAuth.exchangeCodeForToken,
+                { code },
+            );
+            const me = await ctx.runAction(
+                internal.githubOAuth.fetchGithubLogin,
+                { accessToken: token.accessToken },
+            );
+            await ctx.runMutation(internal.githubOAuth.storeGithubToken, {
+                userId: stateRow.userId as Id<'users'>,
+                login: me.login,
+                accessToken: token.accessToken,
+                scopes: token.scopes,
+                expiresAt: token.expiresAt,
+            });
+        } catch (err) {
+            const message = err instanceof Error ? err.message : 'unknown_error';
+            return Response.redirect(
+                target(
+                    `/onboarding?github=error&reason=${encodeURIComponent(message.slice(0, 200))}`,
+                ),
+                302,
+            );
+        }
+
+        // Append the success marker to the original returnTo so the
+        // SPA can pick it up via window.location.search.
+        const returnTo = stateRow.returnTo.includes('?')
+            ? `${stateRow.returnTo}&github=connected`
+            : `${stateRow.returnTo}?github=connected`;
+        return Response.redirect(target(returnTo), 302);
+    }),
+})
+
 // §8.4 — Stripe webhook ingest endpoint.
 http.route({
   path: '/api/stripe/webhook',

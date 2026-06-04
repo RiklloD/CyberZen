@@ -28,29 +28,35 @@ type GithubRepo = {
 };
 
 /**
- * Internal helper: pull the access token off the current user's
- * GitHub `authAccounts` row. Convex actions can't read the database
- * directly, so the action calls this via `ctx.runQuery`.
+ * Internal helper: pull the GitHub access token from the
+ * `userGithubTokens` table for the current user.
+ *
+ * `@convex-dev/auth` does not store OAuth access tokens on
+ * `authAccounts.secret` — the token from the sign-in flow is
+ * discarded after the user profile is written. The token we use
+ * for the GitHub API instead comes from a separate, application-
+ * managed OAuth flow (see `convex/githubOAuth.ts`) and is stored
+ * in `userGithubTokens`.
  */
 export const getGithubAccessToken = internalQuery({
-	args: {},
-	returns: v.union(v.string(), v.null()),
-	handler: async (ctx) => {
-		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) return null;
+    args: {},
+    returns: v.union(v.string(), v.null()),
+    handler: async (ctx) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) return null;
 
-		const account = (await ctx.db
-			.query("authAccounts")
-			.withIndex("userIdAndProvider", (q) =>
-				q
-					.eq("userId", identity.subject as Id<"users">)
-					.eq("provider", "github"),
-			)
-			.unique()) as Doc<"authAccounts"> | null;
+        // `userGithubTokens.by_user` is non-unique (the row is
+        // re-minted on re-link) so we use `.first()`.
+        const row = (await ctx.db
+            .query("userGithubTokens")
+            .withIndex("by_user", (q) =>
+                q.eq("userId", identity.subject as Id<"users">),
+            )
+            .first()) as Doc<"userGithubTokens"> | null;
 
-		if (!account?.secret) return null;
-		return account.secret;
-	},
+        if (!row?.accessToken) return null;
+        return row.accessToken;
+    },
 });
 
 /**
@@ -166,48 +172,68 @@ export const listGithubRepos = action({
 });
 
 /**
- * Public-facing view: which VCS providers the current user has linked via
- * authAccounts (e.g. "github", "gitlab"). Pure query, no HTTP.
+ * Public-facing view: which VCS providers the current user has access
+ * to (e.g. "github", "gitlab").
  *
- * Use `listIntegrationStatusForTenant` alongside this to know whether the
- * tenant has also configured the corresponding integration.
+ * "Has access" means the user can pick the provider in the propose-
+ * repos form. For GitHub that's true when EITHER:
+ *   - They signed in with GitHub via `@convex-dev/auth` (auth row
+ *     exists) — they have a profile linked, and once the user
+ *     completes the application-managed OAuth flow below they'll
+ *     also have API access.
+ *   - They've already completed the application-managed OAuth flow
+ *     (a `userGithubTokens` row exists) — they have a stored API
+ *     access token.
+ *
+ * Use `listIntegrationStatusForTenant` alongside this to know whether
+ * the tenant has also configured the corresponding integration.
  */
 export const listLinkedProviders = query({
-	args: { tenantSlug: v.string() },
-	returns: v.array(
-		v.object({
-			provider: v.string(),
-			providerAccountId: v.string(),
-			linkedAt: v.number(),
-		}),
-	),
-	handler: async (ctx, args) => {
-		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) {
-			return [];
-		}
+    args: { tenantSlug: v.string() },
+    returns: v.array(
+        v.object({
+            provider: v.string(),
+            providerAccountId: v.string(),
+            linkedAt: v.number(),
+        }),
+    ),
+    handler: async (ctx, args) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) {
+            return [];
+        }
 
-		// We don't filter by tenant at this level: an OAuth link is a
-		// property of the user, not the tenant. The tenant filter happens
-		// on the consumer side via the integrationStatus join.
-		void args.tenantSlug;
+        // We don't filter by tenant at this level: an OAuth link is a
+        // property of the user, not the tenant. The tenant filter happens
+        // on the consumer side via the integrationStatus join.
+        void args.tenantSlug;
 
-		const accounts = (await ctx.db
-			.query("authAccounts")
-			.withIndex("userIdAndProvider", (q) =>
-				q.eq("userId", identity.subject as Id<"users">),
-			)
-			.collect()) as Doc<"authAccounts">[];
+        // Source 1: `@convex-dev/auth` GitHub sign-in row.
+        const authAccount = (await ctx.db
+            .query("authAccounts")
+            .withIndex("userIdAndProvider", (q) =>
+                q
+                    .eq("userId", identity.subject as Id<"users">)
+                    .eq("provider", "github"),
+            )
+            .first()) as Doc<"authAccounts"> | null;
 
-		// Drop the password provider from the "VCS" list — it isn't a VCS.
-		return accounts
-			.filter(
-				(account) => account.provider !== "password" && account.secret,
-			)
-			.map((account) => ({
-				provider: account.provider,
-				providerAccountId: account.providerAccountId,
-				linkedAt: account._creationTime,
-			}));
-	},
+        // Source 2: application-managed API OAuth token.
+        const token = (await ctx.db
+            .query("userGithubTokens")
+            .withIndex("by_user", (q) =>
+                q.eq("userId", identity.subject as Id<"users">),
+            )
+            .first()) as Doc<"userGithubTokens"> | null;
+
+        if (!authAccount && !token) return [];
+
+        return [
+            {
+                provider: "github",
+                providerAccountId: token?.login ?? authAccount?.providerAccountId ?? "",
+                linkedAt: token?.linkedAt ?? authAccount?._creationTime ?? Date.now(),
+            },
+        ];
+    },
 });

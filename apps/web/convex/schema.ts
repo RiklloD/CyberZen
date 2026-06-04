@@ -5826,4 +5826,50 @@ export default defineSchema({
     consentedAt: v.optional(v.number()),
     updatedAt: v.number(),
   }).index('by_user', ['userId']),
+
+  // ─── §5.4 GitHub API OAuth tokens ─────────────────────────────────────
+  //
+  // `@convex-dev/auth` does not store OAuth access tokens on the
+  // `authAccounts.secret` column — it only stores hashed credential
+  // passwords there. To call the GitHub API on behalf of a signed-in
+  // user (e.g. to list their repos during onboarding) we run a
+  // separate, application-managed GitHub OAuth flow with the right
+  // scopes (`public_repo` + `read:user`) and store the resulting
+  // access token here.
+  //
+  // One row per user. We re-mint the row on every successful OAuth
+  // callback so token rotation is handled implicitly.
+  userGithubTokens: defineTable({
+    userId: v.id('users'),
+    /** GitHub login the token belongs to. */
+    login: v.string(),
+    /** OAuth access token. Treat as a secret — never log or return to the client. */
+    accessToken: v.string(),
+    /** OAuth scopes granted by the user, e.g. `["read:user", "public_repo"]`. */
+    scopes: v.array(v.string()),
+    /** Epoch ms the access token expires (or 0 if unknown). */
+    expiresAt: v.optional(v.number()),
+    /** Epoch ms the connection was first created. */
+    linkedAt: v.number(),
+    /** Epoch ms the connection was last refreshed. */
+    updatedAt: v.number(),
+  })
+    .index('by_user', ['userId'])
+    .index('by_login', ['login']),
+
+  // Short-lived CSRF state rows for the application-managed GitHub
+  // OAuth flow. Inserted by `githubOAuth.startGithubConnect`, consumed
+  // and deleted by the `/api/github/oauth/callback` HTTP action. A
+  // `by_state` index lets the callback look the row up in O(1) and
+  // a `by_expires_at` index lets a cron sweep stale rows.
+  githubOAuthStates: defineTable({
+    state: v.string(),
+    userId: v.id('users'),
+    tenantSlug: v.string(),
+    returnTo: v.string(),
+    createdAt: v.number(),
+    expiresAt: v.number(),
+  })
+    .index('by_state', ['state'])
+    .index('by_expires_at', ['expiresAt']),
 })

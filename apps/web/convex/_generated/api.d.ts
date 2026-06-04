@@ -90,6 +90,7 @@ import type * as gateEnforcement from "../gateEnforcement.js";
 import type * as gitIntegrityIntel from "../gitIntegrityIntel.js";
 import type * as githubIntegration from "../githubIntegration.js";
 import type * as githubIssues from "../githubIssues.js";
+import type * as githubOAuth from "../githubOAuth.js";
 import type * as githubWebhooks from "../githubWebhooks.js";
 import type * as gitlabWebhooks from "../gitlabWebhooks.js";
 import type * as health from "../health.js";
@@ -423,6 +424,7 @@ declare const fullApi: ApiFromModules<{
   gitIntegrityIntel: typeof gitIntegrityIntel;
   githubIntegration: typeof githubIntegration;
   githubIssues: typeof githubIssues;
+  githubOAuth: typeof githubOAuth;
   githubWebhooks: typeof githubWebhooks;
   gitlabWebhooks: typeof gitlabWebhooks;
   health: typeof health;
