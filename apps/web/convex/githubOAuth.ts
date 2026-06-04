@@ -222,11 +222,11 @@ export const startGithubConnect = action({
         if (!identity) {
             throw new Error("Not authenticated");
         }
-        const clientId = process.env["AUTH_GITHUB_ID"];
+        const clientId = process.env["AUTH_GITHUB_API_ID"];
         const siteUrl = process.env["CONVEX_SITE_URL"];
         if (!clientId) {
             throw new Error(
-                "AUTH_GITHUB_ID is not set. Configure it in the Convex dashboard env vars.",
+                "AUTH_GITHUB_API_ID is not set. Configure it in the Convex dashboard env vars.",
             );
         }
         if (!siteUrl) {
@@ -282,11 +282,11 @@ export const exchangeCodeForToken = action({
         scopes: string[];
         expiresAt?: number;
     }> => {
-        const clientId = process.env["AUTH_GITHUB_ID"];
-        const clientSecret = process.env["AUTH_GITHUB_SECRET"];
+        const clientId = process.env["AUTH_GITHUB_API_ID"];
+        const clientSecret = process.env["AUTH_GITHUB_API_SECRET"];
         if (!clientId || !clientSecret) {
             throw new Error(
-                "AUTH_GITHUB_ID and AUTH_GITHUB_SECRET must be set in the Convex dashboard env vars.",
+                "AUTH_GITHUB_API_ID and AUTH_GITHUB_API_SECRET must be set in the Convex dashboard env vars.",
             );
         }
 
