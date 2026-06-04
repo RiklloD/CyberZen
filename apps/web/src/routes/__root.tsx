@@ -132,6 +132,31 @@ function RootGate({ authToken }: { authToken: string }) {
 		}
 	}, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+	// Register navigation shortcuts + global listener (once).
+	// Must run unconditionally so the hook order stays stable across renders —
+	// the early returns below would otherwise cause React error #310.
+	useEffect(() => {
+		attachGlobalShortcutListener();
+
+		// Register "?" to open shortcuts modal
+		const handleQuestionMark = (e: KeyboardEvent) => {
+			const tag = (e.target as HTMLElement)?.tagName;
+			if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+			if (e.key === "?") {
+				e.preventDefault();
+				setShortcutsOpen((prev) => !prev);
+			}
+		};
+		document.addEventListener("keydown", handleQuestionMark);
+		const unsub = registerNavigationShortcuts((to) =>
+			void navigate({ to: to as "/" }),
+		);
+		return () => {
+			document.removeEventListener("keydown", handleQuestionMark);
+			unsub();
+		};
+	}, [navigate]);
+
 	if (workspace === undefined) {
 		return <LoadingShell />;
 	}
@@ -156,29 +181,6 @@ function RootGate({ authToken }: { authToken: string }) {
 	if (!workspace && location.pathname !== "/onboarding") {
 		return <Navigate to="/onboarding" />;
 	}
-
-	// Register navigation shortcuts + global listener (once)
-	useEffect(() => {
-		attachGlobalShortcutListener();
-
-		// Register "?" to open shortcuts modal
-		const handleQuestionMark = (e: KeyboardEvent) => {
-			const tag = (e.target as HTMLElement)?.tagName;
-			if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
-			if (e.key === "?") {
-				e.preventDefault();
-				setShortcutsOpen((prev) => !prev);
-			}
-		};
-		document.addEventListener("keydown", handleQuestionMark);
-		const unsub = registerNavigationShortcuts((to) =>
-			void navigate({ to: to as "/" }),
-		);
-		return () => {
-			document.removeEventListener("keydown", handleQuestionMark);
-			unsub();
-		};
-	}, [navigate]);
 
 	return (
 		<WorkspaceSlugProvider

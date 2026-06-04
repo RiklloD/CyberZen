@@ -10,7 +10,9 @@ apps/web/node_modules/
 apps/web/.tanstack/
 apps/web/.vercel/
 apps/web/.convex/
-apps/web/convex/_generated/
+# NOTE: apps/web/convex/_generated/ is intentionally NOT ignored.
+# Vercel's build needs the generated `api` files (src/lib/convex.ts imports them)
+# and Vercel does not run `convex codegen`. Keep these committed.
 __pycache__/
 *.pyc
 .pytest_cache/
