@@ -892,3 +892,376 @@ export const escalations = query({
     }
   },
 })
+
+// 8. overview — aggregated data for the main dashboard page.
+// Returns tenant, stats, findings, workflows, ciGateEnforcement, and
+// repositories in a single query so the SPA avoids a waterfall of
+// separate requests.
+export const overview = query({
+  args: { tenantSlug: v.string() },
+  returns: v.union(
+    v.null(),
+    v.object({
+      tenant: v.object({
+        name: v.string(),
+        slug: v.string(),
+        deploymentMode: v.string(),
+        currentPhase: v.string(),
+      }),
+      stats: v.object({
+        openFindings: v.number(),
+        validatedFindings: v.number(),
+        criticalFindings: v.number(),
+        activeWorkflows: v.number(),
+        sbomComponents: v.number(),
+      }),
+      findings: v.array(
+        v.object({
+          _id: v.id('findings'),
+          title: v.string(),
+          severity,
+          validationStatus: v.string(),
+          status: v.string(),
+          confidence: v.number(),
+          source: v.string(),
+          createdAt: v.number(),
+        }),
+      ),
+      workflows: v.array(
+        v.object({
+          _id: v.id('workflowRuns'),
+          workflowType: v.string(),
+          status: workflowStatus,
+          priority: v.string(),
+          currentStage: v.optional(v.string()),
+          summary: v.string(),
+          totalTaskCount: v.number(),
+          completedTaskCount: v.number(),
+          startedAt: v.number(),
+          completedAt: v.optional(v.number()),
+          tasks: v.array(
+            v.object({
+              _id: v.id('workflowTasks'),
+              stage: v.string(),
+              title: v.string(),
+              status: workflowStatus,
+              order: v.number(),
+            }),
+          ),
+        }),
+      ),
+      ciGateEnforcement: v.object({
+        blockedCount: v.number(),
+        approvedCount: v.number(),
+        overrideCount: v.number(),
+        recentDecisions: v.array(
+          v.object({
+            _id: v.id('gateDecisions'),
+            repositoryName: v.string(),
+            findingTitle: v.string(),
+            stage: v.string(),
+            decision: v.string(),
+            actorType: v.string(),
+            actorId: v.string(),
+            justification: v.optional(v.string()),
+            expiresAt: v.optional(v.number()),
+            createdAt: v.number(),
+          }),
+        ),
+      }),
+      repositories: v.array(
+        v.object({
+          _id: v.id('repositories'),
+          name: v.string(),
+          fullName: v.string(),
+          provider: v.string(),
+          primaryLanguage: v.string(),
+          defaultBranch: v.string(),
+          latestCommitSha: v.optional(v.string()),
+          lastScannedAt: v.optional(v.number()),
+          latestSnapshot: v.union(
+            v.null(),
+            v.object({
+              snapshotId: v.id('sbomSnapshots'),
+              commitSha: v.string(),
+              capturedAt: v.number(),
+              totalComponents: v.number(),
+              directDependencyCount: v.number(),
+              transitiveDependencyCount: v.number(),
+              buildDependencyCount: v.number(),
+              containerDependencyCount: v.number(),
+              runtimeDependencyCount: v.number(),
+              aiModelDependencyCount: v.number(),
+              vulnerableComponentCount: v.number(),
+              sourceFiles: v.array(v.string()),
+              comparison: v.union(
+                v.null(),
+                v.object({
+                  previousCommitSha: v.string(),
+                  previousCapturedAt: v.number(),
+                  addedCount: v.number(),
+                  removedCount: v.number(),
+                  updatedCount: v.number(),
+                  changedComponentCount: v.number(),
+                  vulnerableComponentDelta: v.number(),
+                  addedPreview: v.array(diffComponent),
+                  removedPreview: v.array(diffComponent),
+                  updatedPreview: v.array(versionChangeComponent),
+                }),
+              ),
+              previewComponents: v.array(previewInventoryComponent),
+              vulnerablePreview: v.array(previewInventoryComponent),
+            }),
+          ),
+        }),
+      ),
+    }),
+  ),
+  handler: async (ctx, args) => {
+    const tenant = await resolveTenant(ctx, args.tenantSlug)
+    if (!tenant) return null
+
+    // ── Findings ──────────────────────────────────────────────────────
+    const allFindings = await ctx.db
+      .query('findings')
+      .withIndex('by_tenant_and_created_at', (q) =>
+        q.eq('tenantId', tenant._id),
+      )
+      .order('desc')
+      .collect()
+
+    const openFindings = allFindings.filter(
+      (f: any) => f.status === 'open' || f.status === 'pr_opened',
+    )
+
+    const validatedFindings = allFindings.filter(
+      (f: any) => f.validationStatus === 'validated',
+    ).length
+
+    const criticalFindings = openFindings.filter(
+      (f: any) => f.severity === 'critical' || f.severity === 'high',
+    ).length
+
+    // ── Workflows ─────────────────────────────────────────────────────
+    const workflowRows = await ctx.db
+      .query('workflowRuns')
+      .withIndex('by_tenant_and_started_at', (q) =>
+        q.eq('tenantId', tenant._id),
+      )
+      .order('desc')
+      .take(5)
+
+    const activeWorkflows = workflowRows.filter(
+      (w: any) => w.status === 'queued' || w.status === 'running',
+    ).length
+
+    const workflowTaskEntries = await Promise.all(
+      workflowRows.map(async (w: any) => {
+        const tasks = await ctx.db
+          .query('workflowTasks')
+          .withIndex('by_workflow_run_and_order', (q) =>
+            q.eq('workflowRunId', w._id),
+          )
+          .collect()
+        return [w._id, tasks] as const
+      }),
+    )
+    const workflowTaskMap = new Map(workflowTaskEntries)
+
+    // ── SBOM ──────────────────────────────────────────────────────────
+    const latestSnapshot = await ctx.db
+      .query('sbomSnapshots')
+      .withIndex('by_tenant_and_captured_at', (q) =>
+        q.eq('tenantId', tenant._id),
+      )
+      .order('desc')
+      .first()
+
+    // ── Gate decisions ────────────────────────────────────────────────
+    const allGateDecisions = await ctx.db
+      .query('gateDecisions')
+      .withIndex('by_tenant_and_created_at', (q) =>
+        q.eq('tenantId', tenant._id),
+      )
+      .order('desc')
+      .take(20)
+
+    const enrichedGateDecisions = await Promise.all(
+      allGateDecisions.slice(0, 6).map(async (decision: any) => {
+        const repo = await ctx.db.get(decision.repositoryId)
+        const finding = await ctx.db.get(decision.findingId)
+        return {
+          _id: decision._id,
+          repositoryName: repo?.name ?? 'Unknown repository',
+          findingTitle: finding?.title ?? 'Unknown finding',
+          stage: decision.stage,
+          decision: decision.decision,
+          actorType: decision.actorType,
+          actorId: decision.actorId,
+          justification: decision.justification,
+          expiresAt: decision.expiresAt,
+          createdAt: decision.createdAt,
+        }
+      }),
+    )
+
+    // ── Repositories ──────────────────────────────────────────────────
+    const repositories = await ctx.db
+      .query('repositories')
+      .withIndex('by_tenant', (q) => q.eq('tenantId', tenant._id))
+      .collect()
+
+    const reposWithSnapshots = await Promise.all(
+      repositories.map(async (repo: any) => {
+        const snapshotHistory = await ctx.db
+          .query('sbomSnapshots')
+          .withIndex('by_repository_and_captured_at', (q) =>
+            q.eq('repositoryId', repo._id),
+          )
+          .order('desc')
+          .take(2)
+
+        const snapshot = snapshotHistory[0]
+        const previousSnapshot = snapshotHistory[1] ?? null
+
+        if (!snapshot) {
+          return {
+            _id: repo._id,
+            name: repo.name,
+            fullName: repo.fullName,
+            provider: repo.provider,
+            primaryLanguage: repo.primaryLanguage,
+            defaultBranch: repo.defaultBranch,
+            latestCommitSha: repo.latestCommitSha,
+            lastScannedAt: repo.lastScannedAt,
+            latestSnapshot: null,
+          }
+        }
+
+        const latestComponents = await ctx.db
+          .query('sbomComponents')
+          .withIndex('by_snapshot', (q) =>
+            q.eq('snapshotId', snapshot._id),
+          )
+          .collect()
+
+        const previousComponents = previousSnapshot
+          ? await ctx.db
+              .query('sbomComponents')
+              .withIndex('by_snapshot', (q) =>
+                q.eq('snapshotId', previousSnapshot._id),
+              )
+              .collect()
+          : []
+
+        const comparison = previousSnapshot
+          ? compareSnapshotComponents(previousComponents, latestComponents)
+          : null
+
+        const vulnerableComponents = latestComponents.filter(
+          (c: any) => c.hasKnownVulnerabilities,
+        )
+
+        return {
+          _id: repo._id,
+          name: repo.name,
+          fullName: repo.fullName,
+          provider: repo.provider,
+          primaryLanguage: repo.primaryLanguage,
+          defaultBranch: repo.defaultBranch,
+          latestCommitSha: repo.latestCommitSha,
+          lastScannedAt: repo.lastScannedAt,
+          latestSnapshot: {
+            snapshotId: snapshot._id,
+            commitSha: snapshot.commitSha,
+            capturedAt: snapshot.capturedAt,
+            totalComponents: snapshot.totalComponents,
+            directDependencyCount: snapshot.directDependencyCount,
+            transitiveDependencyCount: snapshot.transitiveDependencyCount,
+            buildDependencyCount: snapshot.buildDependencyCount,
+            containerDependencyCount: snapshot.containerDependencyCount,
+            runtimeDependencyCount: snapshot.runtimeDependencyCount,
+            aiModelDependencyCount: snapshot.aiModelDependencyCount,
+            vulnerableComponentCount: vulnerableComponents.length,
+            sourceFiles: snapshot.sourceFiles,
+            comparison,
+            previewComponents: latestComponents.slice(0, 6).map((c: any) => ({
+              name: c.name,
+              version: c.version,
+              ecosystem: c.ecosystem,
+              layer: c.layer,
+              sourceFile: c.sourceFile,
+              hasKnownVulnerabilities: c.hasKnownVulnerabilities,
+            })),
+            vulnerablePreview: vulnerableComponents.slice(0, 6).map((c: any) => ({
+              name: c.name,
+              version: c.version,
+              ecosystem: c.ecosystem,
+              layer: c.layer,
+              sourceFile: c.sourceFile,
+              hasKnownVulnerabilities: c.hasKnownVulnerabilities,
+            })),
+          },
+        }
+      }),
+    )
+
+    return {
+      tenant: {
+        name: tenant.name,
+        slug: tenant.slug,
+        deploymentMode: tenant.deploymentMode,
+        currentPhase: tenant.currentPhase,
+      },
+      stats: {
+        openFindings: openFindings.length,
+        validatedFindings,
+        criticalFindings,
+        activeWorkflows,
+        sbomComponents: latestSnapshot?.totalComponents ?? 0,
+      },
+      findings: openFindings.slice(0, 8).map((f: any) => ({
+        _id: f._id,
+        title: f.title,
+        severity: f.severity,
+        validationStatus: f.validationStatus,
+        status: f.status,
+        confidence: f.confidence,
+        source: f.source,
+        createdAt: f.createdAt,
+      })),
+      workflows: workflowRows.map((w: any) => ({
+        _id: w._id,
+        workflowType: w.workflowType,
+        status: w.status,
+        priority: w.priority,
+        currentStage: w.currentStage,
+        summary: w.summary,
+        totalTaskCount: w.totalTaskCount,
+        completedTaskCount: w.completedTaskCount,
+        startedAt: w.startedAt,
+        completedAt: w.completedAt,
+        tasks: (workflowTaskMap.get(w._id) ?? []).map((t: any) => ({
+          _id: t._id,
+          stage: t.stage,
+          title: t.title,
+          status: t.status,
+          order: t.order,
+        })),
+      })),
+      ciGateEnforcement: {
+        blockedCount: allGateDecisions.filter(
+          (d: any) => d.decision === 'blocked',
+        ).length,
+        approvedCount: allGateDecisions.filter(
+          (d: any) => d.decision === 'approved',
+        ).length,
+        overrideCount: allGateDecisions.filter(
+          (d: any) => d.decision === 'overridden',
+        ).length,
+        recentDecisions: enrichedGateDecisions,
+      },
+      repositories: reposWithSnapshots,
+    }
+  },
+})
