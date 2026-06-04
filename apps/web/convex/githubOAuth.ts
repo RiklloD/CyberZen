@@ -87,17 +87,27 @@ export const _resolveUser = query({
 export const createOAuthState = internalMutation({
     args: {
         state: v.string(),
-        userId: v.id("users"),
+        email: v.string(),
         tenantSlug: v.string(),
         returnTo: v.string(),
     },
     returns: v.object({ state: v.string(), expiresAt: v.number() }),
     handler: async (ctx, args) => {
+        // Resolve the real user ID from email — identity.subject from
+        // @convex-dev/auth is a composite string, NOT a v.id("users").
+        const user = await ctx.db
+            .query("users")
+            .withIndex("email", (q) => q.eq("email", args.email))
+            .first();
+        if (!user) {
+            throw new Error(`No user found for email ${args.email}`);
+        }
+
         const now = Date.now();
         const expiresAt = now + STATE_TTL_MS;
         await ctx.db.insert("githubOAuthStates", {
             state: args.state,
-            userId: args.userId,
+            userId: user._id,
             tenantSlug: args.tenantSlug,
             returnTo: args.returnTo,
             createdAt: now,
@@ -261,16 +271,9 @@ export const startGithubConnect = action({
         state: string;
         expiresAt: number;
     }> => {
-        // Resolve the real Convex user ID.  identity.subject is a
-        // composite auth string, NOT a v.id("users").
-        const resolved = await ctx.runQuery(
-            internal.githubOAuth._resolveUser,
-            {},
-        );
-        if (!resolved) {
-            throw new Error(
-                "Could not resolve current user. Make sure you are signed in.",
-            );
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity?.email) {
+            throw new Error("Not authenticated or email not available");
         }
 
         const clientId = process.env["AUTH_GITHUB_API_ID"];
@@ -295,7 +298,7 @@ export const startGithubConnect = action({
             internal.githubOAuth.createOAuthState,
             {
                 state,
-                userId: resolved.userId,
+                email: identity.email,
                 tenantSlug: args.tenantSlug,
                 returnTo,
             },
