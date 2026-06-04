@@ -668,8 +668,11 @@ function OnboardingPage() {
 								</div>
 							)}
 
-							{availableProviders.includes("github") &&
-								githubConnection &&
+							{/* Always show the Connect GitHub banner when the API
+							    OAuth flow hasn't been completed yet. This is the
+							    entry point — don't gate it on linkedProviders or
+							    availableProviders (chicken-and-egg). */}
+							{githubConnection &&
 								!githubConnection.connected && (
 									<div className="mb-3 flex flex-col gap-2 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4 sm:flex-row sm:items-center sm:justify-between">
 										<div className="flex items-start gap-3">
