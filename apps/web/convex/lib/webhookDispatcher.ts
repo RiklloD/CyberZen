@@ -282,11 +282,44 @@ export type EndpointValidationResult =
   | { valid: true }
   | { valid: false; reason: string }
 
+// Returns true if the hostname is a private, loopback, or link-local address
+// that must not be reachable as a webhook target (SSRF prevention).
+export function isPrivateHostname(hostname: string): boolean {
+  const h = hostname.toLowerCase().replace(/^\[|\]$/g, '') // strip IPv6 brackets
+
+  if (h === 'localhost' || h === '0.0.0.0' || h === '::' || h === '::1') return true
+
+  // IPv6 private ranges: fc00::/7 (ULA), fe80::/10 (link-local)
+  if (/^f[cd]/i.test(h) || /^fe[89ab]/i.test(h)) return true
+
+  // IPv4 private/reserved ranges
+  const octets = h.split('.')
+  if (octets.length === 4) {
+    const [a, b] = octets.map(Number)
+    if (octets.every((o) => /^\d+$/.test(o) && Number(o) >= 0 && Number(o) <= 255)) {
+      if (a === 0) return true                              // 0.0.0.0/8
+      if (a === 10) return true                             // 10.0.0.0/8
+      if (a === 127) return true                            // 127.0.0.0/8 loopback
+      if (a === 169 && b === 254) return true               // 169.254.0.0/16 link-local
+      if (a === 172 && b >= 16 && b <= 31) return true      // 172.16.0.0/12
+      if (a === 192 && b === 168) return true               // 192.168.0.0/16
+    }
+  }
+
+  return false
+}
+
 export function validateEndpointUrl(url: string): EndpointValidationResult {
   try {
     const parsed = new URL(url)
     if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
       return { valid: false, reason: 'URL must use http or https.' }
+    }
+    if (isPrivateHostname(parsed.hostname)) {
+      return {
+        valid: false,
+        reason: 'Webhook URLs must not target private, loopback, or link-local addresses.',
+      }
     }
     return { valid: true }
   } catch {

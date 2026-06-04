@@ -568,7 +568,7 @@ export function checkComponentEol(
 }
 
 // ---------------------------------------------------------------------------
-// computeEolReport  ← TODO: implement this function
+// computeEolReport — ✅ COMPLETED (§4.3)
 // ---------------------------------------------------------------------------
 
 /**

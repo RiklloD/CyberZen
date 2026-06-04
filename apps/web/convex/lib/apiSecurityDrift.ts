@@ -238,10 +238,10 @@ function isApiKeyManagementConfig(normalised: string): boolean {
  * The current implementation requires either a specific GraphQL security term
  * OR the word "graphql" combined with a security qualifier.
  *
- * TODO: Implement this function. It should return true for GraphQL security
- * configuration files and false for non-security GraphQL tooling files.
- * The surrounding context (normalised path) is available if basename alone
- * is ambiguous (e.g. `apollo.config.js` in a `/graphql/security/` dir).
+ * Returns true for GraphQL security configuration files and false for
+ * non-security GraphQL tooling files. The surrounding context (normalised
+ * path) is used when basename alone is ambiguous (e.g. `apollo.config.js`
+ * in a `/graphql/security/` dir).
  */
 export function isGraphQLSecurityConfig(normalisedPath: string): boolean {
   const base = getBasename(normalisedPath).toLowerCase()

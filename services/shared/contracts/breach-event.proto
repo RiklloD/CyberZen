@@ -1,0 +1,89 @@
+syntax = "proto3";
+
+package cyberzen.shared.v1;
+
+option go_package = "github.com/cyberzen/shared/generated/go/contracts;contracts";
+
+import "google/protobuf/timestamp.proto";
+import "contracts/finding.proto";
+
+// One disclosed package version affected by a breach or advisory.
+message AffectedPackage {
+  // Ecosystem identifier — npm, PyPI, Maven, Go, RubyGems, crates.io, etc.
+  string ecosystem = 1;
+
+  // Package name as used by the ecosystem registry.
+  string name = 2;
+
+  // Affected version range expression (e.g. ">=1.0.0,<1.5.3").
+  string version_range = 3;
+
+  // Fixed version when known; empty when no fix is available.
+  string fixed_version = 4;
+}
+
+// Source classification of a breach feed.
+enum BreachSource {
+  BREACH_SOURCE_UNSPECIFIED = 0;
+  BREACH_SOURCE_CISA_KEV = 1;
+  BREACH_SOURCE_OSV = 2;
+  BREACH_SOURCE_TELEGRAM = 3;
+  BREACH_SOURCE_DARKWEB = 4;
+  BREACH_SOURCE_GHSA = 5;
+  BREACH_SOURCE_NVD = 6;
+  BREACH_SOURCE_VENDOR = 7;
+}
+
+// A breach or vulnerability disclosure event from any monitored source.
+message BreachEvent {
+  // Source classification.
+  BreachSource source = 1;
+
+  // Source-native identifier (e.g. CVE-2025-12345 or KEV ID).
+  string source_id = 2;
+
+  // Packages or assets affected.
+  repeated AffectedPackage affected_packages = 3;
+
+  // Severity bucket — uses the shared Severity enum from finding.proto.
+  Severity severity = 4;
+
+  // Short title describing the breach.
+  string title = 5;
+
+  // Long-form description.
+  string description = 6;
+
+  // Original publication timestamp from the source.
+  google.protobuf.Timestamp published_at = 7;
+
+  // When this event was ingested into the platform.
+  google.protobuf.Timestamp ingested_at = 8;
+
+  // External reference URLs (advisories, blog posts, source listing pages).
+  repeated string references = 9;
+
+  // Free-form tags applied during ingest (e.g. "ransomware", "actively-exploited").
+  repeated string tags = 10;
+}
+
+// Result of correlating a BreachEvent against a tenant's SBOM state.
+message CorrelationResult {
+  // Tenant that owns the matched dependency.
+  string tenant_id = 1;
+
+  // Repository where the affected dependency is present.
+  string repo_url = 2;
+
+  // The package match.
+  AffectedPackage matched_package = 3;
+
+  // Source event identifier (BreachEvent.source_id).
+  string source_event_id = 4;
+
+  // Confidence score in [0, 1].
+  double confidence = 5;
+
+  // Notes about why this match was raised.
+  string rationale = 6;
+}

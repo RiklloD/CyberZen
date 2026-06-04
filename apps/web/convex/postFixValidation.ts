@@ -19,7 +19,7 @@
  */
 
 import { v } from "convex/values";
-import { internalAction, internalMutation, internalQuery, mutation } from "./_generated/server";
+import { internalAction, internalMutation, internalQuery, mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 
 // ── Triggered by GitHub PR merge webhook ──────────────────────────────────────
@@ -278,6 +278,102 @@ export const reopenFinding = internalMutation({
       validationStatus: "validated",
       summary: reason,
     });
+  },
+});
+
+// ── Public query for the Remediation page Validation tab ──────────────────────
+
+export const listValidationRunsForRepository = query({
+  args: { repositoryId: v.id("repositories") },
+  handler: async (ctx, { repositoryId }) => {
+    // Fetch merged/closed PR proposals for this repository
+    const proposals = await ctx.db
+      .query("prProposals")
+      .withIndex("by_repository_and_status", (q) =>
+        q.eq("repositoryId", repositoryId),
+      )
+      .collect();
+
+    // Only proposals that reached merge stage have post-fix validation
+    const mergedProposals = proposals.filter(
+      (p) => p.status === "merged" || p.status === "closed",
+    );
+
+    const runs = await Promise.all(
+      mergedProposals.map(async (proposal) => {
+        const finding = await ctx.db.get(proposal.findingId);
+
+        // Fetch exploit validation runs for this finding
+        const validationRuns = await ctx.db
+          .query("exploitValidationRuns")
+          .withIndex("by_finding_and_started_at", (q) =>
+            q.eq("findingId", proposal.findingId),
+          )
+          .order("desc")
+          .take(5);
+
+        // Determine post-fix validation outcome
+        const latestRun = validationRuns[0];
+        let postFixOutcome: string | null = null;
+
+        if (finding) {
+          if (finding.status === "resolved") {
+            postFixOutcome = "resolved";
+          } else if (
+            finding.validationStatus === "validated" &&
+            finding.status === "open"
+          ) {
+            postFixOutcome = "regression";
+          }
+        }
+
+        return {
+          _id: proposal._id,
+          findingId: proposal.findingId,
+          findingTitle: finding?.title ?? "Unknown",
+          findingSeverity: finding?.severity ?? "unknown",
+          validationStatus: finding?.validationStatus ?? "unknown",
+          findingStatus: finding?.status ?? "unknown",
+          prUrl: proposal.prUrl ?? null,
+          prNumber: proposal.prNumber ?? null,
+          fixType: proposal.fixType,
+          fixSummary: proposal.fixSummary,
+          targetPackage: proposal.targetPackage ?? null,
+          currentVersion: proposal.currentVersion ?? null,
+          fixVersion: proposal.fixVersion ?? null,
+          mergedAt: proposal.mergedAt ?? null,
+          createdAt: proposal.createdAt,
+          postFixOutcome,
+          latestValidationRun: latestRun
+            ? {
+                _id: latestRun._id,
+                status: latestRun.status,
+                outcome: latestRun.outcome ?? null,
+                validationConfidence: latestRun.validationConfidence,
+                sandboxSummary: latestRun.sandboxSummary,
+                evidenceSummary: latestRun.evidenceSummary,
+                reproductionHint: latestRun.reproductionHint,
+                startedAt: latestRun.startedAt,
+                completedAt: latestRun.completedAt ?? null,
+              }
+            : null,
+          allValidationRuns: validationRuns.map((r) => ({
+            _id: r._id,
+            status: r.status,
+            outcome: r.outcome ?? null,
+            validationConfidence: r.validationConfidence,
+            sandboxSummary: r.sandboxSummary,
+            evidenceSummary: r.evidenceSummary,
+            startedAt: r.startedAt,
+            completedAt: r.completedAt ?? null,
+          })),
+        };
+      }),
+    );
+
+    return runs.sort(
+      (a, b) => (b.mergedAt ?? b.createdAt) - (a.mergedAt ?? a.createdAt),
+    );
   },
 });
 

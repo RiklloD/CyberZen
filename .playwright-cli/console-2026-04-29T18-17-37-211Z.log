@@ -1,0 +1,662 @@
+[     444ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:20102
+[   17810ms] [ERROR] [CONVEX A(auth:signIn)] [Request ID: 5218831c8739882e] Server Error
+Uncaught Error: InvalidAccountId
+ @ http://localhost:3011/src/routes/__root.tsx?t=1777486445325:50
+[   50506ms] [LOG] WebSocket reconnected at t=50.5s @ http://localhost:3011/src/routes/__root.tsx?t=1777486445325:50
+[  103952ms] [ERROR] [CONVEX M(onboarding:provisionWorkspace)] [Request ID: 74e0a08cb82209b3] Server Error
+Uncaught Error: Not signed in
+    at handler (../convex/onboarding.ts:122:23)
+ @ http://localhost:3011/src/routes/__root.tsx?t=1777486445325:50
+[  221245ms] [ERROR] [CONVEX M(onboarding:provisionWorkspace)] [Request ID: 7a66360c5d42c299] Server Error
+Uncaught Error: Not signed in
+    at handler (../convex/onboarding.ts:122:23)
+ @ http://localhost:3011/src/routes/__root.tsx?t=1777486445325:50
+[  259619ms] [LOG] WebSocket reconnected at t=259.6s @ http://localhost:3011/src/routes/__root.tsx?t=1777486445325:50
+[  259932ms] [LOG] WebSocket reconnected at t=259.9s @ http://localhost:3011/src/routes/__root.tsx?t=1777486445325:50
+[  260177ms] [LOG] WebSocket reconnected at t=260.2s @ http://localhost:3011/src/routes/__root.tsx?t=1777486445325:50
+[  263486ms] [LOG] WebSocket reconnected at t=263.5s @ http://localhost:3011/src/routes/__root.tsx?t=1777486445325:50
+[  263742ms] [LOG] WebSocket reconnected at t=263.7s @ http://localhost:3011/src/routes/__root.tsx?t=1777486445325:50
+[  285428ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:20102
+[  285968ms] [LOG] WebSocket reconnected at t=0.9s @ http://localhost:3011/src/routes/__root.tsx?t=1777486920140:50
+[  286220ms] [LOG] WebSocket reconnected at t=1.1s @ http://localhost:3011/src/routes/__root.tsx?t=1777486920140:50
+[  315815ms] [ERROR] [CONVEX M(onboarding:provisionWorkspace)] [Request ID: 6a731aad1e78835d] Server Error
+Uncaught Error: Not signed in
+    at handler (../convex/onboarding.ts:122:23)
+ @ http://localhost:3011/src/routes/__root.tsx?t=1777486920140:50
+[  386717ms] [LOG] WebSocket reconnected at t=101.6s @ http://localhost:3011/src/routes/__root.tsx?t=1777486920140:50
+[  469695ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:20102
+[  470222ms] [LOG] WebSocket reconnected at t=0.6s @ http://localhost:3011/src/routes/__root.tsx?t=1777487126343:50
+[  470480ms] [LOG] WebSocket reconnected at t=0.8s @ http://localhost:3011/src/routes/__root.tsx?t=1777487126343:50
+[  492922ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:20102
+[  493384ms] [LOG] WebSocket reconnected at t=0.5s @ http://localhost:3011/src/routes/__root.tsx?t=1777487149903:50
+[  493641ms] [LOG] WebSocket reconnected at t=0.8s @ http://localhost:3011/src/routes/__root.tsx?t=1777487149903:50
+[  513277ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:20102
+[  513784ms] [LOG] WebSocket reconnected at t=0.5s @ http://localhost:3011/src/routes/__root.tsx?t=1777487149903:50
+[  514039ms] [LOG] WebSocket reconnected at t=0.8s @ http://localhost:3011/src/routes/__root.tsx?t=1777487149903:50
+[  514290ms] [LOG] WebSocket reconnected at t=1s @ http://localhost:3011/src/routes/__root.tsx?t=1777487149903:50
+[  878411ms] [ERROR] %o
+
+%s
+
+%s
+ TypeError: Cannot destructure property 'signIn' of 'useAuthActions(...)' as it is undefined.
+    at AuthScreen (http://localhost:3011/src/components/AuthScreen.tsx:13:11)
+    at Object.react_stack_bottom_frame (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:18509:20)
+    at renderWithHooks (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:5654:24)
+    at updateFunctionComponent (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:7475:21)
+    at beginWork (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:8525:20)
+    at runWithFiberInDEV (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:997:72)
+    at performUnitOfWork (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:12561:98)
+    at workLoopSync (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:12424:43)
+    at renderRootSync (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:12408:13)
+    at performWorkOnRoot (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:11827:37) The above error occurred in the <AuthScreen> component. React will try to recreate this component tree from scratch using the error boundary you provided, CatchBoundaryImpl. @ http://localhost:3011/src/routes/__root.tsx?t=1777487149903:50
+[  878411ms] [WARNING] Warning: The following error wasn't caught by any route! At the very least, consider setting an 'errorComponent' in your RootRoute! @ http://localhost:3011/src/routes/__root.tsx?t=1777487149903:50
+[  878411ms] [WARNING] Warning: Cannot destructure property 'signIn' of 'useAuthActions(...)' as it is undefined. @ http://localhost:3011/src/routes/__root.tsx?t=1777487149903:50
+[  902462ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:20102
+[  902505ms] [ERROR] %o
+
+%s
+
+%s
+ TypeError: Cannot destructure property 'signIn' of 'useAuthActions(...)' as it is undefined.
+    at AuthScreen (http://localhost:3011/src/components/AuthScreen.tsx:13:11)
+    at Object.react_stack_bottom_frame (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:18509:20)
+    at renderWithHooks (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:5654:24)
+    at updateFunctionComponent (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:7475:21)
+    at beginWork (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:8525:20)
+    at runWithFiberInDEV (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:997:72)
+    at performUnitOfWork (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:12561:98)
+    at workLoopSync (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:12424:43)
+    at renderRootSync (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:12408:13)
+    at performWorkOnRoot (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:11827:37) The above error occurred in the <AuthScreen> component. React will try to recreate this component tree from scratch using the error boundary you provided, CatchBoundaryImpl. @ http://localhost:3011/src/routes/__root.tsx?t=1777487535130:50
+[  902506ms] [WARNING] Warning: The following error wasn't caught by any route! At the very least, consider setting an 'errorComponent' in your RootRoute! @ http://localhost:3011/src/routes/__root.tsx?t=1777487535130:50
+[  902506ms] [WARNING] Warning: Cannot destructure property 'signIn' of 'useAuthActions(...)' as it is undefined. @ http://localhost:3011/src/routes/__root.tsx?t=1777487535130:50
+[  946763ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:20102
+[  947204ms] [LOG] WebSocket reconnected at t=0.5s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  947374ms] [LOG] WebSocket reconnected at t=0.7s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  947534ms] [LOG] WebSocket reconnected at t=0.8s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  947693ms] [LOG] WebSocket reconnected at t=1s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  947864ms] [LOG] WebSocket reconnected at t=1.1s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  948047ms] [LOG] WebSocket reconnected at t=1.3s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  948230ms] [LOG] WebSocket reconnected at t=1.5s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  948391ms] [LOG] WebSocket reconnected at t=1.7s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  948555ms] [LOG] WebSocket reconnected at t=1.8s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  948720ms] [LOG] WebSocket reconnected at t=2s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  948876ms] [LOG] WebSocket reconnected at t=2.2s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  949035ms] [LOG] WebSocket reconnected at t=2.3s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  949251ms] [LOG] WebSocket reconnected at t=2.5s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  949418ms] [LOG] WebSocket reconnected at t=2.7s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  949597ms] [LOG] WebSocket reconnected at t=2.9s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  949768ms] [LOG] WebSocket reconnected at t=3s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  949944ms] [LOG] WebSocket reconnected at t=3.2s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  950112ms] [LOG] WebSocket reconnected at t=3.4s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  950295ms] [LOG] WebSocket reconnected at t=3.6s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  950468ms] [LOG] WebSocket reconnected at t=3.7s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  950644ms] [LOG] WebSocket reconnected at t=3.9s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  950820ms] [LOG] WebSocket reconnected at t=4.1s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  951016ms] [LOG] WebSocket reconnected at t=4.3s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  951167ms] [LOG] WebSocket reconnected at t=4.4s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  951332ms] [LOG] WebSocket reconnected at t=4.6s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  951514ms] [LOG] WebSocket reconnected at t=4.8s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  951675ms] [LOG] WebSocket reconnected at t=5s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  951831ms] [LOG] WebSocket reconnected at t=5.1s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  952014ms] [LOG] WebSocket reconnected at t=5.3s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  952174ms] [LOG] WebSocket reconnected at t=5.5s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  952337ms] [LOG] WebSocket reconnected at t=5.6s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  952512ms] [LOG] WebSocket reconnected at t=5.8s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  952661ms] [LOG] WebSocket reconnected at t=5.9s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  952828ms] [LOG] WebSocket reconnected at t=6.1s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  953001ms] [LOG] WebSocket reconnected at t=6.3s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  953153ms] [LOG] WebSocket reconnected at t=6.4s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  953308ms] [LOG] WebSocket reconnected at t=6.6s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  953468ms] [LOG] WebSocket reconnected at t=6.7s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  953622ms] [LOG] WebSocket reconnected at t=6.9s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  953792ms] [LOG] WebSocket reconnected at t=7.1s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  953945ms] [LOG] WebSocket reconnected at t=7.2s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  954098ms] [LOG] WebSocket reconnected at t=7.4s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  954281ms] [LOG] WebSocket reconnected at t=7.6s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  954434ms] [LOG] WebSocket reconnected at t=7.7s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  954599ms] [LOG] WebSocket reconnected at t=7.9s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  954755ms] [LOG] WebSocket reconnected at t=8s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  954943ms] [LOG] WebSocket reconnected at t=8.2s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  955104ms] [LOG] WebSocket reconnected at t=8.4s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  955255ms] [LOG] WebSocket reconnected at t=8.5s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  955405ms] [LOG] WebSocket reconnected at t=8.7s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  955577ms] [LOG] WebSocket reconnected at t=8.9s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  955741ms] [LOG] WebSocket reconnected at t=9s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  955904ms] [LOG] WebSocket reconnected at t=9.2s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  956054ms] [LOG] WebSocket reconnected at t=9.3s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  956226ms] [LOG] WebSocket reconnected at t=9.5s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  956386ms] [LOG] WebSocket reconnected at t=9.7s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  956541ms] [LOG] WebSocket reconnected at t=9.8s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  956697ms] [LOG] WebSocket reconnected at t=10s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  956856ms] [LOG] WebSocket reconnected at t=10.1s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  957034ms] [LOG] WebSocket reconnected at t=10.3s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  957193ms] [LOG] WebSocket reconnected at t=10.5s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  957352ms] [LOG] WebSocket reconnected at t=10.6s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  957508ms] [LOG] WebSocket reconnected at t=10.8s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  957677ms] [LOG] WebSocket reconnected at t=11s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  957832ms] [LOG] WebSocket reconnected at t=11.1s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  957998ms] [LOG] WebSocket reconnected at t=11.3s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  958182ms] [LOG] WebSocket reconnected at t=11.5s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  958354ms] [LOG] WebSocket reconnected at t=11.6s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  958526ms] [LOG] WebSocket reconnected at t=11.8s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  958703ms] [LOG] WebSocket reconnected at t=12s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  958876ms] [LOG] WebSocket reconnected at t=12.2s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  959032ms] [LOG] WebSocket reconnected at t=12.3s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  959188ms] [LOG] WebSocket reconnected at t=12.5s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  959355ms] [LOG] WebSocket reconnected at t=12.6s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  959514ms] [LOG] WebSocket reconnected at t=12.8s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  959678ms] [LOG] WebSocket reconnected at t=13s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  959832ms] [LOG] WebSocket reconnected at t=13.1s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  959993ms] [LOG] WebSocket reconnected at t=13.3s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  960173ms] [LOG] WebSocket reconnected at t=13.5s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  960328ms] [LOG] WebSocket reconnected at t=13.6s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  960487ms] [LOG] WebSocket reconnected at t=13.8s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  960648ms] [LOG] WebSocket reconnected at t=13.9s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  960809ms] [LOG] WebSocket reconnected at t=14.1s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  960975ms] [LOG] WebSocket reconnected at t=14.3s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  961150ms] [LOG] WebSocket reconnected at t=14.4s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  961321ms] [LOG] WebSocket reconnected at t=14.6s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  961498ms] [LOG] WebSocket reconnected at t=14.8s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  961653ms] [LOG] WebSocket reconnected at t=14.9s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  961827ms] [LOG] WebSocket reconnected at t=15.1s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  961984ms] [LOG] WebSocket reconnected at t=15.3s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  962153ms] [LOG] WebSocket reconnected at t=15.4s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  962366ms] [LOG] WebSocket reconnected at t=15.6s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  962537ms] [LOG] WebSocket reconnected at t=15.8s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  962695ms] [LOG] WebSocket reconnected at t=16s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  962874ms] [LOG] WebSocket reconnected at t=16.2s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  963036ms] [LOG] WebSocket reconnected at t=16.3s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  963199ms] [LOG] WebSocket reconnected at t=16.5s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  963356ms] [LOG] WebSocket reconnected at t=16.6s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  963530ms] [LOG] WebSocket reconnected at t=16.8s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  963696ms] [LOG] WebSocket reconnected at t=17s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  963861ms] [LOG] WebSocket reconnected at t=17.1s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  964017ms] [LOG] WebSocket reconnected at t=17.3s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  964178ms] [LOG] WebSocket reconnected at t=17.5s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  964343ms] [LOG] WebSocket reconnected at t=17.6s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  964507ms] [LOG] WebSocket reconnected at t=17.8s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  964666ms] [LOG] WebSocket reconnected at t=17.9s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  964846ms] [LOG] WebSocket reconnected at t=18.1s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  965019ms] [LOG] WebSocket reconnected at t=18.3s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  965181ms] [LOG] WebSocket reconnected at t=18.5s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  965347ms] [LOG] WebSocket reconnected at t=18.6s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  965506ms] [LOG] WebSocket reconnected at t=18.8s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  965676ms] [LOG] WebSocket reconnected at t=19s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  965829ms] [LOG] WebSocket reconnected at t=19.1s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  965978ms] [LOG] WebSocket reconnected at t=19.3s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  966137ms] [LOG] WebSocket reconnected at t=19.4s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  966339ms] [LOG] WebSocket reconnected at t=19.6s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  966563ms] [LOG] WebSocket reconnected at t=19.8s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  966714ms] [LOG] WebSocket reconnected at t=20s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  966868ms] [LOG] WebSocket reconnected at t=20.1s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  967028ms] [LOG] WebSocket reconnected at t=20.3s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  967203ms] [LOG] WebSocket reconnected at t=20.5s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  967379ms] [LOG] WebSocket reconnected at t=20.7s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  967529ms] [LOG] WebSocket reconnected at t=20.8s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  967701ms] [LOG] WebSocket reconnected at t=21s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  967859ms] [LOG] WebSocket reconnected at t=21.1s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  968017ms] [LOG] WebSocket reconnected at t=21.3s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  968188ms] [LOG] WebSocket reconnected at t=21.5s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  968341ms] [LOG] WebSocket reconnected at t=21.6s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  968503ms] [LOG] WebSocket reconnected at t=21.8s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  968691ms] [LOG] WebSocket reconnected at t=22s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  968849ms] [LOG] WebSocket reconnected at t=22.1s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  969019ms] [LOG] WebSocket reconnected at t=22.3s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  969166ms] [LOG] WebSocket reconnected at t=22.4s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  969322ms] [LOG] WebSocket reconnected at t=22.6s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  969483ms] [LOG] WebSocket reconnected at t=22.8s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  969644ms] [LOG] WebSocket reconnected at t=22.9s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  969790ms] [LOG] WebSocket reconnected at t=23.1s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  969938ms] [LOG] WebSocket reconnected at t=23.2s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  970090ms] [LOG] WebSocket reconnected at t=23.4s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  970276ms] [LOG] WebSocket reconnected at t=23.6s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  970426ms] [LOG] WebSocket reconnected at t=23.7s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  970584ms] [LOG] WebSocket reconnected at t=23.9s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  970729ms] [LOG] WebSocket reconnected at t=24s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  970874ms] [LOG] WebSocket reconnected at t=24.2s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  971039ms] [LOG] WebSocket reconnected at t=24.3s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  971193ms] [LOG] WebSocket reconnected at t=24.5s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  971345ms] [LOG] WebSocket reconnected at t=24.6s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  971502ms] [LOG] WebSocket reconnected at t=24.8s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  971733ms] [LOG] WebSocket reconnected at t=25s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  971892ms] [LOG] WebSocket reconnected at t=25.2s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  972062ms] [LOG] WebSocket reconnected at t=25.3s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  972235ms] [LOG] WebSocket reconnected at t=25.5s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  972404ms] [LOG] WebSocket reconnected at t=25.7s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  972584ms] [LOG] WebSocket reconnected at t=25.9s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  972747ms] [LOG] WebSocket reconnected at t=26s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  972910ms] [LOG] WebSocket reconnected at t=26.2s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  973098ms] [LOG] WebSocket reconnected at t=26.4s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  973249ms] [LOG] WebSocket reconnected at t=26.5s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  973406ms] [LOG] WebSocket reconnected at t=26.7s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  973564ms] [LOG] WebSocket reconnected at t=26.8s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  973728ms] [LOG] WebSocket reconnected at t=27s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  973902ms] [LOG] WebSocket reconnected at t=27.2s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  974066ms] [LOG] WebSocket reconnected at t=27.3s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  974228ms] [LOG] WebSocket reconnected at t=27.5s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  974404ms] [LOG] WebSocket reconnected at t=27.7s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  974573ms] [LOG] WebSocket reconnected at t=27.9s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  974733ms] [LOG] WebSocket reconnected at t=28s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  974845ms] [ERROR] React has detected a change in the order of Hooks called by %s. This will lead to bugs and errors if not fixed. For more information, read the Rules of Hooks: https://react.dev/link/rules-of-hooks
+
+   Previous render            Next render
+   ------------------------------------------------------
+%s   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ ConvexProviderWithAuth 1. useContext                 useContext
+2. useState                   useState
+3. useEffect                  useEffect
+4. useState                   useCallback
+ @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  974849ms] [ERROR] %o
+
+%s
+
+%s
+ TypeError: Cannot read properties of null (reading '1')
+    at updateCallback (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:6519:64)
+    at Object.useCallback (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:18936:18)
+    at exports.useCallback (http://localhost:3011/node_modules/.vite/deps/chunk-4V7F4FHD.js?v=1a3fc306:904:36)
+    at useConvexAuth (http://localhost:3011/src/integrations/convex/provider.tsx?t=1777487631888:36:28)
+    at ConvexProviderWithAuth (http://localhost:3011/node_modules/.vite/deps/chunk-CW35EHCR.js?v=1a3fc306:4903:7)
+    at Object.react_stack_bottom_frame (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:18509:20)
+    at renderWithHooks (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:5654:24)
+    at updateFunctionComponent (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:7475:21)
+    at beginWork (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:8525:20)
+    at runWithFiberInDEV (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:997:72) The above error occurred in the <ConvexProviderWithAuth> component. React will try to recreate this component tree from scratch using the error boundary you provided, CatchBoundaryImpl. @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  974850ms] [WARNING] Warning: The following error wasn't caught by any route! At the very least, consider setting an 'errorComponent' in your RootRoute! @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  974850ms] [WARNING] Warning: Cannot read properties of null (reading '1') @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  974899ms] [LOG] WebSocket reconnected at t=28.2s @ http://localhost:3011/src/routes/__root.tsx?t=1777487581663:50
+[  995118ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:20102
+[  995523ms] [LOG] WebSocket reconnected at t=0.4s @ http://localhost:3011/src/routes/__root.tsx?t=1777487631888:50
+[ 1050494ms] [LOG] WebSocket reconnected at t=55.4s @ http://localhost:3011/src/routes/__root.tsx?t=1777487631888:50
+[ 1072758ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:20102
+[ 1073153ms] [LOG] WebSocket reconnected at t=0.7s @ http://localhost:3011/src/routes/__root.tsx?t=1777487707175:50
+[ 1121125ms] [LOG] WebSocket reconnected at t=48.7s @ http://localhost:3011/src/routes/__root.tsx?t=1777487707175:50
+[ 1141051ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:20102
+[ 1141478ms] [LOG] WebSocket reconnected at t=0.8s @ http://localhost:3011/src/routes/__root.tsx?t=1777487777812:50
+[ 1191016ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:20102
+[ 1191415ms] [LOG] WebSocket reconnected at t=0.4s @ http://localhost:3011/src/routes/__root.tsx?t=1777487847986:50
+[ 1215202ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:20102
+[ 1215605ms] [LOG] WebSocket reconnected at t=0.7s @ http://localhost:3011/src/routes/__root.tsx?t=1777487847986:50
+[ 1231880ms] [ERROR] [CONVEX M(onboarding:provisionWorkspace)] [Request ID: b4ce245970e21f99] Server Error
+Uncaught Error: Not signed in
+    at handler (../convex/onboarding.ts:122:23)
+ @ http://localhost:3011/src/routes/__root.tsx?t=1777487847986:50
+[ 1264477ms] [LOG] WebSocket reconnected at t=49.6s @ http://localhost:3011/src/routes/__root.tsx?t=1777487847986:50
+[ 1289031ms] [LOG] WebSocket reconnected at t=74.2s @ http://localhost:3011/src/routes/__root.tsx?t=1777487847986:50
+[ 1310415ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:20102
+[ 1310801ms] [LOG] WebSocket reconnected at t=0.7s @ http://localhost:3011/src/routes/__root.tsx?t=1777487945348:50
+[ 1366060ms] [LOG] WebSocket reconnected at t=56s @ http://localhost:3011/src/routes/__root.tsx?t=1777487945348:50
+[ 1396663ms] [LOG] WebSocket reconnected at t=86.6s @ http://localhost:3011/src/routes/__root.tsx?t=1777487945348:50
+[ 1440095ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:20102
+[ 1489213ms] [LOG] WebSocket reconnected at t=49.5s @ http://localhost:3011/src/routes/__root.tsx?t=1777487945348:50
+[ 1511741ms] [LOG] WebSocket reconnected at t=72s @ http://localhost:3011/src/routes/__root.tsx?t=1777487945348:50
+[ 1653866ms] [ERROR] [CONVEX M(onboarding:provisionWorkspace)] [Request ID: daedc3737d1a4d9f] Server Error
+Uncaught Error: Not signed in
+    at handler (../convex/onboarding.ts:122:23)
+ @ http://localhost:3011/src/routes/__root.tsx?t=1777487945348:50
+[ 1746625ms] [LOG] WebSocket reconnected at t=306.9s @ http://localhost:3011/src/routes/__root.tsx?t=1777487945348:50
+[ 1746950ms] [LOG] WebSocket reconnected at t=307.2s @ http://localhost:3011/src/routes/__root.tsx?t=1777487945348:50
+[ 1747242ms] [LOG] WebSocket reconnected at t=307.5s @ http://localhost:3011/src/routes/__root.tsx?t=1777487945348:50
+[ 1749241ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:20102
+[ 1749682ms] [LOG] WebSocket reconnected at t=0.5s @ http://localhost:3011/src/routes/__root.tsx?t=1777488406198:50
+[ 1749958ms] [LOG] WebSocket reconnected at t=0.8s @ http://localhost:3011/src/routes/__root.tsx?t=1777488406198:50
+[ 1750235ms] [LOG] WebSocket reconnected at t=1s @ http://localhost:3011/src/routes/__root.tsx?t=1777488406198:50
+[ 1884666ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:20102
+[ 1914382ms] [LOG] WebSocket reconnected at t=30.1s @ http://localhost:3011/src/routes/__root.tsx?t=1777488406198:50
+[ 1940447ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:20102
+[ 1940964ms] [LOG] WebSocket reconnected at t=0.6s @ http://localhost:3011/src/routes/__root.tsx?t=1777488406198:50
+[ 1941281ms] [LOG] WebSocket reconnected at t=0.9s @ http://localhost:3011/src/routes/__root.tsx?t=1777488406198:50
+[ 1979189ms] [LOG] WebSocket reconnected at t=38.8s @ http://localhost:3011/src/routes/__root.tsx?t=1777488406198:50
+[ 2152024ms] [LOG] WebSocket reconnected at t=211.6s @ http://localhost:3011/src/routes/__root.tsx?t=1777488406198:50
+[ 2153930ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:20102
+[ 2154251ms] [LOG] WebSocket reconnected at t=0.4s @ http://localhost:3011/src/routes/__root.tsx?t=1777488810913:50
+[14399570ms] [LOG] WebSocket closed with code 1006 @ http://localhost:3011/src/routes/__root.tsx?t=1777488810913:50
+[14399570ms] [LOG] Attempting reconnect in 898ms @ http://localhost:3011/src/routes/__root.tsx?t=1777488810913:50
+[14400609ms] [LOG] WebSocket reconnected at t=12246.5s after disconnect due to closed with code 1006 @ http://localhost:3011/src/routes/__root.tsx?t=1777488810913:50
+[84665310ms] [LOG] WebSocket closed with code 1006 @ http://localhost:3011/src/routes/__root.tsx?t=1777488810913:50
+[84665310ms] [LOG] Attempting reconnect in 515ms @ http://localhost:3011/src/routes/__root.tsx?t=1777488810913:50
+[84665982ms] [LOG] WebSocket reconnected at t=82510.4s after disconnect due to closed with code 1006 @ http://localhost:3011/src/routes/__root.tsx?t=1777488810913:50
+[84695460ms] [LOG] WebSocket closed with code 1006 @ http://localhost:3011/src/routes/__root.tsx?t=1777488810913:50
+[84695460ms] [LOG] Attempting reconnect in 772ms @ http://localhost:3011/src/routes/__root.tsx?t=1777488810913:50
+[84696381ms] [LOG] WebSocket reconnected at t=82540.8s after disconnect due to closed with code 1006 @ http://localhost:3011/src/routes/__root.tsx?t=1777488810913:50
+[93098621ms] [LOG] WebSocket closed with code 1006 @ http://localhost:3011/src/routes/__root.tsx?t=1777488810913:50
+[93098621ms] [LOG] Attempting reconnect in 829ms @ http://localhost:3011/src/routes/__root.tsx?t=1777488810913:50
+[93099639ms] [LOG] WebSocket reconnected at t=90943.9s after disconnect due to closed with code 1006 @ http://localhost:3011/src/routes/__root.tsx?t=1777488810913:50
+[93148182ms] [LOG] WebSocket closed with code 1006 @ http://localhost:3011/src/routes/__root.tsx?t=1777488810913:50
+[93148182ms] [LOG] Attempting reconnect in 905ms @ http://localhost:3011/src/routes/__root.tsx?t=1777488810913:50
+[93149219ms] [LOG] WebSocket reconnected at t=90993.5s after disconnect due to closed with code 1006 @ http://localhost:3011/src/routes/__root.tsx?t=1777488810913:50
+[93900647ms] [LOG] WebSocket closed with code 1006 @ http://localhost:3011/src/routes/__root.tsx?t=1777488810913:50
+[93900647ms] [LOG] Attempting reconnect in 1276ms @ http://localhost:3011/src/routes/__root.tsx?t=1777488810913:50
+[93902076ms] [LOG] WebSocket reconnected at t=91746.3s after disconnect due to closed with code 1006 @ http://localhost:3011/src/routes/__root.tsx?t=1777488810913:50
+[106982451ms] [LOG] WebSocket closed with code 1006 @ http://localhost:3011/src/routes/__root.tsx?t=1777488810913:50
+[106982451ms] [LOG] Attempting reconnect in 1257ms @ http://localhost:3011/src/routes/__root.tsx?t=1777488810913:50
+[106983870ms] [LOG] WebSocket reconnected at t=104827.8s after disconnect due to closed with code 1006 @ http://localhost:3011/src/routes/__root.tsx?t=1777488810913:50
+[160256274ms] [LOG] WebSocket reconnected at t=158099.2s @ http://localhost:3011/src/routes/__root.tsx?t=1777488810913:50
+[160256636ms] [LOG] WebSocket reconnected at t=158099.5s @ http://localhost:3011/src/routes/__root.tsx?t=1777488810913:50
+[160258084ms] [ERROR] [vite] SyntaxError: The requested module '/node_modules/.vite/deps/@tanstack_react-router.js?v=1a3fc306' does not provide an export named 'AuthLoading' @ http://localhost:3011/src/routes/__root.tsx?t=1777488810913:50
+[160258085ms] [ERROR] [vite] Failed to reload /src/routes/__root.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:3011/src/routes/__root.tsx?t=1777488810913:50
+[160266775ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:20102
+[160267187ms] [LOG] WebSocket reconnected at t=0.5s @ http://localhost:3011/src/routes/__root.tsx?t=1777646923418:50
+[160267434ms] [LOG] WebSocket reconnected at t=0.7s @ http://localhost:3011/src/routes/__root.tsx?t=1777646923418:50
+[160346660ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:20102
+[160347200ms] [LOG] WebSocket reconnected at t=0.9s @ http://localhost:3011/src/routes/__root.tsx?t=1777646923418:50
+[160347445ms] [LOG] WebSocket reconnected at t=1.1s @ http://localhost:3011/src/routes/__root.tsx?t=1777646923418:50
+[160442069ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:20102
+[160442608ms] [LOG] WebSocket reconnected at t=0.9s @ http://localhost:3011/src/routes/__root.tsx?t=1777646923418:50
+[160442878ms] [LOG] WebSocket reconnected at t=1.2s @ http://localhost:3011/src/routes/__root.tsx?t=1777646923418:50
+[160533103ms] [LOG] WebSocket reconnected at t=91.4s @ http://localhost:3011/src/routes/__root.tsx?t=1777646923418:50
+[160855243ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:20102
+[160855818ms] [LOG] WebSocket reconnected at t=1.1s @ http://localhost:3011/src/routes/__root.tsx?t=1777646923418:50
+[160856071ms] [LOG] WebSocket reconnected at t=1.4s @ http://localhost:3011/src/routes/__root.tsx?t=1777646923418:50
+[160856323ms] [LOG] WebSocket reconnected at t=1.6s @ http://localhost:3011/src/routes/__root.tsx?t=1777646923418:50
+[160897776ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:20102
+[160919713ms] [LOG] WebSocket reconnected at t=22s @ http://localhost:3011/src/routes/__root.tsx?t=1777646923418:50
+[160956282ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:20102
+[160956824ms] [LOG] WebSocket reconnected at t=1s @ http://localhost:3011/src/routes/__root.tsx?t=1777646923418:50
+[160957066ms] [LOG] WebSocket reconnected at t=1.3s @ http://localhost:3011/src/routes/__root.tsx?t=1777646923418:50
+[160957325ms] [LOG] WebSocket reconnected at t=1.5s @ http://localhost:3011/src/routes/__root.tsx?t=1777646923418:50
+[160961368ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:20102
+[160961818ms] [LOG] WebSocket reconnected at t=0.5s @ http://localhost:3011/src/routes/__root.tsx?t=1777646923418:50
+[160962083ms] [LOG] WebSocket reconnected at t=0.7s @ http://localhost:3011/src/routes/__root.tsx?t=1777646923418:50
+[160962341ms] [LOG] WebSocket reconnected at t=1s @ http://localhost:3011/src/routes/__root.tsx?t=1777646923418:50
+[161052327ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:20102
+[161074334ms] [LOG] WebSocket reconnected at t=22.4s @ http://localhost:3011/src/routes/__root.tsx?t=1777646923418:50
+[161110537ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:20102
+[161132158ms] [LOG] WebSocket reconnected at t=21.7s @ http://localhost:3011/src/routes/__root.tsx?t=1777646923418:50
+[161157899ms] [LOG] WebSocket reconnected at t=47.4s @ http://localhost:3011/src/routes/__root.tsx?t=1777646923418:50
+[161350972ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:20102
+[161351487ms] [LOG] WebSocket reconnected at t=1s @ http://localhost:3011/src/routes/__root.tsx?t=1777646923418:50
+[161351726ms] [LOG] WebSocket reconnected at t=1.2s @ http://localhost:3011/src/routes/__root.tsx?t=1777646923418:50
+[161357342ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:20102
+[161357772ms] [LOG] WebSocket reconnected at t=0.6s @ http://localhost:3011/src/routes/__root.tsx?t=1777646923418:50
+[161358021ms] [LOG] WebSocket reconnected at t=0.8s @ http://localhost:3011/src/routes/__root.tsx?t=1777646923418:50
+[161358288ms] [LOG] WebSocket reconnected at t=1.1s @ http://localhost:3011/src/routes/__root.tsx?t=1777646923418:50
+[161364489ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:20102
+[161364940ms] [LOG] WebSocket reconnected at t=0.5s @ http://localhost:3011/src/routes/__root.tsx?t=1777648021448:50
+[161365188ms] [LOG] WebSocket reconnected at t=0.7s @ http://localhost:3011/src/routes/__root.tsx?t=1777648021448:50
+[161365436ms] [LOG] WebSocket reconnected at t=1s @ http://localhost:3011/src/routes/__root.tsx?t=1777648021448:50
+[161365481ms] [ERROR] %o
+
+%s
+
+%s
+ Error: [CONVEX Q(workspaceAuth:currentWorkspace)] [Request ID: 4840212fda326346] Server Error
+ArgumentValidationError: Object contains extra field `authToken` that is not in the validator.
+
+Object: {authToken: "eyJhbGciOiJSUzI1NiIsImtpZCI6ImNvbnZleCIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJqaDdwcjFxZ2IzNWU0aGplbnE3YzJwc2t5czg1d2pyNHxoeDdnYWNjNGJlenQxOHJtMTVucmt5bjhzczg1dzk0ZSIsImlhdCI6MTc3NzY0ODAyMiwiaXNzIjoiaHR0cHM6Ly9xdWljay1lY2hpZG5hLTEwMi5ldS13ZXN0LTEuY29udmV4LnNpdGUiLCJhdWQiOiJjb252ZXgiLCJleHAiOjE3Nzc2NTE2MjJ9.fYx9JmVRF0x54OF8pY1MW5sh7GbqrDvuDvFmFh4ex8GK6bhPfNENS65UR3UNztMazRz-Aw3MCxlCale19tTioMGolTfyV1FkF-3eDx0HxwKWKmbVhC1D10B9nBA3MRzCr7b2O7QfPzIGiGQ6DjTIdr5T2mOdWxkJ7AA2WsXqmPkhKprnt0KcjaC5KocpjR5U9Tc5v5C7-GX6jTkxtKZxpYFszmJPv7WrW5f_9QxoKSCTzBcvDgNz7s79EV6t9KYa-3f7Zv5JGjhrwYmSKrhLR9SmP5Ytyme4cw6Fp8U1x6YTtmNMx6WhiUwSZBIA6DmPpSnX6SJDiJZgnXfFmOTViw"}
+Validator: v.object({})
+
+
+  Called by client
+    at OptimisticQueryResults.queryResult (http://localhost:3011/node_modules/.vite/deps/chunk-CW35EHCR.js?v=1a3fc306:816:13)
+    at BaseConvexClient.localQueryResult (http://localhost:3011/node_modules/.vite/deps/chunk-CW35EHCR.js?v=1a3fc306:2527:40)
+    at Object.localQueryResult (http://localhost:3011/node_modules/.vite/deps/chunk-CW35EHCR.js?v=1a3fc306:3882:34)
+    at QueriesObserver.getLocalResults (http://localhost:3011/node_modules/.vite/deps/chunk-CW35EHCR.js?v=1a3fc306:4247:23)
+    at getCurrentValue (http://localhost:3011/node_modules/.vite/deps/chunk-CW35EHCR.js?v=1a3fc306:4345:25)
+    at http://localhost:3011/node_modules/.vite/deps/chunk-CW35EHCR.js?v=1a3fc306:3664:23
+    at basicStateReducer (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:5854:47)
+    at updateReducerImpl (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:5944:73)
+    at updateReducer (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:5887:16)
+    at Object.useState (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:18996:20) The above error occurred in the <RootGate> component. React will try to recreate this component tree from scratch using the error boundary you provided, CatchBoundaryImpl. @ http://localhost:3011/src/routes/__root.tsx?t=1777648021448:50
+[161365481ms] [WARNING] Warning: The following error wasn't caught by any route! At the very least, consider setting an 'errorComponent' in your RootRoute! @ http://localhost:3011/src/routes/__root.tsx?t=1777648021448:50
+[161365481ms] [WARNING] Warning: [CONVEX Q(workspaceAuth:currentWorkspace)] [Request ID: 4840212fda326346] Server Error
+ArgumentValidationError: Object contains extra field `authToken` that is not in the validator.
+
+Object: {authToken: "eyJhbGciOiJSUzI1NiIsImtpZCI6ImNvbnZleCIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJqaDdwcjFxZ2IzNWU0aGplbnE3YzJwc2t5czg1d2pyNHxoeDdnYWNjNGJlenQxOHJtMTVucmt5bjhzczg1dzk0ZSIsImlhdCI6MTc3NzY0ODAyMiwiaXNzIjoiaHR0cHM6Ly9xdWljay1lY2hpZG5hLTEwMi5ldS13ZXN0LTEuY29udmV4LnNpdGUiLCJhdWQiOiJjb252ZXgiLCJleHAiOjE3Nzc2NTE2MjJ9.fYx9JmVRF0x54OF8pY1MW5sh7GbqrDvuDvFmFh4ex8GK6bhPfNENS65UR3UNztMazRz-Aw3MCxlCale19tTioMGolTfyV1FkF-3eDx0HxwKWKmbVhC1D10B9nBA3MRzCr7b2O7QfPzIGiGQ6DjTIdr5T2mOdWxkJ7AA2WsXqmPkhKprnt0KcjaC5KocpjR5U9Tc5v5C7-GX6jTkxtKZxpYFszmJPv7WrW5f_9QxoKSCTzBcvDgNz7s79EV6t9KYa-3f7Zv5JGjhrwYmSKrhLR9SmP5Ytyme4cw6Fp8U1x6YTtmNMx6WhiUwSZBIA6DmPpSnX6SJDiJZgnXfFmOTViw"}
+Validator: v.object({})
+
+
+  Called by client @ http://localhost:3011/src/routes/__root.tsx?t=1777648021448:50
+[161377967ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:20102
+[161378449ms] [LOG] WebSocket reconnected at t=0.5s @ http://localhost:3011/src/routes/__root.tsx?t=1777648034946:50
+[161378692ms] [LOG] WebSocket reconnected at t=0.8s @ http://localhost:3011/src/routes/__root.tsx?t=1777648034946:50
+[161378730ms] [ERROR] %o
+
+%s
+
+%s
+ Error: [CONVEX Q(workspaceAuth:currentWorkspace)] [Request ID: 8df7a05fa9ef4d2c] Server Error
+ArgumentValidationError: Object contains extra field `authToken` that is not in the validator.
+
+Object: {authToken: "eyJhbGciOiJSUzI1NiIsImtpZCI6ImNvbnZleCIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJqaDdwcjFxZ2IzNWU0aGplbnE3YzJwc2t5czg1d2pyNHxoeDdnYWNjNGJlenQxOHJtMTVucmt5bjhzczg1dzk0ZSIsImlhdCI6MTc3NzY0ODAzNSwiaXNzIjoiaHR0cHM6Ly9xdWljay1lY2hpZG5hLTEwMi5ldS13ZXN0LTEuY29udmV4LnNpdGUiLCJhdWQiOiJjb252ZXgiLCJleHAiOjE3Nzc2NTE2MzV9.XEzz7nKCgp5TiGbm9CnnOxHiRPIxm80ECQV9oHs7bd1fsbpMrBE-h8uWpnLNPAxm6dENMtZPfn1jEbc5aXYDG00dg_1ivgErTJv_IIKA1OZ5ljd3tyDE_ywFEFtFkIZPcNvKxJTmqpWqoYl812YEG8M3QwI7vjhftd1P21HqCDgDEE-ULTH1BInZ30GEaFAGzK9Dkwibz91x4dREeeNo2JQ84iXxjXWNuugsK3_VELbcPHz0E27mqmqx3aet9BR1d_Li-6uEx877-CcrUXKt3sG_UUDFvXeAAq1ufc1J9-cPr1bOF23CDEVxt-AP9MQgEkYyTPqEiFP3qVRhZdOzFQ"}
+Validator: v.object({})
+
+
+  Called by client
+    at OptimisticQueryResults.queryResult (http://localhost:3011/node_modules/.vite/deps/chunk-CW35EHCR.js?v=1a3fc306:816:13)
+    at BaseConvexClient.localQueryResult (http://localhost:3011/node_modules/.vite/deps/chunk-CW35EHCR.js?v=1a3fc306:2527:40)
+    at Object.localQueryResult (http://localhost:3011/node_modules/.vite/deps/chunk-CW35EHCR.js?v=1a3fc306:3882:34)
+    at QueriesObserver.getLocalResults (http://localhost:3011/node_modules/.vite/deps/chunk-CW35EHCR.js?v=1a3fc306:4247:23)
+    at getCurrentValue (http://localhost:3011/node_modules/.vite/deps/chunk-CW35EHCR.js?v=1a3fc306:4345:25)
+    at http://localhost:3011/node_modules/.vite/deps/chunk-CW35EHCR.js?v=1a3fc306:3664:23
+    at basicStateReducer (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:5854:47)
+    at updateReducerImpl (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:5944:73)
+    at updateReducer (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:5887:16)
+    at Object.useState (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:18996:20) The above error occurred in the <RootGate> component. React will try to recreate this component tree from scratch using the error boundary you provided, CatchBoundaryImpl. @ http://localhost:3011/src/routes/__root.tsx?t=1777648034946:50
+[161378731ms] [WARNING] Warning: The following error wasn't caught by any route! At the very least, consider setting an 'errorComponent' in your RootRoute! @ http://localhost:3011/src/routes/__root.tsx?t=1777648034946:50
+[161378731ms] [WARNING] Warning: [CONVEX Q(workspaceAuth:currentWorkspace)] [Request ID: 8df7a05fa9ef4d2c] Server Error
+ArgumentValidationError: Object contains extra field `authToken` that is not in the validator.
+
+Object: {authToken: "eyJhbGciOiJSUzI1NiIsImtpZCI6ImNvbnZleCIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJqaDdwcjFxZ2IzNWU0aGplbnE3YzJwc2t5czg1d2pyNHxoeDdnYWNjNGJlenQxOHJtMTVucmt5bjhzczg1dzk0ZSIsImlhdCI6MTc3NzY0ODAzNSwiaXNzIjoiaHR0cHM6Ly9xdWljay1lY2hpZG5hLTEwMi5ldS13ZXN0LTEuY29udmV4LnNpdGUiLCJhdWQiOiJjb252ZXgiLCJleHAiOjE3Nzc2NTE2MzV9.XEzz7nKCgp5TiGbm9CnnOxHiRPIxm80ECQV9oHs7bd1fsbpMrBE-h8uWpnLNPAxm6dENMtZPfn1jEbc5aXYDG00dg_1ivgErTJv_IIKA1OZ5ljd3tyDE_ywFEFtFkIZPcNvKxJTmqpWqoYl812YEG8M3QwI7vjhftd1P21HqCDgDEE-ULTH1BInZ30GEaFAGzK9Dkwibz91x4dREeeNo2JQ84iXxjXWNuugsK3_VELbcPHz0E27mqmqx3aet9BR1d_Li-6uEx877-CcrUXKt3sG_UUDFvXeAAq1ufc1J9-cPr1bOF23CDEVxt-AP9MQgEkYyTPqEiFP3qVRhZdOzFQ"}
+Validator: v.object({})
+
+
+  Called by client @ http://localhost:3011/src/routes/__root.tsx?t=1777648034946:50
+[161387685ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:20102
+[161388108ms] [LOG] WebSocket reconnected at t=0.5s @ http://localhost:3011/src/routes/__root.tsx?t=1777648041136:50
+[161388351ms] [LOG] WebSocket reconnected at t=0.7s @ http://localhost:3011/src/routes/__root.tsx?t=1777648041136:50
+[161388393ms] [ERROR] %o
+
+%s
+
+%s
+ Error: [CONVEX Q(workspaceAuth:currentWorkspace)] [Request ID: e107a7bfdaa5edbc] Server Error
+ArgumentValidationError: Object contains extra field `authToken` that is not in the validator.
+
+Object: {authToken: "eyJhbGciOiJSUzI1NiIsImtpZCI6ImNvbnZleCIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJqaDdwcjFxZ2IzNWU0aGplbnE3YzJwc2t5czg1d2pyNHxoeDdnYWNjNGJlenQxOHJtMTVucmt5bjhzczg1dzk0ZSIsImlhdCI6MTc3NzY0ODA0NSwiaXNzIjoiaHR0cHM6Ly9xdWljay1lY2hpZG5hLTEwMi5ldS13ZXN0LTEuY29udmV4LnNpdGUiLCJhdWQiOiJjb252ZXgiLCJleHAiOjE3Nzc2NTE2NDV9.jTYclfGgfisZnvMVflO98opd_KyReByEmMHzp-1Bh8qUtzyigNG7BN--eZxvpZrsGMw8LERGIRhxwBDK85b2w1g0VNb3qyOGPL4aIzACKoVDFt-CZStqLcSXkjmHWT-qYCGfM65w0pmH0YiLyBLreGziBRUYVvGZmEWjXNl_eJb8YKZHB6zUvLyz2Lu8ZFRa3p_x4hS7iW2lXO2sASwIdra2qpXb5BkZaI6qHyI10h-y_pW9A2LVo4gXVnweYIz_PZEXJlzVkCoK4o7KmIhlRNgXMU_rGOgTKLUdexmlatzWPesuCuym3t1l-AN88VvMZB3u-T6yaiHy0DXAIN6Ckg"}
+Validator: v.object({})
+
+
+  Called by client
+    at OptimisticQueryResults.queryResult (http://localhost:3011/node_modules/.vite/deps/chunk-CW35EHCR.js?v=1a3fc306:816:13)
+    at BaseConvexClient.localQueryResult (http://localhost:3011/node_modules/.vite/deps/chunk-CW35EHCR.js?v=1a3fc306:2527:40)
+    at Object.localQueryResult (http://localhost:3011/node_modules/.vite/deps/chunk-CW35EHCR.js?v=1a3fc306:3882:34)
+    at QueriesObserver.getLocalResults (http://localhost:3011/node_modules/.vite/deps/chunk-CW35EHCR.js?v=1a3fc306:4247:23)
+    at getCurrentValue (http://localhost:3011/node_modules/.vite/deps/chunk-CW35EHCR.js?v=1a3fc306:4345:25)
+    at http://localhost:3011/node_modules/.vite/deps/chunk-CW35EHCR.js?v=1a3fc306:3664:23
+    at basicStateReducer (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:5854:47)
+    at updateReducerImpl (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:5944:73)
+    at updateReducer (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:5887:16)
+    at Object.useState (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:18996:20) The above error occurred in the <RootGate> component. React will try to recreate this component tree from scratch using the error boundary you provided, CatchBoundaryImpl. @ http://localhost:3011/src/routes/__root.tsx?t=1777648041136:50
+[161388394ms] [WARNING] Warning: The following error wasn't caught by any route! At the very least, consider setting an 'errorComponent' in your RootRoute! @ http://localhost:3011/src/routes/__root.tsx?t=1777648041136:50
+[161388394ms] [WARNING] Warning: [CONVEX Q(workspaceAuth:currentWorkspace)] [Request ID: e107a7bfdaa5edbc] Server Error
+ArgumentValidationError: Object contains extra field `authToken` that is not in the validator.
+
+Object: {authToken: "eyJhbGciOiJSUzI1NiIsImtpZCI6ImNvbnZleCIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJqaDdwcjFxZ2IzNWU0aGplbnE3YzJwc2t5czg1d2pyNHxoeDdnYWNjNGJlenQxOHJtMTVucmt5bjhzczg1dzk0ZSIsImlhdCI6MTc3NzY0ODA0NSwiaXNzIjoiaHR0cHM6Ly9xdWljay1lY2hpZG5hLTEwMi5ldS13ZXN0LTEuY29udmV4LnNpdGUiLCJhdWQiOiJjb252ZXgiLCJleHAiOjE3Nzc2NTE2NDV9.jTYclfGgfisZnvMVflO98opd_KyReByEmMHzp-1Bh8qUtzyigNG7BN--eZxvpZrsGMw8LERGIRhxwBDK85b2w1g0VNb3qyOGPL4aIzACKoVDFt-CZStqLcSXkjmHWT-qYCGfM65w0pmH0YiLyBLreGziBRUYVvGZmEWjXNl_eJb8YKZHB6zUvLyz2Lu8ZFRa3p_x4hS7iW2lXO2sASwIdra2qpXb5BkZaI6qHyI10h-y_pW9A2LVo4gXVnweYIz_PZEXJlzVkCoK4o7KmIhlRNgXMU_rGOgTKLUdexmlatzWPesuCuym3t1l-AN88VvMZB3u-T6yaiHy0DXAIN6Ckg"}
+Validator: v.object({})
+
+
+  Called by client @ http://localhost:3011/src/routes/__root.tsx?t=1777648041136:50
+[161391133ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:20102
+[161391576ms] [LOG] WebSocket reconnected at t=0.6s @ http://localhost:3011/src/routes/__root.tsx?t=1777648041136:50
+[161391829ms] [LOG] WebSocket reconnected at t=0.9s @ http://localhost:3011/src/routes/__root.tsx?t=1777648041136:50
+[161391868ms] [ERROR] %o
+
+%s
+
+%s
+ Error: [CONVEX Q(workspaceAuth:currentWorkspace)] [Request ID: 3636bb7b44050d09] Server Error
+ArgumentValidationError: Object contains extra field `authToken` that is not in the validator.
+
+Object: {authToken: "eyJhbGciOiJSUzI1NiIsImtpZCI6ImNvbnZleCIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJqaDdwcjFxZ2IzNWU0aGplbnE3YzJwc2t5czg1d2pyNHxoeDdnYWNjNGJlenQxOHJtMTVucmt5bjhzczg1dzk0ZSIsImlhdCI6MTc3NzY0ODA0OCwiaXNzIjoiaHR0cHM6Ly9xdWljay1lY2hpZG5hLTEwMi5ldS13ZXN0LTEuY29udmV4LnNpdGUiLCJhdWQiOiJjb252ZXgiLCJleHAiOjE3Nzc2NTE2NDh9.SgH-KBxMLMmYQPm6RNR-2qwBXxtJSbeDnmPRIbu9jnta-QD0h34dcjdvAy3hiIQ0P6DYUOyIKIonASVPjAvm9hwJeRzYy1sX78Ikuge6fYB1SWM14ci8aOz2fHO2P5rFT5wprU6vPVmvF9rYuz69qnJb54HZT7g-_2ZREbDFj_6qD5y0MqgnbhRrdBBoLRiOLbnODlU1Y095ejFjbhPIW9e0qi3VqkF00zKY1gu3QEu4ic8JjCZh34RpIvStsPcXEi8W4LrptUr7YRF3xzclwk8A93QIxwjluVKVjdpzczKVDKaLEPd1UTAAAg4zBxRKvp-g8QlUE5AV8R0q4PbHLg"}
+Validator: v.object({})
+
+
+  Called by client
+    at OptimisticQueryResults.queryResult (http://localhost:3011/node_modules/.vite/deps/chunk-CW35EHCR.js?v=1a3fc306:816:13)
+    at BaseConvexClient.localQueryResult (http://localhost:3011/node_modules/.vite/deps/chunk-CW35EHCR.js?v=1a3fc306:2527:40)
+    at Object.localQueryResult (http://localhost:3011/node_modules/.vite/deps/chunk-CW35EHCR.js?v=1a3fc306:3882:34)
+    at QueriesObserver.getLocalResults (http://localhost:3011/node_modules/.vite/deps/chunk-CW35EHCR.js?v=1a3fc306:4247:23)
+    at getCurrentValue (http://localhost:3011/node_modules/.vite/deps/chunk-CW35EHCR.js?v=1a3fc306:4345:25)
+    at http://localhost:3011/node_modules/.vite/deps/chunk-CW35EHCR.js?v=1a3fc306:3664:23
+    at basicStateReducer (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:5854:47)
+    at updateReducerImpl (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:5944:73)
+    at updateReducer (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:5887:16)
+    at Object.useState (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:18996:20) The above error occurred in the <RootGate> component. React will try to recreate this component tree from scratch using the error boundary you provided, CatchBoundaryImpl. @ http://localhost:3011/src/routes/__root.tsx?t=1777648041136:50
+[161391869ms] [WARNING] Warning: The following error wasn't caught by any route! At the very least, consider setting an 'errorComponent' in your RootRoute! @ http://localhost:3011/src/routes/__root.tsx?t=1777648041136:50
+[161391869ms] [WARNING] Warning: [CONVEX Q(workspaceAuth:currentWorkspace)] [Request ID: 3636bb7b44050d09] Server Error
+ArgumentValidationError: Object contains extra field `authToken` that is not in the validator.
+
+Object: {authToken: "eyJhbGciOiJSUzI1NiIsImtpZCI6ImNvbnZleCIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJqaDdwcjFxZ2IzNWU0aGplbnE3YzJwc2t5czg1d2pyNHxoeDdnYWNjNGJlenQxOHJtMTVucmt5bjhzczg1dzk0ZSIsImlhdCI6MTc3NzY0ODA0OCwiaXNzIjoiaHR0cHM6Ly9xdWljay1lY2hpZG5hLTEwMi5ldS13ZXN0LTEuY29udmV4LnNpdGUiLCJhdWQiOiJjb252ZXgiLCJleHAiOjE3Nzc2NTE2NDh9.SgH-KBxMLMmYQPm6RNR-2qwBXxtJSbeDnmPRIbu9jnta-QD0h34dcjdvAy3hiIQ0P6DYUOyIKIonASVPjAvm9hwJeRzYy1sX78Ikuge6fYB1SWM14ci8aOz2fHO2P5rFT5wprU6vPVmvF9rYuz69qnJb54HZT7g-_2ZREbDFj_6qD5y0MqgnbhRrdBBoLRiOLbnODlU1Y095ejFjbhPIW9e0qi3VqkF00zKY1gu3QEu4ic8JjCZh34RpIvStsPcXEi8W4LrptUr7YRF3xzclwk8A93QIxwjluVKVjdpzczKVDKaLEPd1UTAAAg4zBxRKvp-g8QlUE5AV8R0q4PbHLg"}
+Validator: v.object({})
+
+
+  Called by client @ http://localhost:3011/src/routes/__root.tsx?t=1777648041136:50
+[161400470ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:20102
+[161400930ms] [LOG] WebSocket reconnected at t=0.5s @ http://localhost:3011/src/routes/__root.tsx?t=1777648057461:50
+[161401182ms] [LOG] WebSocket reconnected at t=0.8s @ http://localhost:3011/src/routes/__root.tsx?t=1777648057461:50
+[161401224ms] [ERROR] %o
+
+%s
+
+%s
+ Error: [CONVEX Q(workspaceAuth:currentWorkspace)] [Request ID: aa6001f59ec87361] Server Error
+ArgumentValidationError: Object contains extra field `authToken` that is not in the validator.
+
+Object: {authToken: "eyJhbGciOiJSUzI1NiIsImtpZCI6ImNvbnZleCIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJqaDdwcjFxZ2IzNWU0aGplbnE3YzJwc2t5czg1d2pyNHxoeDdnYWNjNGJlenQxOHJtMTVucmt5bjhzczg1dzk0ZSIsImlhdCI6MTc3NzY0ODA1OCwiaXNzIjoiaHR0cHM6Ly9xdWljay1lY2hpZG5hLTEwMi5ldS13ZXN0LTEuY29udmV4LnNpdGUiLCJhdWQiOiJjb252ZXgiLCJleHAiOjE3Nzc2NTE2NTh9.VIYGC07kafMVCM7gIq3KG0t8P80Et9HHp6k4HbQRVTGzFRhmx4aYSSFCkP5lISX6axrD2s-4VsKZp3hn1Z7m60eX0eyzPhxCI94B9nxEifMJst5QIrzL_d_45YvRsc6CuHbmE_ZqruUHElPtyqNvImTZRCICS5Bns6ljdTEfYLMaU-qw62Zqo4zh0UJY02luOBpxEbfFSa7TZeISdVjY9vn_tHVZwizRCUPn_gEs7NpvGlHtaODWJvqIQYXR-GPRU8P2JkLoWveWH-tYHJ64kk4vpeV5r5FtmRYNAYz9BGLqgavvMq7xf9VgWW4_qwltKrOiq7XKKxmpmyE0Wf1zQA"}
+Validator: v.object({})
+
+
+  Called by client
+    at OptimisticQueryResults.queryResult (http://localhost:3011/node_modules/.vite/deps/chunk-CW35EHCR.js?v=1a3fc306:816:13)
+    at BaseConvexClient.localQueryResult (http://localhost:3011/node_modules/.vite/deps/chunk-CW35EHCR.js?v=1a3fc306:2527:40)
+    at Object.localQueryResult (http://localhost:3011/node_modules/.vite/deps/chunk-CW35EHCR.js?v=1a3fc306:3882:34)
+    at QueriesObserver.getLocalResults (http://localhost:3011/node_modules/.vite/deps/chunk-CW35EHCR.js?v=1a3fc306:4247:23)
+    at getCurrentValue (http://localhost:3011/node_modules/.vite/deps/chunk-CW35EHCR.js?v=1a3fc306:4345:25)
+    at http://localhost:3011/node_modules/.vite/deps/chunk-CW35EHCR.js?v=1a3fc306:3664:23
+    at basicStateReducer (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:5854:47)
+    at updateReducerImpl (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:5944:73)
+    at updateReducer (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:5887:16)
+    at Object.useState (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:18996:20) The above error occurred in the <RootGate> component. React will try to recreate this component tree from scratch using the error boundary you provided, CatchBoundaryImpl. @ http://localhost:3011/src/routes/__root.tsx?t=1777648057461:50
+[161401224ms] [WARNING] Warning: The following error wasn't caught by any route! At the very least, consider setting an 'errorComponent' in your RootRoute! @ http://localhost:3011/src/routes/__root.tsx?t=1777648057461:50
+[161401224ms] [WARNING] Warning: [CONVEX Q(workspaceAuth:currentWorkspace)] [Request ID: aa6001f59ec87361] Server Error
+ArgumentValidationError: Object contains extra field `authToken` that is not in the validator.
+
+Object: {authToken: "eyJhbGciOiJSUzI1NiIsImtpZCI6ImNvbnZleCIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJqaDdwcjFxZ2IzNWU0aGplbnE3YzJwc2t5czg1d2pyNHxoeDdnYWNjNGJlenQxOHJtMTVucmt5bjhzczg1dzk0ZSIsImlhdCI6MTc3NzY0ODA1OCwiaXNzIjoiaHR0cHM6Ly9xdWljay1lY2hpZG5hLTEwMi5ldS13ZXN0LTEuY29udmV4LnNpdGUiLCJhdWQiOiJjb252ZXgiLCJleHAiOjE3Nzc2NTE2NTh9.VIYGC07kafMVCM7gIq3KG0t8P80Et9HHp6k4HbQRVTGzFRhmx4aYSSFCkP5lISX6axrD2s-4VsKZp3hn1Z7m60eX0eyzPhxCI94B9nxEifMJst5QIrzL_d_45YvRsc6CuHbmE_ZqruUHElPtyqNvImTZRCICS5Bns6ljdTEfYLMaU-qw62Zqo4zh0UJY02luOBpxEbfFSa7TZeISdVjY9vn_tHVZwizRCUPn_gEs7NpvGlHtaODWJvqIQYXR-GPRU8P2JkLoWveWH-tYHJ64kk4vpeV5r5FtmRYNAYz9BGLqgavvMq7xf9VgWW4_qwltKrOiq7XKKxmpmyE0Wf1zQA"}
+Validator: v.object({})
+
+
+  Called by client @ http://localhost:3011/src/routes/__root.tsx?t=1777648057461:50
+[161451091ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:20102
+[161451608ms] [LOG] WebSocket reconnected at t=0.6s @ http://localhost:3011/src/routes/__root.tsx?t=1777648108070:50
+[161451870ms] [LOG] WebSocket reconnected at t=0.8s @ http://localhost:3011/src/routes/__root.tsx?t=1777648108070:50
+[161451915ms] [ERROR] %o
+
+%s
+
+%s
+ Error: [CONVEX Q(workspaceAuth:currentWorkspace)] [Request ID: 3d16d9afda412fb3] Server Error
+ArgumentValidationError: Object contains extra field `authToken` that is not in the validator.
+
+Object: {authToken: "eyJhbGciOiJSUzI1NiIsImtpZCI6ImNvbnZleCIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJqaDdwcjFxZ2IzNWU0aGplbnE3YzJwc2t5czg1d2pyNHxoeDdnYWNjNGJlenQxOHJtMTVucmt5bjhzczg1dzk0ZSIsImlhdCI6MTc3NzY0ODEwOCwiaXNzIjoiaHR0cHM6Ly9xdWljay1lY2hpZG5hLTEwMi5ldS13ZXN0LTEuY29udmV4LnNpdGUiLCJhdWQiOiJjb252ZXgiLCJleHAiOjE3Nzc2NTE3MDh9.DxlEMZsxlRpURD6kb8B0gnWiDBgW78S5ofZ0Fef4_neStC06UBktD0Ll2TSpC1q1UeN6yMpXzlWRzGo8hJIWRDQuqxHcHAmE4nty9mZ3rzM2XOqz2S6-KRYPLoH3z-dS4yb6D00P58LRhI-DOzLedkPFgxHx87NUyNehO1rDsPITvJL1wPvDt8FgMjjH3oAXUAFWT5lhCx49sFgFSlczR__AtSu8BPnVM9DHZlL2pvYTPcjpfPKTd53pWBZO1M-eZUQqFmH7Mhg2WHTOi_2CHHUObac5I1xCKORcVWF98JAXh-2qWEa9lSgeScJJyQ9zn2xlF8ukz3RbWjojohW0ww"}
+Validator: v.object({})
+
+
+  Called by client
+    at OptimisticQueryResults.queryResult (http://localhost:3011/node_modules/.vite/deps/chunk-CW35EHCR.js?v=1a3fc306:816:13)
+    at BaseConvexClient.localQueryResult (http://localhost:3011/node_modules/.vite/deps/chunk-CW35EHCR.js?v=1a3fc306:2527:40)
+    at Object.localQueryResult (http://localhost:3011/node_modules/.vite/deps/chunk-CW35EHCR.js?v=1a3fc306:3882:34)
+    at QueriesObserver.getLocalResults (http://localhost:3011/node_modules/.vite/deps/chunk-CW35EHCR.js?v=1a3fc306:4247:23)
+    at getCurrentValue (http://localhost:3011/node_modules/.vite/deps/chunk-CW35EHCR.js?v=1a3fc306:4345:25)
+    at http://localhost:3011/node_modules/.vite/deps/chunk-CW35EHCR.js?v=1a3fc306:3664:23
+    at basicStateReducer (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:5854:47)
+    at updateReducerImpl (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:5944:73)
+    at updateReducer (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:5887:16)
+    at Object.useState (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:18996:20) The above error occurred in the <RootGate> component. React will try to recreate this component tree from scratch using the error boundary you provided, CatchBoundaryImpl. @ http://localhost:3011/src/routes/__root.tsx?t=1777648108070:50
+[161451916ms] [WARNING] Warning: The following error wasn't caught by any route! At the very least, consider setting an 'errorComponent' in your RootRoute! @ http://localhost:3011/src/routes/__root.tsx?t=1777648108070:50
+[161451916ms] [WARNING] Warning: [CONVEX Q(workspaceAuth:currentWorkspace)] [Request ID: 3d16d9afda412fb3] Server Error
+ArgumentValidationError: Object contains extra field `authToken` that is not in the validator.
+
+Object: {authToken: "eyJhbGciOiJSUzI1NiIsImtpZCI6ImNvbnZleCIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJqaDdwcjFxZ2IzNWU0aGplbnE3YzJwc2t5czg1d2pyNHxoeDdnYWNjNGJlenQxOHJtMTVucmt5bjhzczg1dzk0ZSIsImlhdCI6MTc3NzY0ODEwOCwiaXNzIjoiaHR0cHM6Ly9xdWljay1lY2hpZG5hLTEwMi5ldS13ZXN0LTEuY29udmV4LnNpdGUiLCJhdWQiOiJjb252ZXgiLCJleHAiOjE3Nzc2NTE3MDh9.DxlEMZsxlRpURD6kb8B0gnWiDBgW78S5ofZ0Fef4_neStC06UBktD0Ll2TSpC1q1UeN6yMpXzlWRzGo8hJIWRDQuqxHcHAmE4nty9mZ3rzM2XOqz2S6-KRYPLoH3z-dS4yb6D00P58LRhI-DOzLedkPFgxHx87NUyNehO1rDsPITvJL1wPvDt8FgMjjH3oAXUAFWT5lhCx49sFgFSlczR__AtSu8BPnVM9DHZlL2pvYTPcjpfPKTd53pWBZO1M-eZUQqFmH7Mhg2WHTOi_2CHHUObac5I1xCKORcVWF98JAXh-2qWEa9lSgeScJJyQ9zn2xlF8ukz3RbWjojohW0ww"}
+Validator: v.object({})
+
+
+  Called by client @ http://localhost:3011/src/routes/__root.tsx?t=1777648108070:50
+[161478140ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:20102
+[161478620ms] [LOG] WebSocket reconnected at t=0.6s @ http://localhost:3011/src/routes/__root.tsx?t=1777648108070:50
+[161478873ms] [LOG] WebSocket reconnected at t=0.9s @ http://localhost:3011/src/routes/__root.tsx?t=1777648108070:50
+[161478916ms] [ERROR] %o
+
+%s
+
+%s
+ Error: [CONVEX Q(workspaceAuth:currentWorkspace)] [Request ID: c302b444e0ea1d14] Server Error
+ArgumentValidationError: Object contains extra field `authToken` that is not in the validator.
+
+Object: {authToken: "eyJhbGciOiJSUzI1NiIsImtpZCI6ImNvbnZleCIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJqaDdwcjFxZ2IzNWU0aGplbnE3YzJwc2t5czg1d2pyNHxoeDdnYWNjNGJlenQxOHJtMTVucmt5bjhzczg1dzk0ZSIsImlhdCI6MTc3NzY0ODEzNSwiaXNzIjoiaHR0cHM6Ly9xdWljay1lY2hpZG5hLTEwMi5ldS13ZXN0LTEuY29udmV4LnNpdGUiLCJhdWQiOiJjb252ZXgiLCJleHAiOjE3Nzc2NTE3MzV9.dmXhJ_6NRdoavqBBi-21DckvLk-3l00-G9jrkUBj85eJvibWRPxUELMpWDk6IeRmQ8flLgdWsArG9QLDWVBoTMKQCgwsN8deL6CL8FZ_B4z0ElOc6pkbT1501u9X31GHwCTuRcF-URRiJuWEVxhx_JGuH-AV9-Ex3AwJGD6R0BXku-S9GGt-6yVv4o0LhVpanVt53NKgWRmPdsSObaVcl9CSJ2MSw0RwB2WRORMhbEinADqt9bqIXHEnriAC8b5eQLL8ot3pJS1R2ZqNHlmaRnUYWfkWfX4XSljSzmDch6Ezs9uu4l14oWxymgfXF_kIrmEmhtWDjNLJlqCKeIF8_Q"}
+Validator: v.object({})
+
+
+  Called by client
+    at OptimisticQueryResults.queryResult (http://localhost:3011/node_modules/.vite/deps/chunk-CW35EHCR.js?v=1a3fc306:816:13)
+    at BaseConvexClient.localQueryResult (http://localhost:3011/node_modules/.vite/deps/chunk-CW35EHCR.js?v=1a3fc306:2527:40)
+    at Object.localQueryResult (http://localhost:3011/node_modules/.vite/deps/chunk-CW35EHCR.js?v=1a3fc306:3882:34)
+    at QueriesObserver.getLocalResults (http://localhost:3011/node_modules/.vite/deps/chunk-CW35EHCR.js?v=1a3fc306:4247:23)
+    at getCurrentValue (http://localhost:3011/node_modules/.vite/deps/chunk-CW35EHCR.js?v=1a3fc306:4345:25)
+    at http://localhost:3011/node_modules/.vite/deps/chunk-CW35EHCR.js?v=1a3fc306:3664:23
+    at basicStateReducer (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:5854:47)
+    at updateReducerImpl (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:5944:73)
+    at updateReducer (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:5887:16)
+    at Object.useState (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:18996:20) The above error occurred in the <RootGate> component. React will try to recreate this component tree from scratch using the error boundary you provided, CatchBoundaryImpl. @ http://localhost:3011/src/routes/__root.tsx?t=1777648108070:50
+[161478916ms] [WARNING] Warning: The following error wasn't caught by any route! At the very least, consider setting an 'errorComponent' in your RootRoute! @ http://localhost:3011/src/routes/__root.tsx?t=1777648108070:50
+[161478916ms] [WARNING] Warning: [CONVEX Q(workspaceAuth:currentWorkspace)] [Request ID: c302b444e0ea1d14] Server Error
+ArgumentValidationError: Object contains extra field `authToken` that is not in the validator.
+
+Object: {authToken: "eyJhbGciOiJSUzI1NiIsImtpZCI6ImNvbnZleCIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJqaDdwcjFxZ2IzNWU0aGplbnE3YzJwc2t5czg1d2pyNHxoeDdnYWNjNGJlenQxOHJtMTVucmt5bjhzczg1dzk0ZSIsImlhdCI6MTc3NzY0ODEzNSwiaXNzIjoiaHR0cHM6Ly9xdWljay1lY2hpZG5hLTEwMi5ldS13ZXN0LTEuY29udmV4LnNpdGUiLCJhdWQiOiJjb252ZXgiLCJleHAiOjE3Nzc2NTE3MzV9.dmXhJ_6NRdoavqBBi-21DckvLk-3l00-G9jrkUBj85eJvibWRPxUELMpWDk6IeRmQ8flLgdWsArG9QLDWVBoTMKQCgwsN8deL6CL8FZ_B4z0ElOc6pkbT1501u9X31GHwCTuRcF-URRiJuWEVxhx_JGuH-AV9-Ex3AwJGD6R0BXku-S9GGt-6yVv4o0LhVpanVt53NKgWRmPdsSObaVcl9CSJ2MSw0RwB2WRORMhbEinADqt9bqIXHEnriAC8b5eQLL8ot3pJS1R2ZqNHlmaRnUYWfkWfX4XSljSzmDch6Ezs9uu4l14oWxymgfXF_kIrmEmhtWDjNLJlqCKeIF8_Q"}
+Validator: v.object({})
+
+
+  Called by client @ http://localhost:3011/src/routes/__root.tsx?t=1777648108070:50
+[161606244ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:20102
+[161781511ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:20102
+[171876306ms] [LOG] WebSocket closed with code 1006 @ http://localhost:3011/src/routes/__root.tsx?t=1777648108070:50
+[171876306ms] [LOG] Attempting reconnect in 1476ms @ http://localhost:3011/src/routes/__root.tsx?t=1777648108070:50
+[171877948ms] [LOG] WebSocket reconnected at t=10096.6s after disconnect due to closed with code 1006 @ http://localhost:3011/src/routes/__root.tsx?t=1777648108070:50
+[187023448ms] [LOG] WebSocket closed with code 1006 @ http://localhost:3011/src/routes/__root.tsx?t=1777648108070:50
+[187023448ms] [LOG] Attempting reconnect in 716ms @ http://localhost:3011/src/routes/__root.tsx?t=1777648108070:50
+[187024291ms] [LOG] WebSocket reconnected at t=25242.6s after disconnect due to closed with code 1006 @ http://localhost:3011/src/routes/__root.tsx?t=1777648108070:50
+[193864317ms] [LOG] Attempting reconnect in 1169ms @ http://localhost:3011/src/routes/__root.tsx?t=1777648108070:50
+[193865765ms] [LOG] WebSocket reconnected at t=32084s after disconnect due to CloudFlare WebSocket proxy restarting @ http://localhost:3011/src/routes/__root.tsx?t=1777648108070:50
+[200753131ms] [LOG] WebSocket closed with code 1006 @ http://localhost:3011/src/routes/__root.tsx?t=1777648108070:50
+[200753132ms] [LOG] Attempting reconnect in 1466ms @ http://localhost:3011/src/routes/__root.tsx?t=1777648108070:50
+[200754757ms] [LOG] WebSocket reconnected at t=38972.8s after disconnect due to closed with code 1006 @ http://localhost:3011/src/routes/__root.tsx?t=1777648108070:50
+[439156095ms] [LOG] WebSocket closed with code 1006 @ http://localhost:3011/src/routes/__root.tsx?t=1777648108070:50
+[439156095ms] [LOG] Attempting reconnect in 1343ms @ http://localhost:3011/src/routes/__root.tsx?t=1777648108070:50
+[439157584ms] [LOG] WebSocket reconnected at t=277370.9s after disconnect due to closed with code 1006 @ http://localhost:3011/src/routes/__root.tsx?t=1777648108070:50
+[451003877ms] [LOG] WebSocket closed with code 1006 @ http://localhost:3011/src/routes/__root.tsx?t=1777648108070:50
+[451003877ms] [LOG] Attempting reconnect in 779ms @ http://localhost:3011/src/routes/__root.tsx?t=1777648108070:50
+[451004805ms] [LOG] WebSocket reconnected at t=289217.8s after disconnect due to closed with code 1006 @ http://localhost:3011/src/routes/__root.tsx?t=1777648108070:50
+[451033921ms] [LOG] WebSocket closed with code 1006 @ http://localhost:3011/src/routes/__root.tsx?t=1777648108070:50
+[451033921ms] [LOG] Attempting reconnect in 1333ms @ http://localhost:3011/src/routes/__root.tsx?t=1777648108070:50
+[451035380ms] [LOG] WebSocket reconnected at t=289248.4s after disconnect due to closed with code 1006 @ http://localhost:3011/src/routes/__root.tsx?t=1777648108070:50
+[451064029ms] [LOG] WebSocket closed with code 1006 @ http://localhost:3011/src/routes/__root.tsx?t=1777648108070:50
+[451064029ms] [LOG] Attempting reconnect in 739ms @ http://localhost:3011/src/routes/__root.tsx?t=1777648108070:50
+[451064900ms] [LOG] WebSocket reconnected at t=289277.9s after disconnect due to closed with code 1006 @ http://localhost:3011/src/routes/__root.tsx?t=1777648108070:50
+[453008957ms] [LOG] WebSocket closed with code 1011: InternalServerError @ http://localhost:3011/src/routes/__root.tsx?t=1777648108070:50
+[453008957ms] [LOG] Attempting reconnect in 1120ms @ http://localhost:3011/src/routes/__root.tsx?t=1777648108070:50
+[453010225ms] [LOG] WebSocket reconnected at t=291223.2s after disconnect due to InternalServerError @ http://localhost:3011/src/routes/__root.tsx?t=1777648108070:50
+[460570385ms] [LOG] WebSocket closed with code 1006 @ http://localhost:3011/src/routes/__root.tsx?t=1777648108070:50
+[460570385ms] [LOG] Attempting reconnect in 705ms @ http://localhost:3011/src/routes/__root.tsx?t=1777648108070:50
+[460571258ms] [LOG] WebSocket reconnected at t=298784.1s after disconnect due to closed with code 1006 @ http://localhost:3011/src/routes/__root.tsx?t=1777648108070:50
+[513440506ms] [LOG] WebSocket closed with code 1006 @ http://localhost:3011/src/routes/__root.tsx?t=1777648108070:50
+[513440507ms] [LOG] Attempting reconnect in 614ms @ http://localhost:3011/src/routes/__root.tsx?t=1777648108070:50
+[513441280ms] [LOG] WebSocket reconnected at t=351653s after disconnect due to closed with code 1006 @ http://localhost:3011/src/routes/__root.tsx?t=1777648108070:50
+[540480392ms] [LOG] WebSocket closed with code 1006 @ http://localhost:3011/src/routes/__root.tsx?t=1777648108070:50
+[540480392ms] [LOG] Attempting reconnect in 1364ms @ http://localhost:3011/src/routes/__root.tsx?t=1777648108070:50
+[540481899ms] [LOG] WebSocket reconnected at t=378693.1s after disconnect due to closed with code 1006 @ http://localhost:3011/src/routes/__root.tsx?t=1777648108070:50
+[591072771ms] [LOG] WebSocket closed with code 1006 @ http://localhost:3011/src/routes/__root.tsx?t=1777648108070:50
+[591072771ms] [LOG] Attempting reconnect in 1269ms @ http://localhost:3011/src/routes/__root.tsx?t=1777648108070:50
+[591074187ms] [LOG] WebSocket reconnected at t=429284.4s after disconnect due to closed with code 1006 @ http://localhost:3011/src/routes/__root.tsx?t=1777648108070:50

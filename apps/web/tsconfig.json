@@ -1,11 +1,12 @@
 {
   "include": ["**/*.ts", "**/*.tsx"],
+  "exclude": ["convex/**", "node_modules"],
   "compilerOptions": {
     "target": "ES2022",
     "jsx": "react-jsx",
     "module": "ESNext",
     "baseUrl": ".",
-    "ignoreDeprecations": "6.0",
+    "ignoreDeprecations": "5.0",
     "paths": {
       "#/*": ["./src/*"],
       "@/*": ["./src/*"]

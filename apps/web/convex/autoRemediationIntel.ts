@@ -247,6 +247,19 @@ export const getAutoRemediationHistoryForRepository = query({
   },
 })
 
+// ─── §3.9 — Per-row dispatch mutation ────────────────────────────────────────
+
+export const dispatchRemediation = internalMutation({
+  args: {
+    repositoryId: v.id('repositories'),
+  },
+  handler: async (ctx, { repositoryId }) => {
+    // Delegate to the existing trigger implementation.
+    await triggerAutoRemediationForRepository.handler(ctx, { repositoryId })
+    return { dispatched: true }
+  },
+})
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 type AutoRemediationRunRecord = {

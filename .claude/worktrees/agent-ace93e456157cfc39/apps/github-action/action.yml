@@ -1,0 +1,73 @@
+name: 'Sentinel Security Gate'
+description: >
+  Autonomous security gate powered by Sentinel. Checks for confirmed exploitable
+  findings on the current commit, posts a detailed check run to the PR, and
+  optionally blocks the workflow if critical or high severity findings exist.
+
+author: 'Sentinel Security'
+
+branding:
+  icon: 'shield'
+  color: 'red'
+
+inputs:
+  sentinel-api-key:
+    description: 'Sentinel API key (SENTINEL_API_KEY). Required.'
+    required: true
+
+  sentinel-url:
+    description: 'Base URL of your Sentinel deployment.'
+    required: false
+    default: 'https://quick-echidna-102.eu-west-1.convex.site'
+
+  tenant-slug:
+    description: 'Your Sentinel tenant slug (e.g. "acme-corp").'
+    required: true
+
+  repository-full-name:
+    description: >
+      Full repository name (owner/repo). Defaults to github.repository.
+    required: false
+    default: '${{ github.repository }}'
+
+  block-on-severity:
+    description: >
+      Minimum severity that causes the action to fail the workflow.
+      Values: critical, high, medium, none.
+      Default: high (blocks on critical + high validated findings).
+    required: false
+    default: 'high'
+
+  post-check-run:
+    description: >
+      Whether to post a GitHub Check Run with detailed findings.
+      Requires the workflow to have checks:write permission.
+    required: false
+    default: 'true'
+
+  fail-on-error:
+    description: >
+      Whether to fail the workflow if the Sentinel API is unreachable.
+      Set to false for non-blocking monitoring mode.
+    required: false
+    default: 'false'
+
+outputs:
+  finding-count:
+    description: 'Total number of open validated findings.'
+
+  critical-count:
+    description: 'Number of critical validated findings.'
+
+  high-count:
+    description: 'Number of high validated findings.'
+
+  check-run-url:
+    description: 'URL of the posted GitHub Check Run (if post-check-run is true).'
+
+  gate-decision:
+    description: 'pass | block | skip'
+
+runs:
+  using: 'node20'
+  main: 'dist/index.js'

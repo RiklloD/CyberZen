@@ -173,6 +173,182 @@ We will not build Sentinel as one large feature drop. We will build it in layers
 
 - WS-48 (License Compliance & Risk Scanner) is complete: `convex/lib/licenseComplianceScanner.ts` pure library (70-entry `LICENSE_DATABASE` covering permissive/weak_copyleft/strong_copyleft/proprietary; `SPDX_ALIASES` map for colloquial variants like "GPLv2"/"MIT License"; `resolveCompoundLicense` splits "MIT AND GPL-3.0" expressions conservatively; `computeLicenseCompliance`); `licenseComplianceScanner.test.ts` (91 tests, 91/91 ✓); `licenseComplianceScanResults` schema table (2 indexes); `licenseScanIntel.ts` (5 entrypoints: `recordLicenseComplianceScan` reads latest SBOM snapshot components → `computeLicenseCompliance` → insert → prune to 30/repo / `triggerLicenseComplianceScanForRepository` / `getLatestLicenseComplianceScan` / `getLicenseComplianceScanHistory` lean (strips descriptions) / `getLicenseComplianceScanSummaryByTenant`); fire-and-forget with `runAfter(0)` in sbom.ts after WS-31 license compliance scan; `GET /api/sbom/license-scan` HTTP route; `RepositoryLicenseScanPanel` dashboard component (overallRisk + critical/high/unknown count pills + top-5 per-package findings with spdxId + licenseType label, self-hides when all risks are 'none'); `licenseScanIntel` + `lib/licenseComplianceScanner` registered in `api.d.ts`; 0 TS errors.
 
+## §7.4 Reconciliation — Panels & Routes vs Tracker (2026-05-16)
+
+### Dashboard Panels (123 `.tsx` files in `apps/web/src/components/panels/`)
+
+**All 40 drift detector panels exist on disk:**
+1. RepositoryAiMlSecurityDriftPanel ✅
+2. RepositoryApiSecurityDriftPanel ✅
+3. RepositoryArtifactRegistryDriftPanel ✅
+4. RepositoryBackupDrSecurityDriftPanel ✅
+5. RepositoryCertPkiDriftPanel ✅
+6. RepositoryCfgMgmtSecurityDriftPanel ✅
+7. RepositoryCicdPipelineSecurityDriftPanel ✅
+8. RepositoryCloudSecurityDriftPanel ✅
+9. RepositoryContainerHardeningDriftPanel ✅
+10. RepositoryDataPipelineDriftPanel ✅
+11. RepositoryDepMgrSecurityDriftPanel ✅
+12. RepositoryDevSecToolsDriftPanel ✅
+13. RepositoryDnsSecurityDriftPanel ✅
+14. RepositoryEmailSecurityDriftPanel ✅
+15. RepositoryEndpointSecurityDriftPanel ✅
+16. RepositoryIdentityAccessDriftPanel ✅
+17. RepositoryIotEmbeddedSecurityDriftPanel ✅
+18. RepositoryK8sAdmissionDriftPanel ✅
+19. RepositoryMessagingSecurityDriftPanel ✅
+20. RepositoryMlAiPlatformDriftPanel ✅
+21. RepositoryMobileAppSecurityDriftPanel ✅
+22. RepositoryNetworkFirewallDriftPanel ✅
+23. RepositoryNetworkMonitoringDriftPanel ✅
+24. RepositoryObservabilitySecurityDriftPanel ✅
+25. RepositoryOsSecurityHardeningDriftPanel ✅
+26. RepositoryRuntimeSecurityDriftPanel ✅
+27. RepositorySecretMgmtDriftPanel ✅
+28. RepositorySecurityConfigDriftPanel ✅
+29. RepositoryServerlessFaasDriftPanel ✅
+30. RepositoryServiceMeshSecurityDriftPanel ✅
+31. RepositorySiemSecurityDriftPanel ✅
+32. RepositorySsoProviderDriftPanel ✅
+33. RepositoryStorageDataSecurityDriftPanel ✅
+34. RepositorySupplyChainAttestationDriftPanel ✅
+35. RepositoryVirtualizationSecurityDriftPanel ✅
+36. RepositoryVoipSecurityDriftPanel ✅
+37. RepositoryVpnRemoteAccessDriftPanel ✅
+38. RepositoryWebServerSecurityDriftPanel ✅
+39. RepositoryWirelessRadiusDriftPanel ✅
+40. RepositoryDatabaseSecurityDriftPanel ✅
+
+**Section 1 panels status (all present on disk):**
+- TenantExecutiveReportPanel ✅, ExecutiveTrendChart ✅, ExecutiveRepoLeaderboard ✅ (§1.1)
+- RepositoryMaturityPanel ✅, TenantMaturityRadar ✅, MaturityProgressionTimeline ✅ (§1.2)
+- RepositoryBusinessImpactPanel ✅, TenantBusinessImpactSummary ✅ (§1.3)
+- TenantCrossRepoPanel ✅, CrossRepoFindingDetail ✅ (§1.4)
+- RepositoryZeroDayDetectionPanel ✅, ZeroDaySignalGraph ✅ (§1.5)
+- RepositoryCloudBlastRadiusPanel ✅ (§1.6)
+- ComplianceEvidencePanel ✅, EvidenceArtifactCard ✅ (§1.7)
+- LlmCertificationPanel ✅, LlmCertificationHistory ✅ (§1.8)
+- ModelProvenancePanel ✅, ModelProvenanceChainViewer ✅ (§1.9)
+- ModelSupplyChainPanel ✅ (§1.10)
+- ObservabilityIntelPanel ✅ (§1.11)
+- SiemIntelPanel ✅ (§1.12)
+- SecurityPostureSummaryPanel ✅, PosturePillarBreakdown ✅ (§1.13)
+- AutoPrFeedPanel ✅, AutoPrDetailDrawer ✅ (§1.14)
+- PostFixValidationPanel ✅, PostFixValidationDetail ✅ (§1.15)
+- ExploitValidationPanel ✅, ExploitPoCViewer ✅, ExploitReproRecording ✅ (§1.16)
+- GateDecisionListPanel ✅, GateDecisionDetailDrawer ✅ (§1.17)
+- RepositoryDriftPosturePanel ✅, DriftPostureScannerGrid ✅ (§1.18)
+- SecurityTimelinePanel ✅ (§1.20)
+
+**Section 2 panels (all present):**
+- SharedPanelComponents ✅ (§2.8)
+- RepositoryListPanel ✅, RepositoryTrustScorePanel ✅, RepositoryBlastRadiusPanel ✅, RepositoryAttackSurfacePanel ✅, RepositorySlaPanel ✅, RepositoryRemediationQueuePanel ✅, RepositoryHealthScorePanel ✅, LearningProfilePanel ✅, SemanticFingerprintPanel ✅, RepositoryRiskAcceptancePanel ✅ (§2.1)
+- RegulatoryDriftPanel ✅, ComplianceAttestationPanel ✅, ComplianceRemediationPanel ✅, LicenseCompliancePanel ✅, SecurityDebtPanel ✅, RepositoryDatabaseSecurityDriftPanel ✅, SensitiveFileScanPanel ✅ (§2.2)
+- SupplyChainPosturePanel ✅, PromptInjectionRecentScansPanel ✅, PromptInjectionSupplyChainPanel ✅, RepositoryConfusionScanPanel ✅, RepositoryMaliciousScanPanel ✅, RepositoryAbandonmentPanel ✅, RepositoryEolPanel ✅, RepositoryCryptoWeaknessPanel ✅, TrafficAnomalyPanel ✅, SecretDetectionPanel ✅, SupplyChainOverviewHeader ✅ (§2.3)
+- RepositoryCicdScanPanel ✅, BranchProtectionPanel ✅, BuildConfigPanel ✅, CommitMessagePanel ✅, GitIntegrityPanel ✅, HighRiskChangePanel ✅, DepLockPanel ✅, TestCoverageGapPanel ✅, RepositoryIacScanPanel ✅, GateDecisionListPanel ✅ (§2.4)
+- FindingsTablePanel ✅, FindingDetailDrawer ✅, BlastRadiusPanel ✅, FindingTriageActionBar ✅, FindingsSeverityFilterChips ✅ (§2.5)
+- RedBlueAdversarialPanel ✅, AgentMemoryPanel ✅, LearningProfilePanel ✅, SemanticFingerprintPanel ✅ (§2.6)
+- BreachIntelFeedPanel ✅, EpssThreatIntelPanel ✅, Tier3SignalsPanel ✅ (§2.7)
+
+### Routes (48 route files in `apps/web/src/routes/`)
+
+All routes from MASTER_TODO §1–§6 exist on disk:
+- `/` → index.tsx ✅
+- `/about` → about.tsx ✅
+- `/agents` → agents.tsx ✅
+- `/api-keys` → settings/api-keys.tsx ✅
+- `/audit-log` → settings/audit-log.tsx ✅ (duplicate in routes/)
+- `/billing` → settings/billing.tsx ✅
+- `/breach-intel` → breach-intel.tsx ✅
+- `/business-impact` → business-impact.tsx ✅
+- `/ci-cd` → ci-cd.tsx ✅
+- `/compliance` → compliance.tsx ✅
+- `/cross-repo` → cross-repo.tsx ✅
+- `/docs/api` → docs/api.tsx ✅
+- `/drift-posture` → drift-posture.tsx ✅
+- `/executive-report` → executive-report.tsx ✅
+- `/exploit-validation` → exploit-validation.tsx ✅
+- `/findings` → findings.tsx ✅
+- `/integrations` → integrations.tsx ✅
+- `/marketplace` → marketplace.tsx ✅
+- `/maturity` → maturity.tsx ✅
+- `/onboarding` → onboarding.tsx ✅
+- `/on-call` → settings/on-call.tsx ✅
+- `/policies` → settings/policies.tsx ✅
+- `/posture` → posture.tsx ✅
+- `/remediation` → remediation.tsx ✅
+- `/repositories` → repositories.tsx ✅
+- `/retention` → settings/retention.tsx ✅
+- `/roles` → settings/roles.tsx ✅
+- `/sbom` → sbom.tsx ✅
+- `/scans` → settings/scans.tsx ✅
+- `/settings` → settings/index.tsx ✅
+- `/sla` → settings/sla.tsx ✅
+- `/sso` → settings/sso.tsx ✅
+- `/status` → status.tsx ✅
+- `/supply-chain` → supply-chain.tsx ✅
+- `/suppression` → settings/suppression.tsx ✅
+- `/team` → settings/team.tsx ✅
+- `/timeline` → timeline.tsx ✅
+- `/two-factor` → settings/two-factor.tsx ✅
+- `/webhooks` → settings/webhooks.tsx ✅
+- `/zero-day` → zero-day.tsx ✅
+- `/connect/github` → connect/github.tsx ✅
+
+### Discrepancies Found
+
+- **None**: All panels and routes referenced in the tracker have corresponding files on disk.
+- The 40 drift panels (§1.19) are all present — status should be `[done]` for all 40 (currently tracked individually in WS-60 through WS-110).
+- WS-02 (repo bootstrap) still marked `[in-progress]` but the repo is fully bootstrapped — should be `[done]`.
+- M0 (repo ready for implementation) still `[in-progress]` — should be `[done]`.
+- M5 (Phase 2 intelligence) still `[in-progress]` but WS-13 through WS-15 are all `[done]` — should be `[done]`.
+
+## §7.4 Reconciliation Update — Backend vs Panel vs UI Surface (2026-05-17)
+
+The earlier reconciliation only verified file existence on disk. This table explicitly splits each major workstream's state into backend + panel + the **UI surface** (route or shared host) that mounts the panel. `panel [done]` means the component is mounted in a route; `panel [missing]` means the component exists on disk but is not currently rendered anywhere.
+
+| Workstream / Feature                         | Backend       | Panel                                                                                | UI surface                              |
+|----------------------------------------------|---------------|--------------------------------------------------------------------------------------|-----------------------------------------|
+| WS-09 Exploit validation (Phases 1–2)        | backend [done] | `ExploitValidationPanel`, `ExploitPoCViewer`, `ExploitReproRecording` panel [done]   | `/exploit-validation`                   |
+| WS-10 CI/CD gate                              | backend [done] | `GateDecisionListPanel`, `GateDecisionDetailDrawer` panel [done]                     | `/ci-cd`, `/findings` (drawer)          |
+| WS-11 PR generation                           | backend [done] | `AutoPrFeedPanel`, `AutoPrDetailDrawer` panel [done]                                 | `/remediation` (Auto-PRs tab)           |
+| WS-13 Prompt/supply-chain intelligence        | backend [done] | `PromptInjectionRecentScansPanel`, `PromptInjectionSupplyChainPanel`, `RepositoryConfusionScanPanel`, `RepositoryMaliciousScanPanel` panel [done] | `/supply-chain`                         |
+| WS-14 Graph + Multi-Cloud Blast Radius        | backend [done] | `RepositoryBlastRadiusPanel`, `RepositoryCloudBlastRadiusPanel` panel [done]         | `/repositories`, `/zero-day`            |
+| WS-15 Compliance/hardening (SIEM, HF, etc.)   | backend [done] | `SiemIntelPanel`, `ModelProvenancePanel`, `ModelProvenanceChainViewer` panel [done]  | `/compliance`, `/supply-chain`          |
+| WS-16 Tier-3 threat intel                     | backend [done] | `BreachIntelFeedPanel`, `Tier3SignalsPanel`, `EpssThreatIntelPanel` panel [done]     | `/breach-intel`                         |
+| WS-17 Analyst feedback loop                   | backend [done] | `FindingTriageActionBar`, `LearningProfilePanel` panel [done]                        | `/findings`, `/repositories`            |
+| WS-18 SLA enforcement                         | backend [done] | `RepositorySlaPanel` panel [done]                                                    | `/repositories`, `/remediation`         |
+| WS-19 Risk acceptance lifecycle               | backend [done] | `RepositoryRiskAcceptancePanel` panel [done]                                         | `/repositories`                         |
+| WS-20 Cross-repo impact                       | backend [done] | `TenantCrossRepoPanel`, `CrossRepoFindingDetail` panel [done]                        | `/cross-repo`                           |
+| WS-21 Remediation priority queue              | backend [done] | `RepositoryRemediationQueuePanel` panel [done]                                       | `/remediation`, `/repositories`         |
+| WS-22 Severity escalation                     | backend [done] | `RepositoryEscalationPanel` panel [done]                                             | `/repositories`, `/findings`            |
+| WS-23 Autonomous remediation dispatch         | backend [done] | `RepositoryAutoRemediationPanel` panel [done]                                        | `/remediation`                          |
+| WS-24 VS Code extension                       | backend [done] | n/a (IDE — not a web panel)                                                          | external IDE                            |
+| WS-25 Agentic workflow scanner                | backend [done] | `RepositoryAgenticWorkflowPanel` panel [done]                                        | `/repositories` (per-repo drawer)       |
+| WS-27 Vendor trust & OAuth risk               | backend [done] | `VendorTrustPanel` panel [done]                                                      | `/supply-chain`                         |
+| WS-31 SBOM license compliance                 | backend [done] | `LicenseCompliancePanel`, `RepositoryLicenseScanPanel` panel [done]                  | `/sbom`, `/repositories`                |
+| WS-46 Compliance attestation                  | backend [done] | `ComplianceAttestationPanel`, `RepositoryCompliancePanel` panel [done]               | `/compliance`                           |
+| WS-47 Compliance gap remediation              | backend [done] | `ComplianceRemediationPanel`, `RepositoryRemediationPlanPanel` panel [done]          | `/compliance`                           |
+| WS-48 License compliance & risk               | backend [done] | `RepositoryLicenseScanPanel` panel [done]                                            | `/sbom`                                 |
+| §1.1 Executive report                         | backend [done] | `TenantExecutiveReportPanel`, `ExecutiveTrendChart`, `ExecutiveRepoLeaderboard` panel [done] | `/executive-report`                     |
+| §1.2 Maturity                                 | backend [done] | `RepositoryMaturityPanel`, `TenantMaturityRadar`, `MaturityProgressionTimeline` panel [done] | `/maturity`                             |
+| §1.3 Business impact                          | backend [done] | `RepositoryBusinessImpactPanel`, `TenantBusinessImpactSummary` panel [done]          | `/business-impact`                      |
+| §1.5 Zero-day detection                       | backend [done] | `RepositoryZeroDayDetectionPanel`, `ZeroDaySignalGraph` panel [done]                 | `/zero-day`                             |
+| §1.7 Compliance evidence                      | backend [done] | `ComplianceEvidencePanel`, `EvidenceArtifactCard` panel [done]                       | `/compliance`                           |
+| §1.8 LLM certification                        | backend [done] | `LlmCertificationPanel`, `LlmCertificationHistory` panel [done]                      | `/supply-chain`                         |
+| §1.13 Security posture                        | backend [done] | `SecurityPostureSummaryPanel`, `PosturePillarBreakdown` panel [done]                 | `/posture`                              |
+| §1.15 Post-fix validation                     | backend [done] | `PostFixValidationPanel`, `PostFixValidationDetail` panel [done]                     | `/remediation` (Validation tab)         |
+| §1.18 Drift posture aggregate                 | backend [done] | `RepositoryDriftPosturePanel`, `DriftPostureScannerGrid` panel [done]                | `/drift-posture`                        |
+| §1.19 — 40 drift detector panels              | backend [done] | All 40 `Repository*DriftPanel` files panel [done]                                    | `/drift-posture` (aggregated) + `/repositories` (per-repo drawer) |
+| §1.20 Security timeline                       | backend [done] | `SecurityTimelinePanel` panel [done]                                                 | `/timeline`                             |
+| §2.1 Repository portfolio panels              | backend [done] | `RepositoryListPanel`, `RepositoryTrustScorePanel`, `RepositoryAttackSurfacePanel`, `RepositoryHealthScorePanel`, `SemanticFingerprintPanel` panel [done] | `/repositories`                         |
+| §2.5 Findings table + drawer                  | backend [done] | `FindingsTablePanel`, `FindingDetailDrawer`, `FindingsSeverityFilterChips` panel [done] | `/findings`                             |
+| §2.6 Red/Blue + agent memory                  | backend [done] | `RedBlueAdversarialPanel`, `AgentMemoryPanel` panel [done]                           | `/agents`                               |
+| §2.7 Threat-intel feeds                       | backend [done] | `BreachIntelFeedPanel`, `EpssThreatIntelPanel`, `Tier3SignalsPanel` panel [done]     | `/breach-intel`                         |
+| §2.8 Shared panel infra                       | backend [done] | `SharedPanelComponents` panel [done]                                                 | imported across all panel routes        |
+
+**Net result**: 0 panels in `apps/web/src/components/panels/` are flagged `panel [missing]` — every component on disk is mounted in at least one route.
+
 ## Working Rules
 
 - Every new major feature must map back to a workstream and milestone.

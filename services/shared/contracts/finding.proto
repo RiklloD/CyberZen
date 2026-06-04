@@ -1,0 +1,62 @@
+syntax = "proto3";
+
+package cyberzen.shared.v1;
+
+option go_package = "github.com/cyberzen/shared/generated/go/contracts;contracts";
+
+import "google/protobuf/timestamp.proto";
+
+// Severity levels follow CVSS-aligned buckets used across the platform.
+enum Severity {
+  SEVERITY_UNSPECIFIED = 0;
+  SEVERITY_INFO = 1;
+  SEVERITY_LOW = 2;
+  SEVERITY_MEDIUM = 3;
+  SEVERITY_HIGH = 4;
+  SEVERITY_CRITICAL = 5;
+}
+
+// A normalized finding produced by any scanner across the platform.
+message Finding {
+  // Stable identifier within the producing scanner.
+  string id = 1;
+
+  // Tenant the finding belongs to. Required for routing.
+  string tenant_id = 2;
+
+  // Repository or asset URL (e.g. https://github.com/org/repo).
+  string asset_url = 3;
+
+  // Commit SHA for code-derived findings; empty for asset findings.
+  string commit_sha = 4;
+
+  // Severity bucket.
+  Severity severity = 5;
+
+  // Short human-readable title.
+  string title = 6;
+
+  // Long-form description (markdown allowed).
+  string description = 7;
+
+  // Path relative to the repository root, if applicable.
+  string file_path = 8;
+
+  // 1-indexed line number; 0 when not applicable.
+  uint32 line_number = 9;
+
+  // Scanner identifier — e.g. "semgrep", "trivy", "gitleaks".
+  string scanner = 10;
+
+  // CWE, CVE, or rule identifier(s) raised by the scanner.
+  repeated string rule_ids = 11;
+
+  // Arbitrary scanner-specific metadata. Values should be JSON-serializable strings.
+  map<string, string> metadata = 12;
+
+  // When the finding was first detected by the scanner.
+  google.protobuf.Timestamp detected_at = 13;
+
+  // When the finding was reported into the platform.
+  google.protobuf.Timestamp reported_at = 14;
+}

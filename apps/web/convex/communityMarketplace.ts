@@ -208,10 +208,59 @@ export const reportContribution = mutation({
 })
 
 // ---------------------------------------------------------------------------
-// approveContribution — internal mutation (operator use via Convex dashboard)
+// acceptContribution — public mutation (operator use via UI)
 // ---------------------------------------------------------------------------
 
-export const approveContribution = internalMutation({
+/**
+ * Approve (accept) a community contribution.  Delegates to the internal
+ * `approveContribution` mutation so the public API stays clean.
+ */
+export const acceptContribution = mutation({
+  args: {
+    contributionId: v.id('communityContributions'),
+    reviewNote: v.optional(v.string()),
+  },
+  handler: async (ctx, { contributionId, reviewNote }) => {
+    // Reuse the internal implementation logic inline (cannot call internalMutation
+    // from a public mutation via ctx.runMutation without internal reference).
+    const contribution = await ctx.db.get(contributionId)
+    if (!contribution) throw new Error('Contribution not found.')
+    await ctx.db.patch(contributionId, {
+      status: 'approved',
+      approvedAt: Date.now(),
+      reviewNote: reviewNote ?? undefined,
+    })
+  },
+})
+
+// ---------------------------------------------------------------------------
+// rejectContributionPublic — public mutation (operator use via UI)
+// ---------------------------------------------------------------------------
+
+/**
+ * Reject a community contribution.  Public wrapper so the web client can call
+ * it directly via `useMutation(api.communityMarketplace.rejectContribution)`.
+ */
+export const rejectContribution = mutation({
+  args: {
+    contributionId: v.id('communityContributions'),
+    reviewNote: v.optional(v.string()),
+  },
+  handler: async (ctx, { contributionId, reviewNote }) => {
+    const contribution = await ctx.db.get(contributionId)
+    if (!contribution) throw new Error('Contribution not found.')
+    await ctx.db.patch(contributionId, {
+      status: 'rejected',
+      reviewNote: reviewNote ?? undefined,
+    })
+  },
+})
+
+// ---------------------------------------------------------------------------
+// approveContributionInternal — internal mutation (operator use via Convex dashboard)
+// ---------------------------------------------------------------------------
+
+export const approveContributionInternal = internalMutation({
   args: {
     contributionId: v.id('communityContributions'),
     reviewNote: v.optional(v.string()),
@@ -228,10 +277,10 @@ export const approveContribution = internalMutation({
 })
 
 // ---------------------------------------------------------------------------
-// rejectContribution — internal mutation (operator use)
+// rejectContributionInternal — internal mutation (operator use)
 // ---------------------------------------------------------------------------
 
-export const rejectContribution = internalMutation({
+export const rejectContributionInternal = internalMutation({
   args: {
     contributionId: v.id('communityContributions'),
     reviewNote: v.optional(v.string()),

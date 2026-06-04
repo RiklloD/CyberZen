@@ -107,8 +107,8 @@ const SOC2_CONTROLS: ControlDef[] = [
     id: 'CC6.1',
     name: 'Logical and Physical Access Controls — Restriction',
     vulnClassPrefixes: ['auth', 'iam', 'privilege', 'session', 'broken_access'],
-    // TODO: adjust whether 'medium' auth findings should trigger a CC6.1 gap
-    // for your audit requirements — stricter = more evidence, but more noise.
+    // Note: tenants needing stricter SOC2 evidence (with more noise) can lower
+    // this threshold to include 'medium' auth findings as CC6.1 gaps.
     mandatorySeverities: ['critical', 'high'],
   },
   {

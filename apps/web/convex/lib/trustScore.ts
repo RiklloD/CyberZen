@@ -37,6 +37,37 @@ export type TrustScoreAggregate = {
   breakdown: TrustScoreLayerBreakdown[]
 }
 
+/** Inputs for the weighted-average repository score (§4.4). */
+export type RepositoryScoreInput = {
+  /** Health score 0–100 from repositoryHealthIntel. */
+  health: number
+  /** Supply-chain posture score 0–100. */
+  posture: number
+  /** Number of critical findings. */
+  criticalFindings: number
+  /** Number of high findings. */
+  highFindings: number
+  /** Number of medium findings. */
+  mediumFindings: number
+  /** Fraction of SLA breaches (0–1). */
+  slaBreachRate: number
+  /** Learning confidence 0–100 from the learning/intelligence pipeline. */
+  learningConfidence: number
+}
+
+export type RepositoryScoreResult = {
+  /** Composite repository score, rounded to int, clamped 0–100. */
+  score: number
+  /** Breakdown of each factor for UI display. */
+  breakdown: {
+    health: number
+    posture: number
+    findingDensityScore: number
+    slaScore: number
+    learningConfidence: number
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -81,6 +112,8 @@ function mean(scores: number[]): number {
  * TODO — implement the repositoryScore line below with your chosen strategy.
  * The pre-computed `directDepScore`, `transitiveDepScore`, `directDeps`,
  * `transitiveDeps`, and `vulnerableComponents` are available to use directly.
+ *
+ * ✅ COMPLETED (§4.4) — Strategy B chosen; also added standalone `repositoryScore`.
  */
 export function aggregateTrustScore(components: TrustScoreInput[]): TrustScoreAggregate {
   if (components.length === 0) {
@@ -130,5 +163,49 @@ export function aggregateTrustScore(components: TrustScoreInput[]): TrustScoreAg
     untrustedComponentCount: untrustedComponents.length,
     vulnerableComponentCount: vulnerableComponents.length,
     breakdown,
+  }
+}
+
+// ---------------------------------------------------------------------------
+// repositoryScore — §4.4 weighted-average composite score
+// ---------------------------------------------------------------------------
+
+/**
+ * Compute a 0–100 repository-level score from five weighted factors:
+ *
+ *   health              × 0.25
+ *   posture             × 0.20
+ *   findingDensityScore × 0.20   = 100 − min(critical×5 + high×2 + medium, 100)
+ *   slaScore            × 0.20   = 100 − min(slaBreachRate × 100, 100)
+ *   learningConfidence  × 0.15
+ *
+ * Result is rounded to the nearest integer and clamped to [0, 100].
+ */
+export function repositoryScore(input: RepositoryScoreInput): RepositoryScoreResult {
+  const findingDensityScore = 100 - Math.min(
+    input.criticalFindings * 5 + input.highFindings * 2 + input.mediumFindings,
+    100,
+  )
+
+  const slaScore = 100 - Math.min(input.slaBreachRate * 100, 100)
+
+  const raw =
+    input.health * 0.25 +
+    input.posture * 0.20 +
+    findingDensityScore * 0.20 +
+    slaScore * 0.20 +
+    input.learningConfidence * 0.15
+
+  const score = Math.max(0, Math.min(100, Math.round(raw)))
+
+  return {
+    score,
+    breakdown: {
+      health: input.health,
+      posture: input.posture,
+      findingDensityScore,
+      slaScore,
+      learningConfidence: input.learningConfidence,
+    },
   }
 }

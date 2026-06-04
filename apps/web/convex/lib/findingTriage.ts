@@ -18,6 +18,7 @@ export type TriageAction =
   | 'reopen'
   | 'add_note'
   | 'ignore'
+  | 'snooze'
 
 export type TriageEvent = {
   action: TriageAction
@@ -55,7 +56,7 @@ export type TriageSummary = {
  */
 export function triageActionToStatus(
   action: TriageAction,
-): 'false_positive' | 'accepted_risk' | 'open' | 'ignored' | null {
+): 'false_positive' | 'accepted_risk' | 'open' | 'ignored' | 'snoozed' | null {
   switch (action) {
     case 'mark_false_positive':
       return 'false_positive'
@@ -65,6 +66,8 @@ export function triageActionToStatus(
       return 'open'
     case 'ignore':
       return 'ignored'
+    case 'snooze':
+      return 'snoozed'
     case 'add_note':
       return null
   }

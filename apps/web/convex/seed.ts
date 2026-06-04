@@ -572,6 +572,412 @@ export const seedBaseline = mutation({
       createdAt: now - 8 * 60 * 1000,
     })
 
+    // ── Seed Neural Memory data ───────────────────────────────────────────
+    // Only inserts if no project memories exist yet (idempotent).
+    const existingMemoryCount = await ctx.db
+      .query('projectMemories')
+      .withIndex('by_tenant', (q) => q.eq('tenantId', tenantId))
+      .take(1)
+
+    if (existingMemoryCount.length === 0) {
+      const paymentsMemoryId = await ctx.db.insert('projectMemories', {
+        repositoryId: paymentsApiId,
+        tenantId,
+        version: 4,
+        lastLearningAt: now - 45 * 60 * 1000,
+        memoryStats: {
+          totalEpisodes: 47,
+          totalPatterns: 5,
+          predictionAccuracy: 0.78,
+          coverageScore: 0.72,
+        },
+      })
+
+      const operatorMemoryId = await ctx.db.insert('projectMemories', {
+        repositoryId: operatorConsoleId,
+        tenantId,
+        version: 2,
+        lastLearningAt: now - 3 * 60 * 60 * 1000,
+        memoryStats: {
+          totalEpisodes: 21,
+          totalPatterns: 2,
+          predictionAccuracy: 0.65,
+          coverageScore: 0.44,
+        },
+      })
+
+      // Episodes for payments-api
+      for (const ep of [
+        { episodeType: 'finding' as const, payload: { severity: 'high', cwe: 'CWE-287', filePath: 'services/auth/jwt.py', dependency: 'pyjwt' }, sourceRef: 'finding-jwt-001' },
+        { episodeType: 'finding' as const, payload: { severity: 'high', cwe: 'CWE-287', filePath: 'services/auth/token_router.py', dependency: 'pyjwt' }, sourceRef: 'finding-jwt-002' },
+        { episodeType: 'fix' as const, payload: { filePath: 'services/auth/jwt.py', dependency: 'pyjwt', fixVersion: '2.10.2' }, sourceRef: 'fix-jwt-001' },
+        { episodeType: 'gate_block' as const, payload: { severity: 'high', reason: 'unvalidated_finding' }, sourceRef: 'gate-block-001' },
+        { episodeType: 'false_positive' as const, payload: { filePath: 'tests/test_auth.py', ruleId: 'test-exposure' }, sourceRef: 'fp-test-001' },
+      ]) {
+        await ctx.db.insert('memoryEpisodes', {
+          projectMemoryId: paymentsMemoryId,
+          tenantId,
+          repositoryId: paymentsApiId,
+          episodeType: ep.episodeType,
+          timestamp: now - Math.floor(Math.random() * 7 * 24 * 60 * 60 * 1000),
+          payload: ep.payload,
+          embedding: [`type:${ep.episodeType}`, ...(ep.payload.severity ? [`severity:${ep.payload.severity}`] : []), ...(ep.payload.cwe ? [`cwe:${ep.payload.cwe}`] : [])],
+          sourceRef: ep.sourceRef,
+          processed: true,
+        })
+      }
+
+      // Episodes for operator-console
+      for (const ep of [
+        { episodeType: 'finding' as const, payload: { severity: 'medium', cwe: 'CWE-74', filePath: 'src/lib/prompt-builder.ts' }, sourceRef: 'finding-prompt-001' },
+        { episodeType: 'scan_result' as const, payload: { totalFindings: 2, highCount: 0, mediumCount: 1 }, sourceRef: 'scan-001' },
+      ]) {
+        await ctx.db.insert('memoryEpisodes', {
+          projectMemoryId: operatorMemoryId,
+          tenantId,
+          repositoryId: operatorConsoleId,
+          episodeType: ep.episodeType,
+          timestamp: now - Math.floor(Math.random() * 3 * 24 * 60 * 60 * 1000),
+          payload: ep.payload,
+          embedding: [`type:${ep.episodeType}`, ...(ep.payload.severity ? [`severity:${ep.payload.severity}`] : [])],
+          sourceRef: ep.sourceRef,
+          processed: true,
+        })
+      }
+
+      // Patterns for payments-api
+      const xssPatternId = await ctx.db.insert('memoryPatterns', {
+        projectMemoryId: paymentsMemoryId,
+        tenantId,
+        repositoryId: paymentsApiId,
+        patternType: 'recurring_vulnerability',
+        name: 'JWT Validation Bypass',
+        description: 'Authentication flows repeatedly exhibit CWE-287 findings in token validation wrappers. Pattern discovered across 3 separate scan cycles.',
+        confidence: 0.89,
+        frequency: 3,
+        firstSeenAt: now - 14 * 24 * 60 * 60 * 1000,
+        lastSeenAt: now - 2 * 60 * 60 * 1000,
+        attributes: { commonFeatures: ['cwe:CWE-287', 'dependency:pyjwt', 'severity:high'], timeSpan: 14 * 24 * 60 * 60 * 1000 },
+        severity: 'high',
+        isActive: true,
+        relatedPatternIds: [],
+      })
+
+      const depRiskPatternId = await ctx.db.insert('memoryPatterns', {
+        projectMemoryId: paymentsMemoryId,
+        tenantId,
+        repositoryId: paymentsApiId,
+        patternType: 'dependency_risk',
+        name: 'Crypto Library Churn',
+        description: 'Cryptography-related dependencies are updated more frequently than the tenant average, indicating active maintenance pressure in this area.',
+        confidence: 0.74,
+        frequency: 5,
+        firstSeenAt: now - 30 * 24 * 60 * 60 * 1000,
+        lastSeenAt: now - 5 * 24 * 60 * 60 * 1000,
+        attributes: { commonFeatures: ['dependency:pyjwt', 'dependency:cryptography', 'layer:transitive'] },
+        severity: 'medium',
+        isActive: true,
+        relatedPatternIds: [xssPatternId],
+      })
+
+      await ctx.db.insert('memoryPatterns', {
+        projectMemoryId: paymentsMemoryId,
+        tenantId,
+        repositoryId: paymentsApiId,
+        patternType: 'false_positive_signal',
+        name: 'Test File Exposure',
+        description: 'Findings in files matching tests/** are consistently dismissed as false positives. Suppression candidate.',
+        confidence: 0.91,
+        frequency: 4,
+        firstSeenAt: now - 21 * 24 * 60 * 60 * 1000,
+        lastSeenAt: now - 1 * 24 * 60 * 60 * 1000,
+        attributes: { commonFeatures: ['directory:tests', 'extension:py'] },
+        severity: 'informational',
+        isActive: true,
+        relatedPatternIds: [],
+      })
+
+      await ctx.db.insert('memoryPatterns', {
+        projectMemoryId: paymentsMemoryId,
+        tenantId,
+        repositoryId: paymentsApiId,
+        patternType: 'temporal_pattern',
+        name: 'Friday Deploy Risk',
+        description: 'Gate blocks are 2.4× more likely to occur on deployments pushed after 16:00 UTC on Fridays.',
+        confidence: 0.68,
+        frequency: 6,
+        firstSeenAt: now - 45 * 24 * 60 * 60 * 1000,
+        lastSeenAt: now - 3 * 24 * 60 * 60 * 1000,
+        attributes: { commonFeatures: ['type:gate_block', 'severity:high'] },
+        severity: 'medium',
+        isActive: true,
+        relatedPatternIds: [],
+      })
+
+      // Shared pattern between both repos (same name/type)
+      await ctx.db.insert('memoryPatterns', {
+        projectMemoryId: operatorMemoryId,
+        tenantId,
+        repositoryId: operatorConsoleId,
+        patternType: 'dependency_risk',
+        name: 'Crypto Library Churn',
+        description: 'AI/LLM SDK dependencies are updated at high frequency, creating supply chain exposure windows.',
+        confidence: 0.61,
+        frequency: 2,
+        firstSeenAt: now - 10 * 24 * 60 * 60 * 1000,
+        lastSeenAt: now - 2 * 24 * 60 * 60 * 1000,
+        attributes: { commonFeatures: ['dependency:openai', 'layer:direct'] },
+        severity: 'medium',
+        isActive: true,
+        relatedPatternIds: [],
+      })
+
+      // Predictions for payments-api
+      const predId1 = await ctx.db.insert('memoryPredictions', {
+        projectMemoryId: paymentsMemoryId,
+        tenantId,
+        repositoryId: paymentsApiId,
+        predictionType: 'vulnerability_likelihood',
+        title: 'High likelihood of another JWT-class finding within 14 days',
+        description: 'Based on the recurring JWT validation bypass pattern (confidence 89%) and the dependency churn pattern, there is a high probability a similar CWE-287 finding will surface within the next two weeks.',
+        confidence: 0.82,
+        basedOnPatternIds: [xssPatternId, depRiskPatternId],
+        status: 'active',
+        createdAt: now - 2 * 60 * 60 * 1000,
+        expiresAt: now + 14 * 24 * 60 * 60 * 1000,
+      })
+
+      const predId2 = await ctx.db.insert('memoryPredictions', {
+        projectMemoryId: paymentsMemoryId,
+        tenantId,
+        repositoryId: paymentsApiId,
+        predictionType: 'false_positive_candidate',
+        title: 'Test-file findings are likely suppressible',
+        description: 'Sentinel has identified 4 dismissed findings in tests/** with identical attributes. Adding a suppression rule could reduce false positive noise by ~23%.',
+        confidence: 0.91,
+        basedOnPatternIds: [],
+        status: 'confirmed',
+        createdAt: now - 5 * 24 * 60 * 60 * 1000,
+        expiresAt: undefined,
+        outcome: 'Suppression rule added by team lead on 2026-05-10',
+      })
+
+      await ctx.db.insert('memoryPredictions', {
+        projectMemoryId: paymentsMemoryId,
+        tenantId,
+        repositoryId: paymentsApiId,
+        predictionType: 'deployment_risk',
+        title: 'Friday afternoon deployments carry elevated gate-block risk',
+        description: 'The temporal pattern shows gate blocks cluster around late-Friday deployments. Consider enforcing a staging gate or deployment freeze after 16:00 UTC on Fridays.',
+        confidence: 0.68,
+        basedOnPatternIds: [],
+        status: 'active',
+        createdAt: now - 1 * 24 * 60 * 60 * 1000,
+        expiresAt: now + 30 * 24 * 60 * 60 * 1000,
+      })
+
+      // Feedback entries
+      await ctx.db.insert('memoryFeedback', {
+        tenantId,
+        repositoryId: paymentsApiId,
+        predictionId: predId2,
+        outcome: 'confirmed',
+        actualEvent: 'Team added suppression rule for tests/** on 2026-05-10; zero false positives since.',
+        feedbackAt: now - 4 * 24 * 60 * 60 * 1000,
+        accuracyDelta: 0.1,
+      })
+
+      await ctx.db.insert('memoryFeedback', {
+        tenantId,
+        repositoryId: paymentsApiId,
+        predictionId: predId1,
+        outcome: 'partial',
+        actualEvent: 'A medium-severity JWT finding surfaced on 2026-05-14 — lower severity than predicted but class was correct.',
+        feedbackAt: now - 2 * 24 * 60 * 60 * 1000,
+        accuracyDelta: 0.05,
+      })
+    }
+
+    // ── Seed integration catalog (spec §5.2) ─────────────────────────────
+    // Only inserts if the catalog is empty (idempotent).
+    const existingCatalogCount = await ctx.db
+      .query('integrationCatalog')
+      .count()
+
+    if (existingCatalogCount === 0) {
+      const integrationCatalogEntries = [
+        { slug: 'github', label: 'GitHub', category: 'vcs' as const, envVarName: 'GITHUB_WEBHOOK_SECRET', description: 'Receive push / PR events from GitHub repositories.', webhookPathTemplate: '/webhooks/github' },
+        { slug: 'gitlab', label: 'GitLab', category: 'vcs' as const, envVarName: 'GITLAB_WEBHOOK_SECRET', description: 'Receive push / MR events from GitLab repositories.', webhookPathTemplate: '/webhooks/gitlab' },
+        { slug: 'jenkins', label: 'Jenkins', category: 'ci' as const, envVarName: 'JENKINS_WEBHOOK_SECRET', description: 'Receive build-status webhooks from Jenkins.', webhookPathTemplate: '/webhooks/jenkins' },
+        { slug: 'circleci', label: 'CircleCI', category: 'ci' as const, envVarName: 'CIRCLECI_WEBHOOK_SECRET', description: 'Receive pipeline events from CircleCI.', webhookPathTemplate: '/webhooks/circleci' },
+        { slug: 'buildkite', label: 'Buildkite', category: 'ci' as const, envVarName: 'BUILDKITE_WEBHOOK_TOKEN', description: 'Receive build events from Buildkite.', webhookPathTemplate: '/webhooks/buildkite' },
+        { slug: 'azure-devops', label: 'Azure DevOps', category: 'ci' as const, envVarName: 'AZURE_DEVOPS_WEBHOOK_SECRET', description: 'Receive pipeline events from Azure DevOps.', webhookPathTemplate: '/webhooks/azure-devops' },
+        { slug: 'bitbucket', label: 'Bitbucket', category: 'vcs' as const, envVarName: 'BITBUCKET_WEBHOOK_SECRET', description: 'Receive push / PR events from Bitbucket.', webhookPathTemplate: '/webhooks/bitbucket' },
+        { slug: 'slack', label: 'Slack', category: 'chat' as const, envVarName: 'SLACK_WEBHOOK_URL', description: 'Send security alerts and digests to Slack channels.', webhookPathTemplate: undefined },
+        { slug: 'pagerduty', label: 'PagerDuty', category: 'paging' as const, envVarName: 'PAGERDUTY_ROUTING_KEY', description: 'Escalate critical findings to PagerDuty on-call.', webhookPathTemplate: undefined },
+        { slug: 'jira', label: 'Jira', category: 'ticket' as const, envVarName: 'JIRA_API_TOKEN', description: 'Create and sync Jira issues from security findings.', webhookPathTemplate: undefined },
+        { slug: 'linear', label: 'Linear', category: 'ticket' as const, envVarName: 'LINEAR_API_KEY', description: 'Create and sync Linear issues from security findings.', webhookPathTemplate: undefined },
+        { slug: 'datadog', label: 'Datadog', category: 'obs' as const, envVarName: 'DATADOG_API_KEY', description: 'Push security metrics and events to Datadog dashboards.', webhookPathTemplate: undefined },
+        { slug: 'opsgenie', label: 'OpsGenie', category: 'paging' as const, envVarName: 'OPSGENIE_API_KEY', description: 'Create OpsGenie alerts for critical security findings.', webhookPathTemplate: undefined },
+      ]
+
+      for (const entry of integrationCatalogEntries) {
+        await ctx.db.insert('integrationCatalog', {
+          ...entry,
+          docsUrl: undefined,
+        })
+      }
+    }
+
+    // ── Seed billing plans (§6.12 / §8.1) ───────────────────────────────
+    // Only inserts if no plans exist yet (idempotent).
+    const existingPlanCount = await ctx.db
+      .query('billingPlans')
+      .count()
+
+    if (existingPlanCount === 0) {
+      const billingPlanEntries = [
+        {
+          slug: 'free',
+          name: 'Free',
+          description: 'For individuals and small teams getting started with security scanning.',
+          priceCents: 0,
+          currency: 'usd',
+          interval: 'month' as const,
+          maxRepositories: 5,
+          maxMembers: 3,
+          features: [
+            'Up to 5 repositories',
+            'Basic vulnerability scanning',
+            'Community support',
+            'SBOM generation',
+            'Security posture score',
+          ],
+          highlighted: false,
+          sortOrder: 1,
+        },
+        {
+          slug: 'team',
+          name: 'Team',
+          description: 'For growing teams that need advanced security intelligence and automation.',
+          priceCents: 4900,
+          currency: 'usd',
+          interval: 'month' as const,
+          maxRepositories: 50,
+          maxMembers: 25,
+          features: [
+            'Up to 50 repositories',
+            'All Free features',
+            'Exploit validation sandbox',
+            'Auto-remediation PRs',
+            'Gate enforcement policies',
+            'Compliance frameworks (SOC2, GDPR, HIPAA)',
+            'Executive reports & dashboards',
+            'API access',
+            'Priority support',
+          ],
+          highlighted: true,
+          sortOrder: 2,
+        },
+        {
+          slug: 'enterprise',
+          name: 'Enterprise',
+          description: 'For organizations requiring full security coverage, SSO, and dedicated support.',
+          priceCents: 19900,
+          currency: 'usd',
+          interval: 'month' as const,
+          maxRepositories: -1, // unlimited
+          maxMembers: -1, // unlimited
+          features: [
+            'Unlimited repositories & members',
+            'All Team features',
+            'SSO / SAML integration',
+            'Custom RBAC roles & permissions',
+            'On-prem deployment option',
+            'Data retention policies',
+            'MSSP partner portal',
+            'Dedicated account manager',
+            'SLA-backed uptime guarantee',
+            'Custom policy builder',
+            'Compliance attestation add-on',
+          ],
+          highlighted: false,
+          sortOrder: 3,
+        },
+      ]
+
+      for (const plan of billingPlanEntries) {
+        await ctx.db.insert('billingPlans', plan)
+      }
+    }
+
+    // ── Seed §8.1 plans (slug-indexed tiers + feature flags) ─────────────
+    const existingPlansCount = await ctx.db.query('plans').count()
+    if (existingPlansCount === 0) {
+      const planEntries = [
+        {
+          slug: 'free',
+          name: 'Free',
+          monthlyPrice: 0,
+          repoLimit: 5,
+          seatLimit: 3,
+          featureFlags: [
+            'basic_scanning',
+            'sbom',
+            'security_posture',
+          ],
+        },
+        {
+          slug: 'team',
+          name: 'Team',
+          monthlyPrice: 49,
+          repoLimit: 25,
+          seatLimit: 10,
+          featureFlags: [
+            'basic_scanning',
+            'sbom',
+            'security_posture',
+            'exploit_validation',
+            'auto_remediation',
+            'gate_policies',
+            'executive_reports',
+            'api_access',
+            'cross_repo_intel',
+          ],
+        },
+        {
+          slug: 'enterprise',
+          name: 'Enterprise',
+          monthlyPrice: 199,
+          repoLimit: -1,
+          seatLimit: -1,
+          featureFlags: [
+            'basic_scanning',
+            'sbom',
+            'security_posture',
+            'exploit_validation',
+            'auto_remediation',
+            'gate_policies',
+            'executive_reports',
+            'api_access',
+            'cross_repo_intel',
+            'sso',
+            'rbac_custom',
+            'on_prem',
+            'deployment_toggle',
+            'mssp_portal',
+            'compliance_attestation',
+            'custom_policies',
+            'dedicated_support',
+          ],
+        },
+      ]
+
+      for (const plan of planEntries) {
+        await ctx.db.insert('plans', plan)
+      }
+    }
+
     return {
       tenantId,
       repositoryIds: [paymentsApiId, operatorConsoleId],

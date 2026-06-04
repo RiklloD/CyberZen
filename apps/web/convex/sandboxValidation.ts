@@ -14,9 +14,9 @@
  * sandbox-manager POSTs its result back instead of Convex polling.
  */
 
-import { v } from "convex/values";
-import { internalAction, internalMutation, internalQuery, query } from "./_generated/server";
-import { internal } from "./_generated/api";
+import { ConvexError, v } from "convex/values";
+import { internalAction, internalMutation, internalQuery, mutation, query } from "./_generated/server";
+import { internal, api } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 
 // ── Configuration ─────────────────────────────────────────────────────────────
@@ -95,6 +95,59 @@ export const getSandboxSummaryForRepository = query({
 });
 
 // Slug-based variant for HTTP endpoints — resolves tenant+repo internally
+/**
+ * Public query — list exploit validation runs for a repository (used by
+ * the Exploit Validation dashboard page). Returns the run metadata plus
+ * the linked sandbox environment's PoC artifacts.
+ */
+export const listExploitValidationRuns = query({
+  args: { repositoryId: v.id("repositories") },
+  handler: async (ctx, { repositoryId }) => {
+    const runs = await ctx.db
+      .query("exploitValidationRuns")
+      .withIndex("by_repository_and_started_at", (q) =>
+        q.eq("repositoryId", repositoryId)
+      )
+      .order("desc")
+      .take(30);
+
+    return Promise.all(
+      runs.map(async (run) => {
+        const finding = await ctx.db.get(run.findingId);
+
+        // Fetch the linked sandbox environment for PoC artifacts
+        const sandboxEnv = await ctx.db
+          .query("sandboxEnvironments")
+          .withIndex("by_validation_run", (q) =>
+            q.eq("exploitValidationRunId", run._id)
+          )
+          .order("desc")
+          .first();
+
+        return {
+          _id: run._id,
+          findingId: run.findingId,
+          findingTitle: finding?.title ?? "Unknown finding",
+          findingSeverity: finding?.severity ?? "unknown",
+          status: run.status,
+          outcome: run.outcome ?? null,
+          validationConfidence: run.validationConfidence,
+          sandboxSummary: run.sandboxSummary,
+          evidenceSummary: run.evidenceSummary,
+          reproductionHint: run.reproductionHint,
+          startedAt: run.startedAt,
+          completedAt: run.completedAt ?? null,
+          pocCurl: sandboxEnv?.pocCurl ?? null,
+          pocPython: sandboxEnv?.pocPython ?? null,
+          winningPayloadLabel: sandboxEnv?.winningPayloadLabel ?? null,
+          sandboxMode: sandboxEnv?.sandboxMode ?? null,
+          elapsedMs: sandboxEnv?.elapsedMs ?? null,
+        };
+      })
+    );
+  }, // FIX: C4 — spurious `)` removed from handler closure
+});
+
 export const getSandboxSummaryBySlug = query({
   args: {
     tenantSlug: v.string(),
@@ -371,6 +424,39 @@ export const persistSandboxResult = internalMutation({
         ? `sandbox:${sandboxEnvId}` // resolved to real artifact by dashboard query
         : undefined,
     });
+
+    // Neural Memory: Record sandbox validation episode for learning
+    try {
+      const finding = await ctx.db.get(findingId);
+      if (finding) {
+        await ctx.runMutation(api.neuralMemory.recordEpisode, {
+          repositoryId: finding.repositoryId,
+          episodeType: 'finding', // Validated findings are still findings, but with higher confidence
+          payload: {
+            findingId,
+            sandboxEnvId,
+            exploitValidationRunId,
+            outcome: result.outcome,
+            validationStatus,
+            confidence: result.confidence,
+            totalAttempts: result.totalAttempts,
+            successfulAttempts: result.successfulAttempts,
+            severity: finding.severity,
+            cwe: finding.cwe,
+            filePath: finding.filePath,
+            ruleId: finding.ruleId,
+            isExploitable: result.outcome === 'exploited' || result.outcome === 'likely_exploitable',
+            evidenceSummary: result.evidenceSummary,
+            elapsedMs: result.elapsedMs,
+            timestamp: now,
+          },
+          sourceRef: `validation-${exploitValidationRunId}`,
+        });
+      }
+    } catch (error) {
+      // Don't fail sandbox validation if Neural Memory recording fails
+      console.error('Neural Memory: Failed to record validation episode:', error);
+    }
   },
 });
 
@@ -416,4 +502,120 @@ export const dispatchValidatedWebhook = internalAction({
     );
   },
 });
+
+// ---------------------------------------------------------------------------
+// Public mutation: runValidationForFinding — §3.11 CTA trigger
+//
+// Creates a fresh exploitValidationRun for the finding and schedules the
+// sandbox validation action. Returns the new run ID so the UI can track it.
+// ---------------------------------------------------------------------------
+
+export const runValidationForFinding = mutation({
+  args: {
+    findingId: v.id("findings"),
+  },
+  returns: v.object({
+    validationRunId: v.id("exploitValidationRuns"),
+    scheduled: v.boolean(),
+  }),
+  handler: async (ctx, args) => {
+    const finding = await ctx.db.get(args.findingId);
+    if (!finding) {
+      throw new ConvexError("Finding not found");
+    }
+
+    // Find the latest workflow run for this finding to link to.
+    // If none exists, we create a synthetic one via the internal mutation.
+    const latestEvent = await ctx.db
+      .query("ingestionEvents")
+      .withIndex("by_tenant_and_received_at", (q) =>
+        q.eq("tenantId", finding.tenantId)
+      )
+      .order("desc")
+      .first();
+
+    let workflowRunId: Id<"workflowRuns">;
+
+    if (latestEvent) {
+      const existingRun = await ctx.db
+        .query("workflowRuns")
+        .withIndex("by_event", (q) => q.eq("eventId", latestEvent._id))
+        .first();
+      if (existingRun) {
+        workflowRunId = existingRun._id;
+      } else {
+        // Create a minimal workflow run linked to the event
+        workflowRunId = await ctx.db.insert("workflowRuns", {
+          tenantId: finding.tenantId,
+          repositoryId: finding.repositoryId,
+          eventId: latestEvent._id,
+          workflowType: "revalidation",
+          status: "running",
+          priority: "high",
+          currentStage: "sandbox_validation",
+          summary: `Re-validation triggered from dashboard for finding ${args.findingId}`,
+          totalTaskCount: 1,
+          completedTaskCount: 0,
+          startedAt: Date.now(),
+          completedAt: undefined,
+        });
+      }
+    } else {
+      // Create a synthetic event + workflow run
+      const now = Date.now();
+      const eventId = await ctx.db.insert("ingestionEvents", {
+        tenantId: finding.tenantId,
+        repositoryId: finding.repositoryId,
+        dedupeKey: `revalidate-${args.findingId}-${now}`,
+        kind: "revalidation",
+        source: "dashboard_cta",
+        workflowType: "revalidation",
+        status: "running",
+        summary: `Re-validation triggered from dashboard for finding ${args.findingId}`,
+        receivedAt: now,
+      });
+
+      workflowRunId = await ctx.db.insert("workflowRuns", {
+        tenantId: finding.tenantId,
+        repositoryId: finding.repositoryId,
+        eventId,
+        workflowType: "revalidation",
+        status: "running",
+        priority: "high",
+        currentStage: "sandbox_validation",
+        summary: `Re-validation triggered from dashboard for finding ${args.findingId}`,
+        totalTaskCount: 1,
+        completedTaskCount: 0,
+        startedAt: now,
+        completedAt: undefined,
+      });
+    }
+
+    const now = Date.now();
+    const validationRunId = await ctx.db.insert("exploitValidationRuns", {
+      tenantId: finding.tenantId,
+      repositoryId: finding.repositoryId,
+      workflowRunId,
+      findingId: args.findingId,
+      status: "queued",
+      outcome: undefined,
+      validationConfidence: finding.confidence,
+      sandboxSummary: "Re-validation queued from dashboard.",
+      evidenceSummary: `Queued re-validation for ${finding.title}.`,
+      reproductionHint: `Re-run exploit validation for ${finding.title}.`,
+      startedAt: now,
+      completedAt: undefined,
+    });
+
+    // Schedule the sandbox validation action (fire-and-forget)
+    await ctx.scheduler.runAfter(0, internal.sandboxValidation.triggerSandboxValidation, {
+      findingId: args.findingId,
+      exploitValidationRunId: validationRunId,
+      targetBaseUrl: undefined,
+    });
+
+    return { validationRunId, scheduled: true };
+  },
+});
+
 

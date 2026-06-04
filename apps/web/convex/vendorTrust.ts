@@ -17,8 +17,7 @@ import type { Doc, Id } from './_generated/dataModel'
 // It converts raw signals into the 0–100 score that drives every
 // alert, recommendation, and dashboard badge customers see.
 //
-// TODO: Implement computeVendorRiskScore below (5–10 lines of logic).
-// See the request at the bottom of this file for full context.
+// ✅ COMPLETED: computeVendorRiskScore implemented (§4.1).
 
 /**
  * Computes a 0–100 vendor risk score from runtime signals.
@@ -31,7 +30,7 @@ import type { Doc, Id } from './_generated/dataModel'
  * @param inputs.credentialDumpMatches direct evidence of exfiltrated credentials
  * @param inputs.daysSinceLastVerified stale integrations accumulate undetected drift
  */
-function computeVendorRiskScore(inputs: {
+function computeAssessmentRiskScore(inputs: {
   accessLevel: 'read_only' | 'read_write' | 'admin' | 'unknown'
   dataCategories: string[]
   grantedScopesCount: number
@@ -85,7 +84,66 @@ function computeVendorRiskScore(inputs: {
   return Math.min(100, score)
 }
 
-// ─── Derived helpers ──────────────────────────────────────────────────────────
+// ─── §4.1 computeVendorRiskScore (OAuth scope + breach + advisory + staleness) ─
+//
+// Aggregates OAuth scope sensitivity, breach history, advisory volume, and
+// last-update recency into a 0–100 risk score for each vendor record.
+
+/** Sensitive OAuth scopes that carry elevated blast radius. */
+const SENSITIVE_SCOPES = new Set([
+  'repo',
+  'write:packages',
+  'admin:org',
+  'delete_repo',
+  'workflow',
+])
+
+/** Input for the spec-defined vendor risk score. */
+export interface VendorRiskScoreInput {
+  /** Granted OAuth scopes. */
+  scopes: string[]
+  /** Number of known breaches involving this vendor. */
+  breachCount: number
+  /** Number of active security advisories. */
+  advisoryCount: number
+  /** Epoch ms of the last vendor verification/update. */
+  lastUpdated: number
+}
+
+/**
+ * Computes a 0–100 vendor risk score from OAuth scope sensitivity,
+ * breach count, advisory count, and staleness.
+ * Higher = riskier.
+ *
+ * Algorithm:
+ *   1. sensitive-scope weight: each matching scope → +25, capped at 50
+ *   2. breach weight:          min(breachCount * 10, 30)
+ *   3. advisory weight:        min(advisoryCount * 2, 20)
+ *   4. staleness penalty:      (now − lastUpdated > 180 days) → +10
+ *   5. Return min(score, 100)
+ */
+export function computeVendorRiskScore(input: VendorRiskScoreInput): number {
+  let score = 0
+
+  // 1. Sensitive-scope weight — each sensitive scope adds 25, capped at 50
+  const sensitiveCount = input.scopes.filter(s => SENSITIVE_SCOPES.has(s)).length
+  score += Math.min(sensitiveCount * 25, 50)
+
+  // 2. Breach weight — each breach adds 10, capped at 30
+  score += Math.min(input.breachCount * 10, 30)
+
+  // 3. Advisory weight — each advisory adds 2, capped at 20
+  score += Math.min(input.advisoryCount * 2, 20)
+
+  // 4. Staleness penalty — if last updated more than 180 days ago, +10
+  const MS_PER_DAY = 86_400_000
+  const daysSinceUpdate = (Date.now() - input.lastUpdated) / MS_PER_DAY
+  if (daysSinceUpdate > 180) score += 10
+
+  return Math.min(score, 100)
+}
+
+// ─── Derived helpers ────────────────────────────────────────────────────────
 
 function scoreToLevel(
   score: number,
@@ -165,7 +223,7 @@ async function runVendorAssessment(
     : 999
 
   // 4. Score → level → recommendation
-  const riskScore = computeVendorRiskScore({
+  const riskScore = computeAssessmentRiskScore({
     accessLevel: vendor.accessLevel,
     dataCategories: vendor.dataCategories,
     grantedScopesCount: vendor.grantedScopes.length,

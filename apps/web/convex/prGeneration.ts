@@ -4,8 +4,9 @@ import {
   internalMutation,
   internalQuery,
   mutation,
+  query,
 } from './_generated/server'
-import { internal } from './_generated/api'
+import { internal, api } from './_generated/api'
 import type { Id } from './_generated/dataModel'
 import {
   applyVersionBumpToManifest,
@@ -539,6 +540,33 @@ export const markPrMerged = mutation({
       status: 'merged',
       resolvedAt: now,
     })
+
+    // Neural Memory: Record fix episode for learning
+    try {
+      const finding = await ctx.db.get(proposal.findingId)
+      if (finding) {
+        await ctx.runMutation(api.neuralMemory.recordEpisode, {
+          repositoryId: finding.repositoryId,
+          episodeType: 'fix',
+          payload: {
+            findingId: proposal.findingId,
+            proposalId: args.proposalId,
+            fixType: proposal.fixType,
+            severity: finding.severity,
+            cwe: finding.cwe,
+            filePath: finding.filePath,
+            ruleId: finding.ruleId,
+            approach: proposal.fixType, // version_bump, manual, etc.
+            mergedAt: now,
+          },
+          sourceRef: `pr-merged-${args.proposalId}`,
+        })
+      }
+    } catch (error) {
+      // Don't fail PR merge if Neural Memory recording fails
+      console.error('Neural Memory: Failed to record fix episode:', error)
+    }
+
     return null
   },
 })
@@ -554,6 +582,89 @@ export const markPrClosed = mutation({
 
     await ctx.db.patch('prProposals', args.proposalId, { status: 'closed' })
     return null
+  },
+})
+
+// ---------------------------------------------------------------------------
+// Public query: list PR proposals for a repository (used by remediation page)
+// ---------------------------------------------------------------------------
+
+export const listGeneratedPrsForRepository = query({
+  args: {
+    repositoryId: v.id('repositories'),
+  },
+  returns: v.array(
+    v.object({
+      _id: v.id('prProposals'),
+      _creationTime: v.number(),
+      status: v.string(),
+      fixType: v.string(),
+      fixSummary: v.string(),
+      proposedBranch: v.string(),
+      prTitle: v.string(),
+      prBody: v.string(),
+      targetPackage: v.optional(v.string()),
+      targetEcosystem: v.optional(v.string()),
+      currentVersion: v.optional(v.string()),
+      fixVersion: v.optional(v.string()),
+      prUrl: v.optional(v.string()),
+      prNumber: v.optional(v.number()),
+      githubError: v.optional(v.string()),
+      createdAt: v.number(),
+      submittedAt: v.optional(v.number()),
+      mergedAt: v.optional(v.number()),
+      mergedBy: v.optional(v.string()),
+      findingId: v.id('findings'),
+      findingTitle: v.optional(v.string()),
+      findingSeverity: v.optional(v.string()),
+      validationStatus: v.optional(v.string()),
+    }),
+  ),
+  handler: async (ctx, args) => {
+    const proposals = await ctx.db
+      .query('prProposals')
+      .withIndex('by_repository_and_status', (q) =>
+        q.eq('repositoryId', args.repositoryId),
+      )
+      .order('desc')
+      .take(50)
+
+    // Enrich each proposal with the finding's title, severity, and validation status.
+    const enriched = await Promise.all(
+      proposals.map(async (p) => {
+        const finding = await ctx.db.get(p.findingId)
+        return {
+          _id: p._id,
+          _creationTime: p._creationTime,
+          status: p.status,
+          fixType: p.fixType,
+          fixSummary: p.fixSummary,
+          proposedBranch: p.proposedBranch,
+          prTitle: p.prTitle,
+          prBody: p.prBody,
+          targetPackage: p.targetPackage,
+          targetEcosystem: p.targetEcosystem,
+          currentVersion: p.currentVersion,
+          fixVersion: p.fixVersion,
+          prUrl: p.prUrl,
+          prNumber: p.prNumber,
+          githubError: p.githubError,
+          createdAt: p.createdAt,
+          submittedAt: p.submittedAt,
+          mergedAt: p.mergedAt,
+          mergedBy: p.mergedBy,
+          findingId: p.findingId,
+          findingTitle: finding?.title,
+          findingSeverity: finding?.severity,
+          validationStatus: finding?.validationStatus,
+        }
+      }),
+    )
+
+    // Sort by createdAt descending (newest first)
+    enriched.sort((a, b) => b.createdAt - a.createdAt)
+
+    return enriched
   },
 })
 
@@ -728,6 +839,103 @@ export const proposeFix = action({
         status: 'failed',
         message: `PR proposal drafted but GitHub PR creation failed: ${errorMessage}`,
       }
+    }
+  },
+})
+
+// ---------------------------------------------------------------------------
+// Internal mutation: createAdhocWorkflowRun — scaffolds an event + workflow
+// run so that proposeFix has a valid workflowRunId to link the PR proposal to.
+// ---------------------------------------------------------------------------
+
+export const createAdhocWorkflowRun = internalMutation({
+  args: {
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    findingId: v.id('findings'),
+  },
+  returns: v.id('workflowRuns'),
+  handler: async (ctx, args) => {
+    const now = Date.now()
+    const eventId = await ctx.db.insert('ingestionEvents', {
+      tenantId: args.tenantId,
+      repositoryId: args.repositoryId,
+      dedupeKey: `adhoc-pr-${args.findingId}-${now}`,
+      kind: 'pr_generation',
+      source: 'dashboard_cta',
+      workflowType: 'pr_generation',
+      status: 'running',
+      summary: `Ad-hoc PR generation triggered from dashboard for finding ${args.findingId}`,
+      receivedAt: now,
+    })
+
+    const workflowRunId = await ctx.db.insert('workflowRuns', {
+      tenantId: args.tenantId,
+      repositoryId: args.repositoryId,
+      eventId,
+      workflowType: 'pr_generation',
+      status: 'running',
+      priority: 'high',
+      currentStage: 'pr_generation',
+      summary: `Generating fix PR for finding ${args.findingId}`,
+      totalTaskCount: 1,
+      completedTaskCount: 0,
+      startedAt: now,
+      completedAt: undefined,
+    })
+
+    return workflowRunId
+  },
+})
+
+// ---------------------------------------------------------------------------
+// Public action: generatePrForFinding — §3.10 CTA trigger
+//
+// Dashboard button calls this. It resolves the finding's repository,
+// creates an ad-hoc workflow run, and delegates to proposeFix.
+// ---------------------------------------------------------------------------
+
+export const generatePrForFinding = action({
+  args: {
+    findingId: v.id('findings'),
+  },
+  returns: v.object({
+    proposalId: v.optional(v.id('prProposals')),
+    status: v.optional(prStatus),
+    prUrl: v.optional(v.string()),
+    message: v.string(),
+  }),
+  handler: async (ctx, args) => {
+    const context = await ctx.runQuery(internal.prGeneration.getProposalContext, {
+      findingId: args.findingId,
+    })
+
+    if (!context) {
+      return {
+        message: 'Finding or repository not found — cannot generate PR.',
+      }
+    }
+
+    // Create an ad-hoc workflow run so proposeFix has something to link to.
+    const workflowRunId = await ctx.runMutation(
+      internal.prGeneration.createAdhocWorkflowRun,
+      {
+        tenantId: context.repository.tenantId,
+        repositoryId: context.repository._id,
+        findingId: args.findingId,
+      },
+    )
+
+    const result = await ctx.runAction(internal.prGeneration.proposeFix, {
+      findingId: args.findingId,
+      workflowRunId,
+    })
+
+    return {
+      proposalId: result.proposalId,
+      status: result.status,
+      prUrl: result.prUrl,
+      message: result.message,
     }
   },
 })

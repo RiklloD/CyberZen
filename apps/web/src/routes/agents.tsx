@@ -3,32 +3,41 @@ import { useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { Bot } from "lucide-react";
 import { useState } from "react";
-import { api } from "../lib/convex";
-import type { Id } from "../lib/convex";
-import { TENANT_SLUG } from "../lib/config";
+import AgentMemoryPanel from "../components/panels/AgentMemoryPanel";
+import LearningProfilePanel from "../components/panels/LearningProfilePanel";
+import LlmCertificationHistory from "../components/panels/LlmCertificationHistory";
+import LlmCertificationPanel from "../components/panels/LlmCertificationPanel";
+import ModelProvenanceChainViewer from "../components/panels/ModelProvenanceChainViewer";
+import ModelProvenancePanel from "../components/panels/ModelProvenancePanel";
+import RedBlueAdversarialPanel from "../components/panels/RedBlueAdversarialPanel";
+import SemanticFingerprintPanel from "../components/panels/SemanticFingerprintPanel";
 import StatusPill from "../components/StatusPill";
+import type { Id } from "../lib/convex";
+import { api } from "../lib/convex";
 import {
 	formatTimestamp,
-	learningTrendTone,
-	maturityTone,
-	multiplierTone,
 	severityTone,
 	validationTone,
 } from "../lib/utils";
+import { useTenantSlug } from "../lib/workspace";
+import RouteErrorBoundary from "../components/RouteErrorBoundary";
 
-export const Route = createFileRoute("/agents")({ component: AgentsPage });
+export const Route = createFileRoute("/agents")({ errorComponent: RouteErrorBoundary, component: AgentsPage });
 
-type OverviewData = NonNullable<FunctionReturnType<typeof api.dashboard.overview>>;
+type OverviewData = NonNullable<
+	FunctionReturnType<typeof api.dashboard.overview>
+>;
 type OverviewRepository = OverviewData["repositories"][number];
-type OverviewSemanticFinding = OverviewData["semanticFingerprint"]["recentFindings"][number];
-type OverviewExploitRun = OverviewData["exploitValidation"]["recentRuns"][number];
-
-const TENANT = TENANT_SLUG;
+type OverviewSemanticFinding =
+	OverviewData["semanticFingerprint"]["recentFindings"][number];
+type OverviewExploitRun =
+	OverviewData["exploitValidation"]["recentRuns"][number];
 
 function AgentsPage() {
+	const TENANT = useTenantSlug();
 	const overview = useQuery(api.dashboard.overview, { tenantSlug: TENANT });
 	const [selectedRepo, setSelectedRepo] = useState<string | null>(null);
-	const [activeTab, setActiveTab] = useState<"overview" | "repo">("overview");
+	const [activeTab, setActiveTab] = useState<"overview" | "repo" | "certification" | "provenance">("overview");
 
 	if (!overview) {
 		return (
@@ -43,10 +52,9 @@ function AgentsPage() {
 	}
 
 	const { repositories, semanticFingerprint, exploitValidation } = overview;
-	const activeRepo =
-		selectedRepo
-			? repositories.find((r: OverviewRepository) => r._id === selectedRepo)
-			: repositories[0];
+	const activeRepo = selectedRepo
+		? repositories.find((r: OverviewRepository) => r._id === selectedRepo)
+		: repositories[0];
 
 	return (
 		<main>
@@ -56,7 +64,8 @@ function AgentsPage() {
 					<div>
 						<h1 className="page-title">Agents &amp; Learning</h1>
 						<p className="page-subtitle">
-							Red/Blue adversarial rounds · Semantic fingerprinting · Exploit validation · Learning profiles
+							Red/Blue adversarial rounds · Semantic fingerprinting · Exploit
+							validation · Learning profiles
 						</p>
 					</div>
 				</div>
@@ -78,6 +87,20 @@ function AgentsPage() {
 					>
 						Per-repository
 					</button>
+				<button
+					type="button"
+					className={`tab-btn ${activeTab === "certification" ? "is-active" : ""}`}
+					onClick={() => setActiveTab("certification")}
+				>
+					LLM Certification
+				</button>
+				<button
+					type="button"
+					className={`tab-btn ${activeTab === "provenance" ? "is-active" : ""}`}
+					onClick={() => setActiveTab("provenance")}
+				>
+					Model Provenance
+				</button>
 				</div>
 
 				{activeTab === "overview" && (
@@ -88,7 +111,11 @@ function AgentsPage() {
 								<h2 className="section-title">Semantic Fingerprinting</h2>
 								<StatusPill
 									label={`${semanticFingerprint.openCandidateCount} candidates`}
-									tone={semanticFingerprint.openCandidateCount > 0 ? "warning" : "success"}
+									tone={
+										semanticFingerprint.openCandidateCount > 0
+											? "warning"
+											: "success"
+									}
 								/>
 							</div>
 
@@ -96,7 +123,11 @@ function AgentsPage() {
 								<div className="flex flex-wrap gap-2 mb-2">
 									<StatusPill
 										label={`${semanticFingerprint.openCandidateCount} open candidates`}
-										tone={semanticFingerprint.openCandidateCount > 0 ? "warning" : "success"}
+										tone={
+											semanticFingerprint.openCandidateCount > 0
+												? "warning"
+												: "success"
+										}
 									/>
 									<StatusPill
 										label={`${semanticFingerprint.pendingValidationCount} pending validation`}
@@ -115,14 +146,18 @@ function AgentsPage() {
 														label={finding.severity}
 														tone={severityTone(finding.severity)}
 													/>
-													<StatusPill label={finding.vulnClass.replace(/_/g, " ")} tone="info" />
+													<StatusPill
+														label={finding.vulnClass.replace(/_/g, " ")}
+														tone="info"
+													/>
 													<StatusPill
 														label={`${(finding.confidence * 100).toFixed(0)}% confidence`}
 														tone="neutral"
 													/>
 												</div>
 												<p className="mt-1 text-xs text-[var(--sea-ink-soft)]">
-													{finding.repositoryName} · {formatTimestamp(finding.createdAt)}
+													{finding.repositoryName} ·{" "}
+													{formatTimestamp(finding.createdAt)}
 												</p>
 											</div>
 										),
@@ -137,28 +172,28 @@ function AgentsPage() {
 								<h2 className="section-title">Exploit Validation</h2>
 							</div>
 							<div className="space-y-2">
-						{exploitValidation.recentRuns.map((run: OverviewExploitRun) => (
-								<div key={run._id} className="card card-sm">
-									<div className="flex flex-wrap items-center gap-2">
-										<StatusPill
-											label={run.outcome ?? run.status}
-											tone={validationTone(run.outcome ?? undefined)}
-										/>
-										<StatusPill label={run.status} tone="neutral" />
-									</div>
-									<p className="mt-1 text-xs font-medium text-[var(--sea-ink)]">
-										{run.findingTitle}
-									</p>
-									<p className="mt-0.5 text-xs text-[var(--sea-ink-soft)]">
-										{run.repositoryName} · {formatTimestamp(run.startedAt)}
-									</p>
-									{run.evidenceSummary && (
-										<p className="mt-1 text-xs text-[var(--sea-ink-soft)]">
-											{run.evidenceSummary}
+								{exploitValidation.recentRuns.map((run: OverviewExploitRun) => (
+									<div key={run._id} className="card card-sm">
+										<div className="flex flex-wrap items-center gap-2">
+											<StatusPill
+												label={run.outcome ?? run.status}
+												tone={validationTone(run.outcome ?? undefined)}
+											/>
+											<StatusPill label={run.status} tone="neutral" />
+										</div>
+										<p className="mt-1 text-xs font-medium text-[var(--sea-ink)]">
+											{run.findingTitle}
 										</p>
-									)}
-								</div>
-							))}
+										<p className="mt-0.5 text-xs text-[var(--sea-ink-soft)]">
+											{run.repositoryName} · {formatTimestamp(run.startedAt)}
+										</p>
+										{run.evidenceSummary && (
+											<p className="mt-1 text-xs text-[var(--sea-ink-soft)]">
+												{run.evidenceSummary}
+											</p>
+										)}
+									</div>
+								))}
 								{exploitValidation.recentRuns.length === 0 && (
 									<div className="empty-state border border-dashed border-[var(--line)] rounded-2xl">
 										<p>No exploit validation runs.</p>
@@ -194,6 +229,54 @@ function AgentsPage() {
 						)}
 					</div>
 				)}
+
+		{activeTab === "certification" && (
+				<div>
+					{repositories.length > 1 && (
+						<div className="tab-bar mb-4">
+							{repositories.map((r: OverviewRepository) => (
+								<button
+									key={r._id}
+									type="button"
+									className={`tab-btn ${activeRepo?._id === r._id ? "is-active" : ""}`}
+									onClick={() => setSelectedRepo(r._id)}
+								>
+									{r.fullName.split("/").pop()}
+								</button>
+							))}
+						</div>
+					)}
+					{activeRepo && (
+						<RepoLlmCertificationSection
+							repositoryId={activeRepo._id as Id<"repositories">}
+						/>
+					)}
+				</div>
+			)}
+
+			{activeTab === "provenance" && (
+				<div>
+					{repositories.length > 1 && (
+						<div className="tab-bar mb-4">
+							{repositories.map((r: OverviewRepository) => (
+								<button
+									key={r._id}
+									type="button"
+									className={`tab-btn ${activeRepo?._id === r._id ? "is-active" : ""}`}
+									onClick={() => setSelectedRepo(r._id)}
+								>
+									{r.fullName.split("/").pop()}
+								</button>
+							))}
+						</div>
+					)}
+					{activeRepo && (
+						<RepoModelProvenanceSection
+							repositoryId={activeRepo._id as Id<"repositories">}
+						/>
+					)}
+				</div>
+			)}
 			</div>
 		</main>
 	);
@@ -224,10 +307,9 @@ function RepoAgentIntelligence({
 		api.learningProfileIntel.getLatestLearningProfile,
 		{ tenantSlug, repositoryFullName },
 	);
-	const agenticScan = useQuery(
-		api.agenticWorkflowIntel.getLatestAgenticScan,
-		{ repositoryId },
-	);
+	const agenticScan = useQuery(api.agenticWorkflowIntel.getLatestAgenticScan, {
+		repositoryId,
+	});
 	const semanticAnalysis = useQuery(
 		api.semanticFingerprintIntel.getLatestCodeAnalysis,
 		{ repositoryId },
@@ -237,183 +319,25 @@ function RepoAgentIntelligence({
 		<div className="grid gap-4 sm:grid-cols-2">
 			{/* Red/Blue Adversarial */}
 			{adversarialSummary && (
-				<div className="card card-sm">
-					<p className="panel-label mb-2">Red/Blue Adversarial Rounds</p>
-					<div className="flex flex-wrap gap-1.5">
-						<StatusPill
-							label={`${adversarialSummary.totalRounds} rounds`}
-							tone="neutral"
-						/>
-						{adversarialSummary.redWins > 0 && (
-							<StatusPill
-								label={`Red ${adversarialSummary.redWins}W`}
-								tone="danger"
-							/>
-						)}
-						{adversarialSummary.blueWins > 0 && (
-							<StatusPill
-								label={`Blue ${adversarialSummary.blueWins}W`}
-								tone="success"
-							/>
-						)}
-						{adversarialSummary.draws > 0 && (
-							<StatusPill
-								label={`${adversarialSummary.draws} draws`}
-								tone="neutral"
-							/>
-						)}
-						{redAgentFindingCount != null && redAgentFindingCount > 0 && (
-							<StatusPill
-								label={`${redAgentFindingCount} escalated`}
-								tone="warning"
-							/>
-						)}
-					</div>
-					<div className="mt-2 flex flex-wrap gap-1.5">
-						<StatusPill
-							label={`coverage ${adversarialSummary.avgAttackSurfaceCoverage}%`}
-							tone={adversarialSummary.avgAttackSurfaceCoverage > 60 ? "warning" : "neutral"}
-						/>
-						<StatusPill
-							label={`detection ${adversarialSummary.avgBlueDetectionScore}%`}
-							tone={adversarialSummary.avgBlueDetectionScore > 70 ? "success" : "neutral"}
-						/>
-					</div>
-					{adversarialSummary.latestRound && (
-						<>
-							<p className="mt-2 text-xs text-[var(--sea-ink-soft)]">
-								Latest: {adversarialSummary.latestRound.redStrategySummary}
-							</p>
-							{adversarialSummary.latestRound.exploitChains.slice(0, 3).map((chain, i) => (
-								<p
-									// biome-ignore lint/suspicious/noArrayIndexKey: exploit chains have no stable id
-									key={i}
-									className="mt-0.5 text-xs text-[var(--sea-ink-soft)]"
-								>
-									→ {chain}
-								</p>
-							))}
-						</>
-					)}
-				</div>
+				<RedBlueAdversarialPanel
+					adversarialSummary={adversarialSummary}
+					redAgentFindingCount={redAgentFindingCount}
+				/>
 			)}
 
 			{/* Agent Memory */}
 			{agentMemory && (
-				<div className="card card-sm">
-					<p className="panel-label mb-2">Agent Memory</p>
-					<div className="flex flex-wrap gap-1.5">
-						<StatusPill
-							label={agentMemory.dominantSeverity}
-							tone={severityTone(agentMemory.dominantSeverity)}
-						/>
-						<StatusPill
-							label={`FP ${Math.round(agentMemory.falsePositiveRate * 100)}%`}
-							tone={agentMemory.falsePositiveRate > 0.3 ? "warning" : "neutral"}
-						/>
-						<StatusPill
-							label={`${agentMemory.totalFindingsAnalyzed} analyzed`}
-							tone="neutral"
-						/>
-					</div>
-					{agentMemory.recurringVulnClasses.slice(0, 2).map((vc) => (
-						<div key={vc.vulnClass} className="mt-1.5 flex flex-wrap gap-1.5">
-							<StatusPill
-								label={vc.vulnClass.replaceAll("_", " ")}
-								tone="info"
-							/>
-							<span className="text-xs text-[var(--sea-ink-soft)]">
-								{vc.count}× · avg severity {(vc.avgSeverityWeight * 100).toFixed(0)}%
-							</span>
-						</div>
-					))}
-					<p className="mt-2 text-xs text-[var(--sea-ink-soft)]">{agentMemory.summary}</p>
-				</div>
+				<AgentMemoryPanel memory={agentMemory} />
 			)}
 
 			{/* Learning Profile */}
 			{learningProfile && (
-				<div className="card card-sm">
-					<p className="panel-label mb-2">Learning Profile</p>
-					<div className="flex flex-wrap gap-1.5">
-						<StatusPill
-							label={`maturity ${learningProfile.adaptedConfidenceScore}/100`}
-							tone={maturityTone(learningProfile.adaptedConfidenceScore)}
-						/>
-						<StatusPill
-							label={learningProfile.attackSurfaceTrend}
-							tone={learningTrendTone(learningProfile.attackSurfaceTrend)}
-						/>
-						{learningProfile.recurringCount > 0 && (
-							<StatusPill
-								label={`${learningProfile.recurringCount} recurring`}
-								tone="warning"
-							/>
-						)}
-						{learningProfile.suppressedCount > 0 && (
-							<StatusPill
-								label={`${learningProfile.suppressedCount} suppressed`}
-								tone="neutral"
-							/>
-						)}
-						{learningProfile.successfulExploitPaths.length > 0 && (
-							<StatusPill
-								label={`${learningProfile.successfulExploitPaths.length} exploit paths`}
-								tone="danger"
-							/>
-						)}
-					</div>
-					{learningProfile.vulnClassPatterns.slice(0, 3).map((p) => (
-						<div key={p.vulnClass} className="mt-1.5 flex flex-wrap gap-1.5">
-							<StatusPill
-								label={p.vulnClass.replaceAll("_", " ")}
-								tone={multiplierTone(p.confidenceMultiplier)}
-							/>
-							<StatusPill
-								label={`×${p.confidenceMultiplier} confidence`}
-								tone={multiplierTone(p.confidenceMultiplier)}
-							/>
-						</div>
-					))}
-					<p className="mt-2 text-xs text-[var(--sea-ink-soft)]">
-						{learningProfile.summary}
-					</p>
-				</div>
+				<LearningProfilePanel profile={learningProfile} />
 			)}
 
 			{/* Semantic Fingerprint per-repo */}
 			{semanticAnalysis && (
-				<div className="card card-sm">
-					<p className="panel-label mb-2">Semantic Fingerprint (this repo)</p>
-					<p className="text-xs text-[var(--sea-ink-soft)] mb-2">
-						Commit: <code>{semanticAnalysis.commitSha.slice(0, 7)}</code> on {semanticAnalysis.branch}
-					</p>
-					{semanticAnalysis.topMatches.slice(0, 5).map((m) => (
-						<div key={m.patternId} className="flex flex-wrap items-center gap-1.5 mt-1">
-							<StatusPill
-								label={m.severity}
-								tone={
-									m.severity === "critical"
-										? "danger"
-										: m.severity === "high"
-											? "warning"
-											: "neutral"
-								}
-							/>
-							<span className="text-xs text-[var(--sea-ink-soft)] truncate">
-								{m.vulnClass.replace(/_/g, " ")}
-							</span>
-							<span className="text-xs text-[var(--sea-ink-soft)] ml-auto">
-								{(m.similarity * 100).toFixed(0)}%
-							</span>
-						</div>
-					))}
-					{semanticAnalysis.topMatches.length === 0 && (
-						<p className="text-xs text-[var(--success)]">
-							No semantic matches above threshold
-						</p>
-					)}
-				</div>
+				<SemanticFingerprintPanel analysis={semanticAnalysis} />
 			)}
 
 			{/* Agentic Workflow Scan */}
@@ -434,10 +358,108 @@ function RepoAgentIntelligence({
 							/>
 						)}
 					</div>
-					<p className="mt-2 text-xs text-[var(--sea-ink-soft)]">{agenticScan.summary}</p>
+					<p className="mt-2 text-xs text-[var(--sea-ink-soft)]">
+						{agenticScan.summary}
+					</p>
 				</div>
 			)}
 		</div>
 	);
 }
 
+function RepoLlmCertificationSection({
+	repositoryId,
+}: {
+	repositoryId: Id<"repositories">;
+}) {
+	const certReport = useQuery(
+		api.llmCertificationIntel.getLatestCertificationReport,
+		{ repositoryId },
+	);
+	const certHistory = useQuery(
+		api.llmCertificationIntel.getCertificationHistory,
+		{ repositoryId, limit: 20 },
+	);
+
+	if (!certReport && certHistory === undefined) {
+		return (
+			<div className="grid gap-3 sm:grid-cols-2">
+				{["a", "b"].map((k) => (
+					<div key={k} className="loading-panel h-32 rounded-2xl" />
+				))}
+			</div>
+		);
+	}
+
+	return (
+		<div className="grid gap-4 xl:grid-cols-[1.3fr_1fr]">
+			{/* Left: Certification report */}
+			<div>
+				{certReport ? (
+					<LlmCertificationPanel report={certReport} />
+				) : (
+					<div className="card">
+						<div className="empty-state border border-dashed border-[var(--line)] rounded-2xl">
+							<p className="text-sm text-[var(--sea-ink-soft)]">
+								No LLM certification data available for this repository yet.
+							</p>
+						</div>
+					</div>
+				)}
+			</div>
+
+			{/* Right: History */}
+			<div>
+				<LlmCertificationHistory history={certHistory ?? []} />
+			</div>
+		</div>
+	);
+}
+
+function RepoModelProvenanceSection({
+	repositoryId,
+}: {
+	repositoryId: Id<"repositories">;
+}) {
+	const provenanceScan = useQuery(
+		api.modelProvenanceIntel.getLatestModelProvenance,
+		{ repositoryId },
+	);
+
+	if (provenanceScan === undefined) {
+		return (
+			<div className="grid gap-3 sm:grid-cols-2">
+				{["a", "b"].map((k) => (
+					<div key={k} className="loading-panel h-32 rounded-2xl" />
+				))}
+			</div>
+		);
+	}
+
+	if (!provenanceScan) {
+		return (
+			<div className="card">
+				<div className="empty-state border border-dashed border-[var(--line)] rounded-2xl">
+					<p className="text-sm text-[var(--sea-ink-soft)]">
+						No model provenance data available for this repository yet.
+						Run a provenance scan to analyze AI model supply chain integrity.
+					</p>
+				</div>
+			</div>
+		);
+	}
+
+	return (
+		<div className="grid gap-4 xl:grid-cols-[1.3fr_1fr]">
+			{/* Left: Provenance panel */}
+			<div>
+				<ModelProvenancePanel scan={provenanceScan} />
+			</div>
+
+			{/* Right: Chain viewer */}
+			<div>
+				<ModelProvenanceChainViewer scan={provenanceScan} />
+			</div>
+		</div>
+	);
+}

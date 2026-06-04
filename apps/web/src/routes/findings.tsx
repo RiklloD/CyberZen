@@ -1,32 +1,106 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMutation, useQuery } from "convex/react";
-import type { FunctionReturnType } from "convex/server";
-import { AlertTriangle, Filter } from "lucide-react";
-import { useState, useTransition } from "react";
-import { api } from "../lib/convex";
+import { useQuery, useMutation } from "convex/react";
+import { AlertTriangle, X, Download, UserCheck, ShieldAlert, EyeOff } from "lucide-react";
+import { useState, useCallback } from "react";
 import type { Id } from "../lib/convex";
-import { TENANT_SLUG } from "../lib/config";
-import StatusPill from "../components/StatusPill";
-import {
-	blastTierTone,
-	formatTimestamp,
-	priorityTierTone,
-	severityTone,
-} from "../lib/utils";
+import { api } from "../lib/convex";
+import { useTenantSlug } from "../lib/workspace";
+import FindingsSeverityFilterChips, {
+	type SeverityFilter,
+} from "../components/panels/FindingsSeverityFilterChips";
+import FindingsTablePanel, {
+	type OverviewFinding,
+} from "../components/panels/FindingsTablePanel";
+import FindingDetailDrawer from "../components/panels/FindingDetailDrawer";
+import ExportMenu from "../components/ExportMenu";
+import QueryErrorFallback from "../components/QueryErrorFallback";
 
-export const Route = createFileRoute("/findings")({ component: FindingsPage });
+export const Route = createFileRoute("/findings")({ errorComponent: QueryErrorFallback, component: FindingsPage });
 
-type OverviewData = NonNullable<FunctionReturnType<typeof api.dashboard.overview>>;
-type OverviewFinding = OverviewData["findings"][number];
+type BulkAction = null | "dismiss" | "assign" | "severity";
 
-const TENANT = TENANT_SLUG;
-const SEVERITY_LEVELS = ["all", "critical", "high", "medium", "low", "informational"] as const;
-type SeverityFilter = (typeof SEVERITY_LEVELS)[number];
+const SEVERITIES = ["critical", "high", "medium", "low", "informational"] as const;
 
 function FindingsPage() {
+	const TENANT = useTenantSlug();
 	const overview = useQuery(api.dashboard.overview, { tenantSlug: TENANT });
 	const [severityFilter, setSeverityFilter] = useState<SeverityFilter>("all");
 	const [selected, setSelected] = useState<string | null>(null);
+
+	// Bulk selection state
+	const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+	const [bulkAction, setBulkAction] = useState<BulkAction>(null);
+	const [bulkReason, setBulkReason] = useState("");
+	const [bulkAssignee, setBulkAssignee] = useState("");
+	const [bulkSeverity, setBulkSeverity] = useState<(typeof SEVERITIES)[number]>("high");
+	const [bulkLoading, setBulkLoading] = useState(false);
+
+	const bulkDismiss = useMutation(api.findings.bulkDismissFindings);
+	const bulkAssign = useMutation(api.findings.bulkAssignFindings);
+	const bulkUpdateSeverity = useMutation(api.findings.bulkUpdateSeverity);
+
+	function toggleSelect(id: string) {
+		setSelectedIds((prev) => {
+			const next = new Set(prev);
+			if (next.has(id)) next.delete(id);
+			else next.add(id);
+			return next;
+		});
+	}
+
+	function clearSelection() {
+		setSelectedIds(new Set());
+		setBulkAction(null);
+		setBulkReason("");
+		setBulkAssignee("");
+	}
+
+	async function executeBulkAction() {
+		if (selectedIds.size === 0) return;
+		const ids = Array.from(selectedIds) as Id<"findings">[];
+		setBulkLoading(true);
+		try {
+			if (bulkAction === "dismiss") {
+				if (!bulkReason.trim()) return;
+				await bulkDismiss({ findingIds: ids, reason: bulkReason });
+			} else if (bulkAction === "assign") {
+				if (!bulkAssignee.trim()) return;
+				await bulkAssign({ findingIds: ids, assigneeId: bulkAssignee });
+			} else if (bulkAction === "severity") {
+				await bulkUpdateSeverity({ findingIds: ids, severity: bulkSeverity });
+			}
+			clearSelection();
+		} finally {
+			setBulkLoading(false);
+		}
+	}
+
+	const exportSelectedAsCsv = useCallback(() => {
+		if (!overview) return;
+		const selected = overview.findings.filter((f: OverviewFinding) =>
+			selectedIds.has(f._id),
+		);
+		const headers = ["ID", "Title", "Severity", "Status", "Source", "Repository", "Created At"];
+		const rows = selected.map((f: OverviewFinding) => [
+			f._id,
+			`"${f.title.replace(/"/g, '""')}"`,
+			f.severity,
+			f.status,
+			f.source,
+			f.repositoryFullName ?? "",
+			new Date(f.createdAt).toISOString(),
+		]);
+		const csv = [headers, ...rows].map((r) => r.join(",")).join("\n");
+		const blob = new Blob([csv], { type: "text/csv" });
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement("a");
+		a.href = url;
+		a.download = `findings-selected-${Date.now()}.csv`;
+		document.body.appendChild(a);
+		a.click();
+		document.body.removeChild(a);
+		URL.revokeObjectURL(url);
+	}, [overview, selectedIds]);
 
 	if (!overview) {
 		return (
@@ -57,234 +131,188 @@ function FindingsPage() {
 							{overview.stats.criticalFindings} critical/high
 						</p>
 					</div>
+					<div className="ml-auto">
+						<ExportMenu tenantSlug={TENANT} variant="findings" severity={severityFilter !== "all" ? severityFilter : undefined} />
+					</div>
 				</div>
 			</div>
 
 			<div className="page-body">
-				{/* Filter bar */}
-				<div className="flex items-center gap-2 mb-4 flex-wrap">
-					<Filter size={14} className="text-[var(--sea-ink-soft)]" />
-					{SEVERITY_LEVELS.map((level) => {
-						const count =
-							level === "all"
-								? overview.findings.length
-								: overview.findings.filter((f: OverviewFinding) => f.severity === level)
-										.length;
-						return (
-							<button
-								key={level}
-								type="button"
-								onClick={() => setSeverityFilter(level)}
-								className={`tab-btn ${severityFilter === level ? "is-active" : ""}`}
-							>
-								{level === "all" ? "All" : level.charAt(0).toUpperCase() + level.slice(1)}
-								{count > 0 && (
-									<span className="ml-1.5 text-[var(--sea-ink-soft)]">({count})</span>
-								)}
-							</button>
-						);
-					})}
-				</div>
+				<FindingsSeverityFilterChips
+					findings={overview.findings}
+					severityFilter={severityFilter}
+					onChange={setSeverityFilter}
+				/>
 
-				{/* Findings list */}
-				<div className="space-y-3">
-					{findings.map((finding: OverviewFinding) => (
-						<div key={finding._id}>
-							<button
-								type="button"
-								onClick={() =>
-									setSelected(selected === finding._id ? null : finding._id)
-								}
-								className={`card card-sm w-full text-left ${
-									selected === finding._id
-										? "border-[rgba(158,255,100,0.35)]"
-										: ""
-								}`}
-							>
-								<div className="flex flex-wrap items-center gap-2">
-									<StatusPill
-										label={finding.severity}
-										tone={severityTone(finding.severity)}
-									/>
-									<StatusPill label={finding.source} tone="info" />
-									<StatusPill
-										label={finding.validationStatus}
-										tone={
-											finding.validationStatus === "validated"
-												? "success"
-												: finding.validationStatus === "likely_exploitable"
-													? "warning"
-													: "neutral"
-										}
-									/>
-									<StatusPill
-										label={finding.status.replace(/_/g, " ")}
-										tone={finding.status === "open" ? "danger" : "neutral"}
-									/>
-								</div>
-								<h3 className="mt-2 text-sm font-semibold text-[var(--sea-ink)]">
-									{finding.title}
-								</h3>
-								<div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[var(--sea-ink-soft)]">
-									<span>Confidence: {Math.round(finding.confidence * 100)}%</span>
-									<span>Raised: {formatTimestamp(finding.createdAt)}</span>
-								</div>
-							</button>
-							{selected === finding._id && (
-								<FindingDetailPanel
-									findingId={finding._id as Id<"findings">}
-									finding={finding}
-								/>
-							)}
-						</div>
-					))}
-					{findings.length === 0 && (
-						<div className="empty-state border border-dashed border-[var(--line)] rounded-2xl">
-							<AlertTriangle size={24} className="mb-2 opacity-40" />
-							<p>No findings match the current filter.</p>
-						</div>
+				<FindingsTablePanel
+					findings={findings}
+					selectedId={selected}
+					onSelect={setSelected}
+					renderDetail={(finding) => (
+						<FindingDetailDrawer
+							findingId={finding._id as Id<"findings">}
+							finding={finding}
+						/>
 					)}
-				</div>
+					selectedIds={selectedIds}
+					onToggleSelect={toggleSelect}
+				/>
 			</div>
+
+			{/* Sticky bulk action bar */}
+			{selectedIds.size > 0 && (
+				<div className="fixed bottom-0 left-0 right-0 z-30 border-t border-[var(--line)] bg-[var(--panel-bg)] shadow-2xl">
+					<div className="max-w-7xl mx-auto px-4 py-3">
+						{/* Header row */}
+						<div className="flex items-center gap-3 mb-3">
+							<span className="text-sm font-semibold text-[var(--sea-ink)]">
+								{selectedIds.size} finding{selectedIds.size !== 1 ? "s" : ""} selected
+							</span>
+							<div className="flex items-center gap-2 ml-auto">
+								<button
+									type="button"
+									className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-[var(--chip-line)] bg-[var(--chip-bg)] text-[var(--sea-ink-soft)] hover:text-[var(--sea-ink)] transition-colors"
+									onClick={exportSelectedAsCsv}
+								>
+									<Download size={12} />
+									Export CSV
+								</button>
+								<button
+									type="button"
+									className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--sea-ink-soft)] hover:text-[var(--sea-ink)]"
+									onClick={clearSelection}
+									aria-label="Clear selection"
+								>
+									<X size={16} />
+								</button>
+							</div>
+						</div>
+
+						{/* Action buttons */}
+						{!bulkAction && (
+							<div className="flex items-center gap-2">
+								<button
+									type="button"
+									className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-[var(--chip-line)] bg-[var(--chip-bg)] text-[var(--sea-ink-soft)] hover:text-red-500 transition-colors"
+									onClick={() => setBulkAction("dismiss")}
+								>
+									<EyeOff size={12} />
+									Dismiss
+								</button>
+								<button
+									type="button"
+									className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-[var(--chip-line)] bg-[var(--chip-bg)] text-[var(--sea-ink-soft)] hover:text-[var(--signal)] transition-colors"
+									onClick={() => setBulkAction("assign")}
+								>
+									<UserCheck size={12} />
+									Assign
+								</button>
+								<button
+									type="button"
+									className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-[var(--chip-line)] bg-[var(--chip-bg)] text-[var(--sea-ink-soft)] hover:text-amber-500 transition-colors"
+									onClick={() => setBulkAction("severity")}
+								>
+									<ShieldAlert size={12} />
+									Change Severity
+								</button>
+							</div>
+						)}
+
+						{/* Dismiss form */}
+						{bulkAction === "dismiss" && (
+							<div className="flex items-center gap-2">
+								<span className="text-xs text-[var(--sea-ink-soft)]">Reason:</span>
+								<input
+									type="text"
+									className="input-field flex-1 text-xs py-1"
+									placeholder="e.g., False positive, risk accepted..."
+									value={bulkReason}
+									onChange={(e) => setBulkReason(e.target.value)}
+									autoFocus
+								/>
+								<button
+									type="button"
+									className="signal-button text-xs px-3 py-1.5"
+									onClick={executeBulkAction}
+									disabled={bulkLoading || !bulkReason.trim()}
+								>
+									{bulkLoading ? "Dismissing..." : "Dismiss"}
+								</button>
+								<button
+									type="button"
+									className="secondary-button text-xs px-3 py-1.5"
+									onClick={() => setBulkAction(null)}
+								>
+									Cancel
+								</button>
+							</div>
+						)}
+
+						{/* Assign form */}
+						{bulkAction === "assign" && (
+							<div className="flex items-center gap-2">
+								<span className="text-xs text-[var(--sea-ink-soft)]">Assign to:</span>
+								<input
+									type="text"
+									className="input-field flex-1 text-xs py-1"
+									placeholder="e.g., alice@example.com"
+									value={bulkAssignee}
+									onChange={(e) => setBulkAssignee(e.target.value)}
+									autoFocus
+								/>
+								<button
+									type="button"
+									className="signal-button text-xs px-3 py-1.5"
+									onClick={executeBulkAction}
+									disabled={bulkLoading || !bulkAssignee.trim()}
+								>
+									{bulkLoading ? "Assigning..." : "Assign"}
+								</button>
+								<button
+									type="button"
+									className="secondary-button text-xs px-3 py-1.5"
+									onClick={() => setBulkAction(null)}
+								>
+									Cancel
+								</button>
+							</div>
+						)}
+
+						{/* Change severity form */}
+						{bulkAction === "severity" && (
+							<div className="flex items-center gap-2">
+								<span className="text-xs text-[var(--sea-ink-soft)]">Severity:</span>
+								<select
+									className="input-field text-xs py-1"
+									value={bulkSeverity}
+									onChange={(e) => setBulkSeverity(e.target.value as typeof bulkSeverity)}
+								>
+									{SEVERITIES.map((s) => (
+										<option key={s} value={s}>
+											{s.charAt(0).toUpperCase() + s.slice(1)}
+										</option>
+									))}
+								</select>
+								<button
+									type="button"
+									className="signal-button text-xs px-3 py-1.5"
+									onClick={executeBulkAction}
+									disabled={bulkLoading}
+								>
+									{bulkLoading ? "Updating..." : "Update"}
+								</button>
+								<button
+									type="button"
+									className="secondary-button text-xs px-3 py-1.5"
+									onClick={() => setBulkAction(null)}
+								>
+									Cancel
+								</button>
+							</div>
+						)}
+					</div>
+				</div>
+			)}
 		</main>
 	);
 }
-
-function FindingDetailPanel({
-	findingId,
-	finding,
-}: {
-	findingId: Id<"findings">;
-	finding: OverviewFinding;
-}) {
-	const blastRadius = useQuery(api.blastRadiusIntel.getBlastRadius, {
-		findingId,
-	});
-	const triageMutation = useMutation(api.findingTriage.markFalsePositive);
-	const [isPending, startTransition] = useTransition();
-
-	function handleFalsePositive() {
-		startTransition(() => {
-			void triageMutation({
-				findingId,
-				note: "Marked false positive via operator dashboard",
-			});
-		});
-	}
-
-	return (
-		<div className="mt-2 card border-l-2 border-l-[var(--lagoon)] rounded-tl-none rounded-bl-none">
-			<div className="grid gap-4 sm:grid-cols-2">
-				{/* Blast Radius */}
-				{blastRadius && (
-					<div>
-						<p className="panel-label mb-2">Blast Radius</p>
-						<div className="flex flex-wrap gap-1.5">
-							<StatusPill
-								label={blastRadius.riskTier}
-								tone={blastTierTone(blastRadius.riskTier)}
-							/>
-							<StatusPill
-								label={`impact ${blastRadius.businessImpactScore}`}
-								tone="neutral"
-							/>
-							<StatusPill
-								label={`depth ${blastRadius.attackPathDepth}`}
-								tone="neutral"
-							/>
-						</div>
-						{blastRadius.reachableServices.length > 0 && (
-							<div className="mt-2 flex flex-wrap gap-1.5">
-								{blastRadius.reachableServices.slice(0, 5).map((svc) => (
-									<StatusPill key={svc} label={svc} tone="neutral" />
-								))}
-							</div>
-						)}
-						{blastRadius.exposedDataLayers.length > 0 && (
-							<p className="mt-1.5 text-xs text-[var(--sea-ink-soft)]">
-								Layers: {blastRadius.exposedDataLayers.join(", ")}
-							</p>
-						)}
-						<p className="mt-1.5 text-xs text-[var(--sea-ink-soft)]">
-							{blastRadius.summary}
-						</p>
-					</div>
-				)}
-
-				{/* Triage Actions */}
-				<div>
-					<p className="panel-label mb-2">Triage</p>
-					<div className="space-y-2">
-						<div className="text-xs text-[var(--sea-ink-soft)]">
-							<span className="font-semibold text-[var(--sea-ink)]">Status:</span>{" "}
-							{finding.status.replace(/_/g, " ")}
-						</div>
-						<div className="text-xs text-[var(--sea-ink-soft)]">
-							<span className="font-semibold text-[var(--sea-ink)]">Validation:</span>{" "}
-							{finding.validationStatus}
-						</div>
-						<div className="text-xs text-[var(--sea-ink-soft)]">
-							<span className="font-semibold text-[var(--sea-ink)]">Source:</span>{" "}
-							{finding.source}
-						</div>
-						<div className="text-xs text-[var(--sea-ink-soft)]">
-							<span className="font-semibold text-[var(--sea-ink)]">Confidence:</span>{" "}
-							{Math.round(finding.confidence * 100)}%
-						</div>
-						<div className="mt-3 flex flex-wrap gap-2">
-							<button
-								type="button"
-								onClick={handleFalsePositive}
-								disabled={isPending}
-								className="signal-button secondary-button"
-								style={{ padding: "0.5rem 0.9rem", fontSize: "0.78rem" }}
-							>
-								Mark false positive
-							</button>
-						</div>
-					</div>
-				</div>
-			</div>
-
-			{/* Remediation Queue entry for this finding */}
-			<FindingRemediationEntry findingId={findingId} />
-		</div>
-	);
-}
-
-function FindingRemediationEntry({ findingId }: { findingId: Id<"findings"> }) {
-	const repos = useQuery(api.dashboard.overview, { tenantSlug: TENANT });
-	const firstRepo = repos?.repositories[0];
-	const queue = useQuery(
-		api.remediationQueueIntel.getRemediationQueueForRepository,
-		firstRepo ? { repositoryId: firstRepo._id as Id<"repositories"> } : "skip",
-	);
-
-	if (!queue) return null;
-	const entry = queue.queue.find(
-		(i: { findingId: string }) => i.findingId === (findingId as string),
-	);
-	if (!entry) return null;
-
-	return (
-		<div className="mt-3 pt-3 border-t border-[var(--line)]">
-			<p className="panel-label mb-1.5">Remediation Priority</p>
-			<div className="flex flex-wrap gap-1.5">
-				<StatusPill
-					label={(entry.priorityTier as string).toUpperCase()}
-					tone={priorityTierTone(entry.priorityTier as string)}
-				/>
-				<StatusPill
-					label={`priority score ${(entry.priorityScore as number).toFixed(0)}`}
-					tone="neutral"
-				/>
-			</div>
-			{Array.isArray(entry.priorityRationale) && (entry.priorityRationale as string[]).length > 0 && (
-				<p className="mt-1 text-xs text-[var(--sea-ink-soft)]">
-					{(entry.priorityRationale as string[])[0]}
-				</p>
-			)}
-		</div>
-	);
-}
-

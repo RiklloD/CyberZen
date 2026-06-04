@@ -1,3 +1,4 @@
+import { authTables } from '@convex-dev/auth/server'
 import { defineSchema, defineTable } from 'convex/server'
 import { v } from 'convex/values'
 
@@ -37,6 +38,7 @@ const findingStatus = v.union(
   v.literal('accepted_risk'),
   v.literal('false_positive'),
   v.literal('ignored'),
+  v.literal('snoozed'),
 )
 
 const validationStatus = v.union(
@@ -65,7 +67,50 @@ const exploitValidationOutcome = v.union(
   v.literal('unexploitable'),
 )
 
+const episodeType = v.union(
+  v.literal('finding'),
+  v.literal('breach'),
+  v.literal('fix'),
+  v.literal('gate_block'),
+  v.literal('false_positive'),
+  v.literal('scan_result'),
+  v.literal('deployment'),
+)
+
+const patternType = v.union(
+  v.literal('recurring_vulnerability'),
+  v.literal('recurring_fix'),
+  v.literal('developer_pattern'),
+  v.literal('temporal_pattern'),
+  v.literal('dependency_risk'),
+  v.literal('code_path_risk'),
+  v.literal('false_positive_signal'),
+)
+
+const predictionType = v.union(
+  v.literal('vulnerability_likelihood'),
+  v.literal('remediation_suggestion'),
+  v.literal('risk_area'),
+  v.literal('false_positive_candidate'),
+  v.literal('deployment_risk'),
+)
+
+const predictionStatus = v.union(
+  v.literal('active'),
+  v.literal('confirmed'),
+  v.literal('disproved'),
+  v.literal('expired'),
+)
+
+const memoryFeedbackOutcome = v.union(
+  v.literal('confirmed'),
+  v.literal('disproved'),
+  v.literal('partial'),
+)
+
 export default defineSchema({
+  ...authTables,
+
   tenants: defineTable({
     slug: v.string(),
     name: v.string(),
@@ -79,7 +124,124 @@ export default defineSchema({
       v.literal('phase_4'),
     ),
     createdAt: v.number(),
+    ipAllowlist: v.optional(v.array(v.string())),
   }).index('by_slug', ['slug']),
+
+  tenantMembers: defineTable({
+    tenantId: v.id('tenants'),
+    userId: v.id('users'),
+    role: v.union(
+      v.literal('owner'),
+      v.literal('admin'),
+      v.literal('member'),
+    ),
+    selectedAt: v.number(),
+    invitedByUserId: v.optional(v.id('users')),
+    joinedAt: v.number(),
+    /** §C4 — Granular permissions delegated to this member beyond their base role. */
+    delegatedPermissions: v.optional(v.array(v.string())),
+  })
+    .index('by_tenant', ['tenantId'])
+    .index('by_tenant_and_user', ['tenantId', 'userId'])
+    .index('by_user_and_selected_at', ['userId', 'selectedAt'])
+    .index('by_tenant_and_role', ['tenantId', 'role']),
+
+  tenantInvites: defineTable({
+    tenantId: v.id('tenants'),
+    email: v.string(),
+    token: v.string(),
+    role: v.union(
+      v.literal('owner'),
+      v.literal('admin'),
+      v.literal('member'),
+    ),
+    status: v.union(
+      v.literal('pending'),
+      v.literal('accepted'),
+      v.literal('revoked'),
+    ),
+    /** §6.11 — Custom RBAC role assigned upon invite acceptance. */
+    assignedRoleId: v.optional(v.id('roles')),
+    invitedByUserId: v.id('users'),
+    acceptedByUserId: v.optional(v.id('users')),
+    createdAt: v.number(),
+    expiresAt: v.optional(v.number()),
+    acceptedAt: v.optional(v.number()),
+  })
+    .index('by_tenant', ['tenantId'])
+    .index('by_token', ['token'])
+    .index('by_tenant_and_status', ['tenantId', 'status'])
+    .index('by_tenant_and_email', ['tenantId', 'email']),
+
+  ssoConfigs: defineTable({
+    tenantId: v.id('tenants'),
+    protocol: v.union(v.literal('saml'), v.literal('oidc')),
+    displayName: v.string(),
+    enabled: v.boolean(),
+    enforced: v.boolean(),
+    defaultRole: v.union(
+      v.literal('owner'),
+      v.literal('admin'),
+      v.literal('member'),
+    ),
+    // SAML fields
+    samlEntityId: v.optional(v.string()),
+    samlSsoUrl: v.optional(v.string()),
+    samlSloUrl: v.optional(v.string()),
+    samlCertificate: v.optional(v.string()),
+    samlMetadataXml: v.optional(v.string()),
+    samlNameIdFormat: v.optional(v.string()),
+    samlSignatureAlgorithm: v.optional(v.string()),
+    samlAttributeEmail: v.optional(v.string()),
+    samlAttributeFirstName: v.optional(v.string()),
+    samlAttributeLastName: v.optional(v.string()),
+    // OIDC fields
+    oidcIssuer: v.optional(v.string()),
+    oidcClientId: v.optional(v.string()),
+    oidcClientSecret: v.optional(v.string()),
+    oidcAuthorizationEndpoint: v.optional(v.string()),
+    oidcTokenEndpoint: v.optional(v.string()),
+    oidcUserInfoEndpoint: v.optional(v.string()),
+    oidcJwksUri: v.optional(v.string()),
+    oidcScopes: v.optional(v.array(v.string())),
+    // Domain restriction
+    allowedEmailDomains: v.optional(v.array(v.string())),
+    // Audit
+    createdByUserId: v.id('users'),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+    lastTestedAt: v.optional(v.number()),
+    lastTestStatus: v.optional(
+      v.union(v.literal('success'), v.literal('failure')),
+    ),
+    lastTestMessage: v.optional(v.string()),
+  })
+    .index('by_tenant', ['tenantId'])
+    .index('by_tenant_and_enabled', ['tenantId', 'enabled']),
+
+  ssoTestLogins: defineTable({
+    tenantId: v.id('tenants'),
+    ssoConfigId: v.id('ssoConfigs'),
+    initiatedByUserId: v.id('users'),
+    nonce: v.string(),
+    status: v.union(
+      v.literal('pending'),
+      v.literal('success'),
+      v.literal('failure'),
+      v.literal('expired'),
+    ),
+    requestedAt: v.number(),
+    completedAt: v.optional(v.number()),
+    resolvedEmail: v.optional(v.string()),
+    resolvedAttributes: v.optional(
+      v.record(v.string(), v.union(v.string(), v.null())),
+    ),
+    errorMessage: v.optional(v.string()),
+    expiresAt: v.number(),
+  })
+    .index('by_tenant_and_requested_at', ['tenantId', 'requestedAt'])
+    .index('by_nonce', ['nonce'])
+    .index('by_config_and_requested_at', ['ssoConfigId', 'requestedAt']),
 
   repositories: defineTable({
     tenantId: v.id('tenants'),
@@ -278,11 +440,18 @@ export default defineSchema({
     regulatoryImplications: v.array(v.string()),
     createdAt: v.number(),
     resolvedAt: v.optional(v.number()),
+    /** Epoch ms when snooze expires — null when not snoozed. */
+    snoozedUntil: v.optional(v.number()),
+    /** Free-text reason the analyst snoozed this finding. */
+    snoozeReason: v.optional(v.string()),
+    /** Assignee identifier (tenantMember userId or display name). */
+    assigneeId: v.optional(v.string()),
   })
     .index('by_tenant_and_created_at', ['tenantId', 'createdAt'])
     .index('by_tenant_and_status', ['tenantId', 'status'])
     .index('by_repository_and_status', ['repositoryId', 'status'])
-    .index('by_workflow_run_and_source', ['workflowRunId', 'source']),
+    .index('by_workflow_run_and_source', ['workflowRunId', 'source'])
+    .index('by_snoozed_until', ['snoozedUntil']),
 
   exploitValidationRuns: defineTable({
     tenantId: v.id('tenants'),
@@ -4667,4 +4836,994 @@ export default defineSchema({
   })
     .index('by_repository_and_computed_at', ['repositoryId', 'computedAt'])
     .index('by_tenant_and_computed_at', ['tenantId', 'computedAt']),
+
+  // ── SLA Policy Configuration (spec §3.5) ─────────────────────────────
+  // One row per tenant storing the custom SLA thresholds.  When absent the
+  // DEFAULT_SLA_POLICY from lib/slaPolicy.ts is used instead.  Upserted by
+  // the SLA Policy Editor settings page.
+
+  slaPolicies: defineTable({
+    tenantId: v.id('tenants'),
+    /** SLA window in hours per severity level. */
+    thresholdHours: v.object({
+      critical: v.number(),
+      high: v.number(),
+      medium: v.number(),
+      low: v.number(),
+    }),
+    /** Fraction of the window elapsed at which status becomes "approaching" (0–1). */
+    approachingThreshold: v.number(),
+    /** ISO timestamp of last update (client-supplied for display). */
+    updatedAt: v.number(),
+  })
+    .index('by_tenant', ['tenantId']),
+
+  // ── Integration Catalog & Status (spec §5) ─────────────────────────────
+  // Master catalog of all supported integrations. Seeded once, rarely changes.
+  integrationCatalog: defineTable({
+    slug: v.string(),
+    label: v.string(),
+    category: v.union(
+      v.literal('vcs'),
+      v.literal('ci'),
+      v.literal('chat'),
+      v.literal('paging'),
+      v.literal('ticket'),
+      v.literal('siem'),
+      v.literal('obs'),
+    ),
+    envVarName: v.string(),
+    description: v.string(),
+    webhookPathTemplate: v.optional(v.string()),
+    docsUrl: v.optional(v.string()),
+  }).index('by_slug', ['slug']),
+
+  // Per-tenant integration health. One row per (tenant, integration) pair.
+  // Updated by the recomputeIntegrationStatus cron every 5 minutes.
+  integrationStatus: defineTable({
+    tenantId: v.id('tenants'),
+    integrationSlug: v.string(),
+    configured: v.boolean(),
+    lastSuccessAt: v.optional(v.number()),
+    lastErrorAt: v.optional(v.number()),
+    lastErrorMessage: v.optional(v.string()),
+    health: v.union(
+      v.literal('healthy'),
+      v.literal('degraded'),
+      v.literal('offline'),
+    ),
+  })
+    .index('by_tenant', ['tenantId'])
+    .index('by_tenant_slug', ['tenantId', 'integrationSlug']),
+
+  // ── §6.2 — Notifications ──────────────────────────────────────────
+
+  notifications: defineTable({
+    userId: v.id('users'),
+    tenantId: v.id('tenants'),
+    type: v.string(),
+    payload: v.string(), // JSON-encoded
+    readAt: v.optional(v.number()),
+    createdAt: v.number(),
+  })
+    .index('by_user', ['userId'])
+    .index('by_user_unread', ['userId', 'readAt'])
+    .index('by_tenant', ['tenantId']),
+
+  notificationPreferences: defineTable({
+    userId: v.id('users'),
+    tenantId: v.id('tenants'),
+    channel: v.union(v.literal('in_app'), v.literal('email'), v.literal('slack')),
+    type: v.string(),
+    enabled: v.boolean(),
+  }).index('by_user_tenant', ['userId', 'tenantId']),
+
+  // ── §6.6 — Outgoing Webhooks ──────────────────────────────────────
+
+  outgoingWebhooks: defineTable({
+    tenantId: v.id('tenants'),
+    url: v.string(),
+    secret: v.string(),
+    eventTypes: v.array(v.string()),
+    enabled: v.boolean(),
+    lastDeliveryAt: v.optional(v.number()),
+    failureCount: v.number(),
+    description: v.optional(v.string()),
+  })
+    .index('by_tenant', ['tenantId'])
+    .index('by_tenant_enabled', ['tenantId', 'enabled']),
+
+  // ─── §6.1 RBAC ──────────────────────────────────────────────────────────
+
+  roles: defineTable({
+    tenantId: v.id('tenants'),
+    name: v.string(),
+    description: v.optional(v.string()),
+    permissions: v.array(v.string()),
+    isSystem: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index('by_tenant', ['tenantId'])
+    .index('by_tenant_and_name', ['tenantId', 'name']),
+
+  permissionGrants: defineTable({
+    tenantId: v.id('tenants'),
+    userId: v.id('users'),
+    roleId: v.id('roles'),
+    grantedByUserId: v.id('users'),
+    grantedAt: v.number(),
+  })
+    .index('by_tenant', ['tenantId'])
+    .index('by_user', ['userId'])
+    .index('by_user_and_role', ['userId', 'roleId'])
+    .index('by_role', ['roleId']),
+
+  // ─── §6.4 API Key Management ────────────────────────────────────────────
+
+  apiKeys: defineTable({
+    tenantId: v.id('tenants'),
+    name: v.string(),
+    hashedSecret: v.string(),
+    prefix: v.string(),
+    scopes: v.array(v.string()),
+    lastUsedAt: v.optional(v.number()),
+    expiresAt: v.optional(v.number()),
+    revokedAt: v.optional(v.number()),
+    createdById: v.optional(v.id('users')),
+    createdAt: v.number(),
+  })
+    .index('by_tenant', ['tenantId'])
+    .index('by_tenant_and_prefix', ['tenantId', 'prefix'])
+    .index('by_prefix', ['prefix']),
+
+  // ─── §6.5 Audit Log ─────────────────────────────────────────────────────
+
+  auditLog: defineTable({
+    tenantId: v.id('tenants'),
+    actorUserId: v.optional(v.id('users')),
+    action: v.string(),
+    resourceType: v.string(),
+    resourceId: v.optional(v.string()),
+    payload: v.optional(v.string()),
+    at: v.number(),
+    ip: v.optional(v.string()),
+    ua: v.optional(v.string()),
+    previousHash: v.optional(v.string()),
+    entryHash: v.optional(v.string()),
+  })
+    .index('by_tenant_and_at', ['tenantId', 'at'])
+    .index('by_tenant_and_action', ['tenantId', 'action'])
+    .index('by_tenant_and_resource', ['tenantId', 'resourceType', 'resourceId']),
+
+  // ─── §A16 User Sessions ──────────────────────────────────────────────────
+
+  userSessions: defineTable({
+    userId: v.id('users'),
+    tenantId: v.id('tenants'),
+    authSessionRef: v.string(),
+    deviceInfo: v.object({
+      browser: v.optional(v.string()),
+      os: v.optional(v.string()),
+      userAgent: v.optional(v.string()),
+    }),
+    ipAddress: v.optional(v.string()),
+    lastSeenAt: v.number(),
+    createdAt: v.number(),
+    expiresAt: v.number(),
+    isActive: v.boolean(),
+  })
+    .index('by_auth_session', ['authSessionRef'])
+    .index('by_user', ['userId'])
+    .index('by_user_and_active', ['userId', 'isActive'])
+    .index('by_tenant', ['tenantId']),
+
+  // ─── §B1 GDPR Data Requests ─────────────────────────────────────────────
+
+  dataRequests: defineTable({
+    tenantId: v.id('tenants'),
+    userId: v.id('users'),
+    type: v.union(
+      v.literal('access'),
+      v.literal('deletion'),
+      v.literal('portability'),
+    ),
+    status: v.union(
+      v.literal('pending'),
+      v.literal('processing'),
+      v.literal('complete'),
+      v.literal('cancelled'),
+    ),
+    requestDate: v.number(),
+    completionDate: v.optional(v.number()),
+    downloadUrl: v.optional(v.string()),
+    gracePeriodEnd: v.optional(v.number()),
+    resultJson: v.optional(v.string()),
+  })
+    .index('by_tenant', ['tenantId'])
+    .index('by_user', ['userId'])
+    .index('by_tenant_and_user', ['tenantId', 'userId'])
+    .index('by_status', ['status']),
+
+  // ─── §6.12 Billing / Subscription ──────────────────────────────────────────
+
+  billingPlans: defineTable({
+    slug: v.string(),
+    name: v.string(),
+    description: v.string(),
+    priceCents: v.number(),
+    currency: v.string(),
+    interval: v.union(v.literal('month'), v.literal('year')),
+    maxRepositories: v.number(),
+    maxMembers: v.number(),
+    features: v.array(v.string()),
+    highlighted: v.boolean(),
+    sortOrder: v.number(),
+  })
+    .index('by_slug', ['slug'])
+    .index('by_sort_order', ['sortOrder']),
+
+  subscriptions: defineTable({
+    tenantId: v.id('tenants'),
+    planSlug: v.string(),
+    status: v.union(
+      v.literal('active'),
+      v.literal('past_due'),
+      v.literal('canceled'),
+      v.literal('trialing'),
+    ),
+    currentPeriodStart: v.number(),
+    currentPeriodEnd: v.number(),
+    cancelAtPeriodEnd: v.boolean(),
+    stripeCustomerId: v.optional(v.string()),
+    stripeSubscriptionId: v.optional(v.string()),
+  })
+    .index('by_tenant', ['tenantId'])
+    .index('by_stripe_customer', ['stripeCustomerId']),
+
+  invoices: defineTable({
+    tenantId: v.id('tenants'),
+    amountCents: v.number(),
+    currency: v.string(),
+    status: v.union(
+      v.literal('draft'),
+      v.literal('open'),
+      v.literal('paid'),
+      v.literal('void'),
+      v.literal('uncollectible'),
+    ),
+    periodStart: v.number(),
+    periodEnd: v.number(),
+    dueDate: v.number(),
+    paidAt: v.optional(v.number()),
+    stripeInvoiceId: v.optional(v.string()),
+    pdfUrl: v.optional(v.string()),
+  })
+    .index('by_tenant', ['tenantId'])
+    .index('by_tenant_and_period', ['tenantId', 'periodStart']),
+
+  usageRecords: defineTable({
+    tenantId: v.id('tenants'),
+    metric: v.string(),
+    value: v.number(),
+    at: v.number(),
+    periodStart: v.optional(v.number()),
+    periodEnd: v.optional(v.number()),
+    recordedAt: v.optional(v.number()),
+  })
+    .index('by_tenant', ['tenantId'])
+    .index('by_tenant_and_metric', ['tenantId', 'metric'])
+    .index('by_tenant_and_period', ['tenantId', 'periodStart']),
+
+  // ─── §8.1 Plans (slug-indexed pricing tiers) ───────────────────────────
+  plans: defineTable({
+    slug: v.string(),
+    name: v.string(),
+    monthlyPrice: v.number(),
+    repoLimit: v.number(),
+    seatLimit: v.number(),
+    featureFlags: v.array(v.string()),
+  }).index('by_slug', ['slug']),
+
+  // ─── §6.7 Scan Scheduling ─────────────────────────────────────────────
+
+  scanSchedules: defineTable({
+    tenantId: v.id('tenants'),
+    scannerSlug: v.string(),
+    cronExpression: v.string(),
+    enabled: v.boolean(),
+    repositoryIds: v.array(v.id('repositories')),
+    lastRunAt: v.optional(v.number()),
+    description: v.optional(v.string()),
+  })
+    .index('by_tenant', ['tenantId'])
+    .index('by_tenant_and_scanner', ['tenantId', 'scannerSlug']),
+
+  // ─── §6.8 Finding Suppression Rules ────────────────────────────────────
+
+  suppressionRules: defineTable({
+    tenantId: v.id('tenants'),
+    pattern: v.string(),
+    scope: v.union(
+      v.literal('all'),
+      v.literal('repository'),
+      v.literal('severity'),
+      v.literal('package'),
+      v.literal('vuln_class'),
+    ),
+    scopeValue: v.optional(v.string()),
+    justification: v.string(),
+    expiresAt: v.optional(v.number()),
+    createdById: v.optional(v.id('users')),
+    enabled: v.boolean(),
+  })
+    .index('by_tenant', ['tenantId'])
+    .index('by_tenant_and_scope', ['tenantId', 'scope']),
+
+  // ─── §6.9 Custom Policy Builder ────────────────────────────────────────
+
+  customPolicies: defineTable({
+    tenantId: v.id('tenants'),
+    name: v.string(),
+    description: v.optional(v.string()),
+    dsl: v.string(),
+    enabled: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index('by_tenant', ['tenantId'])
+    .index('by_tenant_and_enabled', ['tenantId', 'enabled']),
+
+  // ─── §6.23 Data Retention Policies ──────────────────────────────────
+
+  retentionPolicies: defineTable({
+    tenantId: v.id('tenants'),
+    name: v.string(),
+    /** Which data category this policy covers. */
+    dataType: v.union(
+      v.literal('findings'),
+      v.literal('audit_logs'),
+      v.literal('sbom_snapshots'),
+      v.literal('webhook_deliveries'),
+      v.literal('sandbox_environments'),
+      v.literal('ingestion_events'),
+    ),
+    /** Retention period in days. 0 = retain forever. */
+    retentionDays: v.number(),
+    /** Action to take when data expires. */
+    action: v.union(
+      v.literal('archive'),
+      v.literal('delete'),
+    ),
+    enabled: v.boolean(),
+    /** ISO timestamp of the last time this policy was applied. */
+    lastAppliedAt: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index('by_tenant', ['tenantId'])
+    .index('by_tenant_and_data_type', ['tenantId', 'dataType'])
+    .index('by_tenant_and_enabled', ['tenantId', 'enabled']),
+
+  // ─── §6.24 On-Call Rotation ─────────────────────────────────────────
+
+  onCallSchedules: defineTable({
+    tenantId: v.id('tenants'),
+    name: v.string(),
+    description: v.optional(v.string()),
+    /** Rotation cadence. */
+    rotationType: v.union(
+      v.literal('daily'),
+      v.literal('weekly'),
+      v.literal('biweekly'),
+      v.literal('monthly'),
+    ),
+    /** Ordered list of user IDs in the rotation. */
+    memberIds: v.array(v.id('users')),
+    /** Index into memberIds for the current on-call person. */
+    currentRotationIndex: v.number(),
+    /** Unix epoch ms when the current rotation slot started. */
+    currentRotationStart: v.number(),
+    /** Timezone for rotation boundaries, e.g. "America/New_York". */
+    timezone: v.string(),
+    enabled: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index('by_tenant', ['tenantId'])
+    .index('by_tenant_and_enabled', ['tenantId', 'enabled']),
+
+  escalationPolicies: defineTable({
+    tenantId: v.id('tenants'),
+    name: v.string(),
+    description: v.optional(v.string()),
+    /** Reference to the on-call schedule this escalation policy is bound to. */
+    onCallScheduleId: v.id('onCallSchedules'),
+    /** Ordered escalation steps. */
+    steps: v.array(
+      v.object({
+        /** Delay in minutes before this step fires. */
+        delayMinutes: v.number(),
+        /** Who to notify at this step. */
+        target: v.union(
+          v.literal('current_on_call'),
+          v.literal('schedule_members'),
+          v.literal('specific_user'),
+        ),
+        /** User ID when target = specific_user. */
+        targetUserId: v.optional(v.id('users')),
+        /** Notification channels. */
+        channels: v.array(
+          v.union(
+            v.literal('email'),
+            v.literal('slack'),
+            v.literal('sms'),
+            v.literal('webhook'),
+          ),
+        ),
+      }),
+    ),
+    /** Repeat the escalation cycle after all steps have fired. */
+    repeatCount: v.number(),
+    enabled: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index('by_tenant', ['tenantId'])
+    .index('by_tenant_and_schedule', ['tenantId', 'onCallScheduleId'])
+    .index('by_tenant_and_enabled', ['tenantId', 'enabled']),
+
+  // ─── §6.3 Custom Dashboard Builder ────────────────────────────────────
+
+  dashboards: defineTable({
+    tenantId: v.id('tenants'),
+    userId: v.id('users'),
+    name: v.string(),
+    description: v.optional(v.string()),
+    layout: v.string(), // JSON-encoded widget grid layout
+    isDefault: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index('by_tenant', ['tenantId'])
+    .index('by_tenant_and_user', ['tenantId', 'userId']),
+
+  // ─── §6.27 Two-Factor Authentication ──────────────────────────────────
+
+  twoFactorEnrollments: defineTable({
+    userId: v.id('users'),
+    tenantId: v.id('tenants'),
+    secretEncrypted: v.string(), // Base64-encoded TOTP secret
+    verified: v.boolean(),
+    enforced: v.boolean(),
+    backupCodesEncrypted: v.optional(v.string()), // JSON array of hashed backup codes
+    enrolledAt: v.number(),
+    lastUsedAt: v.optional(v.number()),
+  })
+    .index('by_user', ['userId'])
+    .index('by_tenant', ['tenantId']),
+
+  // ─── §6.28 API Rate Limiting ──────────────────────────────────────────
+
+  apiUsageRecords: defineTable({
+    apiKeyId: v.id('apiKeys'),
+    tenantId: v.id('tenants'),
+    windowStart: v.number(), // Unix ms start of rate-limit window
+    requestCount: v.number(),
+    blockedCount: v.number(),
+    period: v.union(v.literal('minute'), v.literal('hour'), v.literal('day')),
+  })
+    .index('by_api_key', ['apiKeyId'])
+    .index('by_api_key_and_window', ['apiKeyId', 'windowStart'])
+    .index('by_tenant', ['tenantId'])
+    .index('by_tenant_and_window_start', ['tenantId', 'windowStart']),
+
+  // ─── §6.29 Health Check / Status Page ─────────────────────────────────
+
+  serviceHealthChecks: defineTable({
+    service: v.string(),
+    status: v.union(v.literal('operational'), v.literal('degraded'), v.literal('outage'), v.literal('maintenance')),
+    latencyMs: v.optional(v.number()),
+    message: v.optional(v.string()),
+    checkedAt: v.number(),
+  })
+    .index('by_service', ['service'])
+    .index('by_service_and_checked_at', ['service', 'checkedAt']),
+
+  incidentReports: defineTable({
+    title: v.string(),
+    service: v.string(),
+    status: v.union(v.literal('investigating'), v.literal('identified'), v.literal('monitoring'), v.literal('resolved')),
+    severity: v.union(v.literal('minor'), v.literal('major'), v.literal('critical')),
+    message: v.string(),
+    startedAt: v.number(),
+    resolvedAt: v.optional(v.number()),
+    updatedAt: v.number(),
+  })
+    .index('by_service', ['service'])
+    .index('by_started_at', ['startedAt']),
+
+  // Neural Memory System Tables
+  projectMemories: defineTable({
+    repositoryId: v.id('repositories'),
+    tenantId: v.id('tenants'),
+    version: v.number(),
+    lastLearningAt: v.optional(v.number()),
+    memoryStats: v.object({
+      totalEpisodes: v.number(),
+      totalPatterns: v.number(),
+      predictionAccuracy: v.number(), // 0-1
+      coverageScore: v.number(), // 0-1
+    }),
+    settings: v.optional(v.object({
+      episodesBeforePattern: v.optional(v.number()),
+      predictionHorizonDays: v.optional(v.number()),
+      patternExpiryDays: v.optional(v.number()),
+      enabledAlgorithms: v.optional(v.object({
+        patternDetection: v.optional(v.boolean()),
+        predictionGeneration: v.optional(v.boolean()),
+        falsePositiveLearning: v.optional(v.boolean()),
+        temporalAnalysis: v.optional(v.boolean()),
+      })),
+    })),
+  })
+    .index('by_repository', ['repositoryId'])
+    .index('by_tenant', ['tenantId'])
+    .index('by_last_learning_at', ['lastLearningAt']),
+
+  memoryEpisodes: defineTable({
+    projectMemoryId: v.id('projectMemories'),
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    episodeType,
+    timestamp: v.number(),
+    payload: v.any(), // json blob with event data
+    embedding: v.array(v.string()), // structured attributes
+    sourceRef: v.string(), // reference back to source
+    processed: v.boolean(), // has learning engine ingested this
+  })
+    .index('by_project_memory', ['projectMemoryId'])
+    .index('by_repository', ['repositoryId'])
+    .index('by_tenant', ['tenantId'])
+    .index('by_episode_type', ['episodeType'])
+    .index('by_timestamp', ['timestamp'])
+    .index('by_processed', ['processed'])
+    .index('by_source_ref', ['sourceRef']),
+
+  memoryPatterns: defineTable({
+    projectMemoryId: v.id('projectMemories'),
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    patternType,
+    name: v.string(),
+    description: v.string(),
+    confidence: v.number(), // 0-1
+    frequency: v.number(), // episode count
+    firstSeenAt: v.number(),
+    lastSeenAt: v.number(),
+    attributes: v.any(), // pattern-specific data
+    severity,
+    isActive: v.boolean(),
+    relatedPatternIds: v.array(v.id('memoryPatterns')),
+    createdBy: v.optional(v.union(v.literal('user'), v.literal('system'))),
+    dismissedAt: v.optional(v.number()),
+    dismissReason: v.optional(v.string()),
+  })
+    .index('by_project_memory', ['projectMemoryId'])
+    .index('by_repository', ['repositoryId'])
+    .index('by_tenant', ['tenantId'])
+    .index('by_pattern_type', ['patternType'])
+    .index('by_confidence', ['confidence'])
+    .index('by_is_active', ['isActive'])
+    .index('by_last_seen_at', ['lastSeenAt']),
+
+  memoryPredictions: defineTable({
+    projectMemoryId: v.id('projectMemories'),
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    predictionType,
+    title: v.string(),
+    description: v.string(),
+    confidence: v.number(), // 0-1
+    basedOnPatternIds: v.array(v.id('memoryPatterns')),
+    status: predictionStatus,
+    createdAt: v.number(),
+    expiresAt: v.optional(v.number()),
+    outcome: v.optional(v.string()),
+  })
+    .index('by_project_memory', ['projectMemoryId'])
+    .index('by_repository', ['repositoryId'])
+    .index('by_tenant', ['tenantId'])
+    .index('by_prediction_type', ['predictionType'])
+    .index('by_status', ['status'])
+    .index('by_expires_at', ['expiresAt'])
+    .index('by_created_at', ['createdAt']),
+
+  memoryFeedback: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    predictionId: v.id('memoryPredictions'),
+    outcome: memoryFeedbackOutcome,
+    actualEvent: v.string(),
+    feedbackAt: v.number(),
+    accuracyDelta: v.number(), // how much this adjusts confidence
+  })
+    .index('by_prediction', ['predictionId'])
+    .index('by_repository', ['repositoryId'])
+    .index('by_tenant', ['tenantId'])
+    .index('by_feedback_at', ['feedbackAt']),
+
+  memoryNotes: defineTable({
+    targetId: v.string(), // polymorphic ID (pattern/prediction/episode)
+    targetType: v.union(
+      v.literal('pattern'),
+      v.literal('prediction'),
+      v.literal('episode')
+    ),
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    text: v.string(),
+    authorId: v.id('users'),
+    createdAt: v.number(),
+  })
+    .index('by_target', ['targetId', 'targetType'])
+    .index('by_repository', ['repositoryId'])
+    .index('by_tenant', ['tenantId'])
+    .index('by_author', ['authorId'])
+    .index('by_created_at', ['createdAt']),
+
+  // ─── §A11 Auth Rate Limiting / Lockout ────────────────────────────────────
+
+  authLockouts: defineTable({
+    email: v.string(),
+    failedAttempts: v.number(),
+    lastFailedAt: v.number(),
+    lockedUntil: v.optional(v.number()),
+    lockCount: v.number(),
+  })
+    .index('by_email', ['email']),
+
+  // ─── §B3 Right-to-Deletion Pipeline ────────────────────────────────────────
+
+  deletionQueue: defineTable({
+    entityType: v.union(
+      v.literal('user'),
+      v.literal('finding'),
+      v.literal('tenant'),
+    ),
+    entityId: v.string(),
+    tenantId: v.id('tenants'),
+    requestedByUserId: v.id('users'),
+    requestedAt: v.number(),
+    scheduledAt: v.number(),
+    executedAt: v.optional(v.number()),
+    status: v.union(
+      v.literal('scheduled'),
+      v.literal('executing'),
+      v.literal('completed'),
+      v.literal('failed'),
+    ),
+    error: v.optional(v.string()),
+  })
+    .index('by_tenant', ['tenantId'])
+    .index('by_status_and_scheduled_at', ['status', 'scheduledAt'])
+    .index('by_entity', ['entityType', 'entityId']),
+
+  // ── Webhook Retry Queue & Dead Letter Queue (spec §7.2 retry) ─────────────
+  // Tracks failed outbound webhook deliveries queued for exponential-backoff
+  // retry.  Entries whose attempts reach MAX_RETRY_ATTEMPTS are marked 'dead'
+  // and surfaced in the dead-letter queue UI.
+
+  webhookRetryQueue: defineTable({
+    tenantId: v.id('tenants'),
+    endpointId: v.id('webhookEndpoints'),
+    /** Original delivery UUID — preserved across retries for idempotency. */
+    deliveryId: v.string(),
+    eventType: v.string(),
+    /** JSON-serialized envelope body (already signed, ready for re-POST). */
+    payload: v.string(),
+    /** HMAC-SHA256 signature value for the payload, e.g. "sha256=<hex>". */
+    signature: v.string(),
+    status: v.union(
+      v.literal('pending'),
+      v.literal('success'),
+      v.literal('failed'),
+      v.literal('dead'),
+    ),
+    /** Number of retry attempts completed (0 = awaiting first retry). */
+    attempts: v.number(),
+    lastAttemptAt: v.optional(v.number()),
+    /** Epoch ms when the next retry should be processed by the cron. */
+    nextRetryAt: v.number(),
+    responseCode: v.optional(v.number()),
+    responseBody: v.optional(v.string()),
+    errorMessage: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index('by_status_and_next_retry_at', ['status', 'nextRetryAt'])
+    .index('by_endpoint_and_status', ['endpointId', 'status'])
+    .index('by_tenant_and_status', ['tenantId', 'status']),
+
+  // ─── §D1 Attack Path Modeling ─────────────────────────────────────────────
+
+  attackPaths: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    findingId: v.optional(v.id('findings')),
+    graph: v.string(), // JSON-encoded adjacency list with nodes + edges
+    blastRadius: v.number(), // 0-100
+    chokePoints: v.array(v.string()), // package names that break attack paths
+    reachableTargets: v.array(v.string()), // sensitive assets reachable
+    computedAt: v.number(),
+  })
+    .index('by_tenant', ['tenantId'])
+    .index('by_repository', ['repositoryId'])
+    .index('by_finding', ['findingId'])
+    .index('by_tenant_and_computed_at', ['tenantId', 'computedAt']),
+
+  // ─── §D2 Threat Intelligence Feed ─────────────────────────────────────────
+
+  threatIntel: defineTable({
+    tenantId: v.id('tenants'),
+    source: v.string(), // 'otx' | 'cisa_kev' | 'misp'
+    externalId: v.string(),
+    title: v.string(),
+    description: v.string(),
+    cves: v.array(v.string()),
+    threatActors: v.array(v.string()),
+    iocs: v.string(), // JSON-encoded IOCs { ips, domains, hashes }
+    severity: v.string(),
+    publishedAt: v.number(),
+    fetchedAt: v.number(),
+  })
+    .index('by_tenant', ['tenantId'])
+    .index('by_tenant_and_source', ['tenantId', 'source'])
+    .index('by_external_id', ['externalId'])
+    .index('by_tenant_and_fetched_at', ['tenantId', 'fetchedAt']),
+
+  findingThreatIntel: defineTable({
+    tenantId: v.id('tenants'),
+    findingId: v.id('findings'),
+    threatIntelId: v.id('threatIntel'),
+    correlationType: v.string(), // 'cve_match' | 'ioc_match' | 'ttp_match'
+    confidence: v.number(), // 0-1
+  })
+    .index('by_finding', ['findingId'])
+    .index('by_threat_intel', ['threatIntelId'])
+    .index('by_tenant', ['tenantId'])
+    .index('by_finding_and_correlation_type', ['findingId', 'correlationType']),
+
+  // ─── §D6 Security Education ────────────────────────────────────────────────
+
+  securityEducationContent: defineTable({
+    findingType: v.string(),
+    language: v.string(),
+    title: v.string(),
+    vulnerabilityClass: v.string(),
+    whyItMatters: v.string(),
+    attackScenario: v.string(),
+    secureCodingGuidelines: v.string(),
+    resources: v.string(),
+    preventionChecklist: v.array(v.string()),
+  })
+    .index('by_finding_type', ['findingType'])
+    .index('by_finding_type_and_language', ['findingType', 'language']),
+
+  educationViews: defineTable({
+    tenantId: v.id('tenants'),
+    userId: v.string(),
+    findingType: v.string(),
+    contentId: v.id('securityEducationContent'),
+    viewedAt: v.number(),
+  })
+    .index('by_tenant', ['tenantId'])
+    .index('by_tenant_and_finding_type', ['tenantId', 'findingType'])
+    .index('by_user_and_finding_type', ['userId', 'findingType']),
+
+  // ─── §E5 Cron Job Runs ────────────────────────────────────────────────────
+
+  cronJobRuns: defineTable({
+    tenantId: v.optional(v.id('tenants')),
+    jobName: v.string(),
+    startedAt: v.number(),
+    completedAt: v.optional(v.number()),
+    status: v.union(
+      v.literal('running'),
+      v.literal('success'),
+      v.literal('failed'),
+    ),
+    duration: v.optional(v.number()),
+    error: v.optional(v.string()),
+    recordsProcessed: v.optional(v.number()),
+  })
+    .index('by_job_name', ['jobName'])
+    .index('by_job_name_and_started_at', ['jobName', 'startedAt'])
+    .index('by_status_and_started_at', ['status', 'startedAt']),
+
+  // ── Sprint 4B: Remediation Playbooks (D3) ────────────────────────────────
+  // One playbook per finding — generated on demand, template-based.
+  // Steps stored as JSON string (array of PlaybookStep) to stay under 1 MB.
+
+  remediationPlaybooks: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    findingId: v.id('findings'),
+    title: v.string(),
+    severity: v.string(),
+    findingType: v.string(),
+    /** JSON-encoded PlaybookStep[] */
+    steps: v.string(),
+    estimatedTime: v.string(),
+    difficulty: v.union(
+      v.literal('easy'),
+      v.literal('medium'),
+      v.literal('hard'),
+    ),
+    prerequisites: v.array(v.string()),
+    verificationSteps: v.array(v.string()),
+    generatedAt: v.number(),
+    usedAt: v.optional(v.number()),
+    wasEffective: v.optional(v.boolean()),
+  })
+    .index('by_finding', ['findingId'])
+    .index('by_tenant_and_generated_at', ['tenantId', 'generatedAt']),
+
+  // ── Sprint 4B: Slack OAuth Integration (D9) ─────────────────────────────
+  // One row per tenant. Created with oauthState while OAuth is in-flight;
+  // updated to the full token after the callback completes.
+
+  slackIntegrations: defineTable({
+    tenantId: v.id('tenants'),
+    /** AES-GCM encrypted bot access token (format: aes-gcm$<iv>$<ct>) */
+    accessToken: v.optional(v.string()),
+    teamId: v.optional(v.string()),
+    teamName: v.optional(v.string()),
+    botUserId: v.optional(v.string()),
+    /** JSON: { alertChannel: string } */
+    configuredChannels: v.optional(v.string()),
+    /** JSON: AlertConfig */
+    alertConfig: v.optional(v.string()),
+    isActive: v.boolean(),
+    connectedAt: v.optional(v.number()),
+    /** Cleared after OAuth callback completes */
+    oauthState: v.optional(v.string()),
+  })
+    .index('by_tenant', ['tenantId'])
+    .index('by_oauth_state', ['oauthState']),
+
+  // ── Sprint 4B: Executive Report Auto-Generation (D12) ────────────────────
+
+  executiveReports: defineTable({
+    tenantId: v.id('tenants'),
+    period: v.string(),
+    type: v.union(
+      v.literal('monthly'),
+      v.literal('quarterly'),
+      v.literal('adhoc'),
+    ),
+    status: v.union(
+      v.literal('generating'),
+      v.literal('ready'),
+      v.literal('failed'),
+    ),
+    scoreTrend: v.optional(v.string()),
+    topRisks: v.optional(v.string()),
+    remediationMetrics: v.optional(v.string()),
+    complianceStatus: v.optional(v.string()),
+    talkingPoints: v.optional(v.string()),
+    generatedAt: v.number(),
+    errorMessage: v.optional(v.string()),
+  })
+    .index('by_tenant_and_generated_at', ['tenantId', 'generatedAt'])
+    .index('by_tenant_and_period', ['tenantId', 'period']),
+
+  reportDeliveryConfigs: defineTable({
+    tenantId: v.id('tenants'),
+    frequency: v.union(v.literal('monthly'), v.literal('quarterly')),
+    recipients: v.array(v.string()),
+    isActive: v.boolean(),
+    updatedAt: v.number(),
+  }).index('by_tenant', ['tenantId']),
+
+  // ── Sprint 5B: Access Review (B7) ─────────────────────────────────────────
+  accessReviewCycles: defineTable({
+    tenantId: v.id('tenants'),
+    period: v.string(),
+    status: v.union(
+      v.literal('pending'),
+      v.literal('in_progress'),
+      v.literal('completed'),
+    ),
+    dueDate: v.number(),
+    createdByUserId: v.id('users'),
+    completedAt: v.optional(v.number()),
+    createdAt: v.number(),
+  })
+    .index('by_tenant', ['tenantId'])
+    .index('by_tenant_and_status', ['tenantId', 'status']),
+
+  accessReviewItems: defineTable({
+    cycleId: v.id('accessReviewCycles'),
+    tenantId: v.id('tenants'),
+    memberId: v.id('tenantMembers'),
+    role: v.string(),
+    permissions: v.array(v.string()),
+    decision: v.optional(v.union(
+      v.literal('approved'),
+      v.literal('flagged_for_removal'),
+    )),
+    reviewerId: v.optional(v.id('users')),
+    justification: v.optional(v.string()),
+    reviewedAt: v.optional(v.number()),
+  })
+    .index('by_cycle', ['cycleId'])
+    .index('by_tenant_and_cycle', ['tenantId', 'cycleId'])
+    .index('by_member', ['memberId']),
+
+  // ── Sprint 5B: MSSP API Keys (A13) ────────────────────────────────────────
+  msspApiKeys: defineTable({
+    tenantId: v.id('tenants'),
+    partnerName: v.string(),
+    keyPrefix: v.string(),
+    keyHash: v.string(),
+    scopes: v.array(v.string()),
+    lastUsedAt: v.optional(v.number()),
+    createdAt: v.number(),
+    expiresAt: v.optional(v.number()),
+    isActive: v.boolean(),
+    createdByUserId: v.id('users'),
+    revokedAt: v.optional(v.number()),
+  })
+    .index('by_tenant', ['tenantId'])
+    .index('by_key_prefix', ['keyPrefix'])
+    .index('by_tenant_and_active', ['tenantId', 'isActive']),
+
+  // ── Sprint 5B: Integration Health (C10) ───────────────────────────────────
+  integrationHealth: defineTable({
+    tenantId: v.id('tenants'),
+    integrationType: v.union(
+      v.literal('github'),
+      v.literal('gitlab'),
+      v.literal('slack'),
+      v.literal('sso'),
+      v.literal('webhook'),
+      v.literal('jira'),
+    ),
+    status: v.union(
+      v.literal('healthy'),
+      v.literal('degraded'),
+      v.literal('down'),
+    ),
+    lastSyncAt: v.optional(v.number()),
+    lastError: v.optional(v.string()),
+    consecutiveFailures: v.number(),
+    checkedAt: v.number(),
+  })
+    .index('by_tenant', ['tenantId'])
+    .index('by_tenant_and_type', ['tenantId', 'integrationType']),
+
+  // ─── §B4 Per-tenant data retention configuration ──────────────────────────
+
+  tenantRetentionConfig: defineTable({
+    tenantId: v.id('tenants'),
+    /** Days to retain closed findings. 0 = retain forever. Default 365. */
+    findingsDays: v.number(),
+    /** Days to retain audit log entries. 0 = retain forever. Default 730. */
+    auditLogsDays: v.number(),
+    /** Days to retain API usage records. 0 = retain forever. Default 90. */
+    apiUsageRecordsDays: v.number(),
+    /** Days to retain webhook delivery records. 0 = retain forever. Default 30. */
+    webhookDeliveriesDays: v.number(),
+    updatedAt: v.number(),
+  }).index('by_tenant', ['tenantId']),
+
+  // ─── §B9 Per-user analytics consent ──────────────────────────────────────
+
+  analyticsConsents: defineTable({
+    userId: v.id('users'),
+    consent: v.boolean(),
+    /** Epoch ms when the user first granted consent. */
+    consentedAt: v.optional(v.number()),
+    updatedAt: v.number(),
+  }).index('by_user', ['userId']),
 })

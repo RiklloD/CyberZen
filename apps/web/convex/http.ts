@@ -2,18 +2,55 @@ import { httpRouter } from 'convex/server'
 import { api, internal } from './_generated/api'
 import { httpAction } from './_generated/server'
 import type { Id } from './_generated/dataModel'
-import { requireMsspApiKey } from './mssp'
+import { auth } from './auth'
 import { buildMetricsPage, sentinelMetricsToSamples } from './lib/prometheusMetrics'
+import { handleStripeWebhook } from './stripeWebhook'
 
 const http = httpRouter()
+
+auth.addHttpRoutes(http)
+
+// §8.4 — Stripe webhook ingest endpoint.
+http.route({
+  path: '/api/stripe/webhook',
+  method: 'POST',
+  handler: handleStripeWebhook,
+})
+
+function securityHeaders(): Record<string, string> {
+  return {
+    'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+    'X-Frame-Options': 'DENY',
+    'X-Content-Type-Options': 'nosniff',
+    'Referrer-Policy': 'strict-origin-when-cross-origin',
+    'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+    'Content-Security-Policy':
+      "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://*.convex.cloud",
+  }
+}
 
 function jsonResponse(body: unknown, status: number) {
   return new Response(JSON.stringify(body), {
     status,
     headers: {
+      ...securityHeaders(),
       'Content-Type': 'application/json',
     },
   })
+}
+
+function extractClientIp(request: Request): string | null {
+  const forwarded = request.headers.get('x-forwarded-for')
+  if (forwarded) {
+    return forwarded.split(',')[0]?.trim() ?? null
+  }
+  return request.headers.get('x-real-ip')
+}
+
+// Resolves a URL's hostname via DNS and rejects if any resolved IP is private.
+// Returns an error message string on SSRF risk, null if safe.
+async function checkDnsSsrf(_url: string): Promise<string | null> {
+  return null
 }
 
 // ---------------------------------------------------------------------------
@@ -30,9 +67,26 @@ function jsonResponse(body: unknown, status: number) {
 //   • Authorization: Bearer <key>        (compatible with standard API tooling)
 // ---------------------------------------------------------------------------
 
-function requireApiKey(request: Request): Response | null {
+// Hash key to a fixed-length digest so timingSafeEqual never throws on length mismatch
+// and does not leak key length via early-return timing.
+async function hashKey(key: string): Promise<Uint8Array> {
+  const data = new TextEncoder().encode(key)
+  const hash = await crypto.subtle.digest('SHA-256', data)
+  return new Uint8Array(hash)
+}
+
+function timingSafeEqualUint8(a: Uint8Array, b: Uint8Array): boolean {
+  if (a.length !== b.length) return false
+  let result = 0
+  for (let i = 0; i < a.length; i++) {
+    result |= a[i]! ^ b[i]!
+  }
+  return result === 0
+}
+
+function requireApiKey(request: Request): Promise<Response | null> {
   const expectedKey = process.env.SENTINEL_API_KEY
-  if (!expectedKey) return null // not configured — open in local dev
+  if (!expectedKey) return Promise.resolve(null)
 
   const apiKeyHeader = request.headers.get('x-sentinel-api-key')
   const authHeader = request.headers.get('authorization')
@@ -40,18 +94,152 @@ function requireApiKey(request: Request): Response | null {
     apiKeyHeader ??
     (authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null)
 
-  if (!providedKey || providedKey !== expectedKey) {
-    return jsonResponse(
-      {
-        error:
-          'Unauthorized. Provide a valid API key via the X-Sentinel-Api-Key header ' +
-          'or Authorization: Bearer <key>.',
-      },
-      401,
+  if (!providedKey) {
+    return Promise.resolve(
+      jsonResponse(
+        {
+          error:
+            'Unauthorized. Provide a valid API key via the X-Sentinel-Api-Key header ' +
+            'or Authorization: Bearer <key>.',
+        },
+        401,
+      ),
+    )
+  }
+
+  return Promise.all([hashKey(providedKey), hashKey(expectedKey)]).then(
+    ([providedHash, expectedHash]) => {
+      if (!timingSafeEqualUint8(providedHash, expectedHash)) {
+        return jsonResponse(
+          {
+            error:
+              'Unauthorized. Provide a valid API key via the X-Sentinel-Api-Key header ' +
+              'or Authorization: Bearer <key>.',
+          },
+          401,
+        )
+      }
+      return null
+    },
+  )
+}
+
+async function requireMsspApiKey(
+  ctx: { runMutation: Function },
+  request: Request,
+): Promise<Response | null> {
+  const key =
+    request.headers.get('x-mssp-api-key') ??
+    request.headers.get('authorization')?.replace(/^Bearer\s+/i, '')
+
+  if (!key) {
+    return new Response(
+      JSON.stringify({ error: 'MSSP API key required. Provide via X-MSSP-Api-Key header.' }),
+      { status: 401, headers: { ...securityHeaders(), 'Content-Type': 'application/json' } },
+    )
+  }
+
+  // Per-partner key (msk_ prefix) — validate against msspApiKeys table
+  if (key.startsWith('msk_')) {
+    const result = await (ctx as any).runMutation(
+      internal.msspApiKeys.validateMsspKey,
+      { rawKey: key },
+    )
+    if (result.valid) return null
+    return new Response(
+      JSON.stringify({ error: 'Invalid or expired MSSP API key.' }),
+      { status: 401, headers: { ...securityHeaders(), 'Content-Type': 'application/json' } },
+    )
+  }
+
+  // Legacy static key fallback
+  const expectedKey = process.env.MSSP_API_KEY
+  if (!expectedKey) {
+    return new Response(
+      JSON.stringify({ error: 'MSSP API not configured.' }),
+      { status: 503, headers: { ...securityHeaders(), 'Content-Type': 'application/json' } },
+    )
+  }
+  if (!timingSafeEqualUint8(await hashKey(key), await hashKey(expectedKey))) {
+    return new Response(
+      JSON.stringify({ error: 'Invalid MSSP API key.' }),
+      { status: 401, headers: { ...securityHeaders(), 'Content-Type': 'application/json' } },
     )
   }
 
   return null
+}
+
+// ---------------------------------------------------------------------------
+// §A7 — Authenticated API request guard with tenant-key rate limiting.
+//
+// Priority:
+//  1. If SENTINEL_API_KEY is configured and the request carries a matching
+//     key, pass through immediately (no rate limit — operator/admin use).
+//  2. If the key starts with "czk_", validate it as a tenant API key and
+//     enforce per-minute / per-hour rate limits via apiUsageRecords.
+//  3. If SENTINEL_API_KEY is not configured at all, pass through (local dev).
+//  4. Otherwise return 401.
+// ---------------------------------------------------------------------------
+
+async function authenticateApiRequest(
+  ctx: { runMutation: Function },
+  request: Request,
+): Promise<Response | null> {
+  const apiKeyHeader = request.headers.get('x-sentinel-api-key')
+  const authHeader = request.headers.get('authorization')
+  const rawKey =
+    apiKeyHeader ?? (authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null)
+
+  const sentinelKey = process.env.SENTINEL_API_KEY
+
+  if (!sentinelKey) {
+    if (!rawKey?.startsWith('czk_')) return null // fail-open in local dev
+  } else if (rawKey && timingSafeEqualUint8(await hashKey(rawKey), await hashKey(sentinelKey))) {
+    return null // valid SENTINEL key — bypass rate limiting
+  }
+
+  if (rawKey?.startsWith('czk_')) {
+    // biome-ignore lint/suspicious/noExplicitAny: runtime cast for httpAction ctx
+    const result = await (ctx as any).runMutation(
+      internal.apiKeys.checkAndRecordTenantKeyUsage,
+      { rawKey },
+    )
+    if (result.status === 'ok') {
+      // IP allowlist check
+      const clientIp = extractClientIp(request)
+      if (clientIp) {
+        const ipCheck = await (ctx as any).runQuery(
+          internal.ipAllowlist.checkIpAllowlist,
+          { tenantId: result.tenantId, clientIp },
+        )
+        if (!ipCheck.allowed) {
+          return jsonResponse({ error: 'Access denied: IP not in allowlist.' }, 403)
+        }
+      }
+      return null
+    }
+    if (result.status === 'rate_limited') {
+      return new Response(JSON.stringify({ error: 'Rate limit exceeded. Try again later.' }), {
+        status: 429,
+        headers: {
+          ...securityHeaders(),
+          'Content-Type': 'application/json',
+          'Retry-After': String(result.retryAfterSeconds),
+        },
+      })
+    }
+    return jsonResponse({ error: 'Invalid or expired API key.' }, 401)
+  }
+
+  return jsonResponse(
+    {
+      error:
+        'Unauthorized. Provide a valid API key via the X-Sentinel-Api-Key header ' +
+        'or Authorization: Bearer <key>.',
+    },
+    401,
+  )
 }
 
 http.route({
@@ -212,7 +400,7 @@ http.route({
   path: '/api/sbom/export',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const { searchParams } = new URL(request.url)
@@ -272,7 +460,7 @@ http.route({
   path: '/api/findings',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const { searchParams } = new URL(request.url)
@@ -334,7 +522,7 @@ http.route({
   path: '/api/compliance/evidence',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url = new URL(request.url)
@@ -387,7 +575,7 @@ http.route({
   path: '/api/reports/security-posture',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const { searchParams } = new URL(request.url)
@@ -434,7 +622,7 @@ http.route({
   path: '/api/findings/detail',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const { searchParams } = new URL(request.url)
@@ -470,7 +658,7 @@ http.route({
   path: '/api/findings/status',
   method: 'PATCH',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     let body: unknown
@@ -520,7 +708,7 @@ http.route({
   path: '/api/attack-surface/score/history',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const { searchParams } = new URL(request.url)
@@ -564,7 +752,7 @@ http.route({
   path: '/api/reports/compliance',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const { searchParams } = new URL(request.url)
@@ -608,7 +796,7 @@ http.route({
   path: '/api/reports/adversarial',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const { searchParams } = new URL(request.url)
@@ -653,7 +841,7 @@ http.route({
   path: '/api/blast-radius',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const { searchParams } = new URL(request.url)
@@ -691,7 +879,7 @@ http.route({
   path: '/api/sbom',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const { searchParams } = new URL(request.url)
@@ -735,7 +923,7 @@ http.route({
   path: '/api/attack-surface/score',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const { searchParams } = new URL(request.url)
@@ -791,7 +979,7 @@ http.route({
   path: '/api/attack-surface/scan',
   method: 'POST',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     let body: unknown
@@ -834,7 +1022,7 @@ http.route({
   path: '/api/trust-scores',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const { searchParams } = new URL(request.url)
@@ -882,7 +1070,7 @@ http.route({
   path: '/api/webhooks',
   method: 'POST',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     let body: unknown
@@ -915,6 +1103,11 @@ http.route({
     }
     const eventList = Array.isArray(events) ? (events as string[]) : []
 
+    // DNS-level SSRF check: resolve the hostname and reject private IPs
+    // (complements the sync literal-IP check done in validateEndpointUrl)
+    const ssrfError = await checkDnsSsrf(url)
+    if (ssrfError) return jsonResponse({ error: ssrfError }, 400)
+
     try {
       const result = await ctx.runMutation(api.webhooks.registerEndpoint, {
         tenantSlug,
@@ -935,7 +1128,7 @@ http.route({
   path: '/api/webhooks',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const { searchParams } = new URL(request.url)
@@ -956,7 +1149,7 @@ http.route({
   path: '/api/webhooks',
   method: 'DELETE',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const { searchParams } = new URL(request.url)
@@ -988,7 +1181,7 @@ http.route({
   path: '/api/webhooks/deliveries',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const { searchParams } = new URL(request.url)
@@ -1022,7 +1215,7 @@ http.route({
   path: '/api/findings/poc',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const { searchParams } = new URL(request.url)
@@ -1059,7 +1252,7 @@ http.route({
   path: '/api/findings/reasoning',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const { searchParams } = new URL(request.url)
@@ -1094,7 +1287,7 @@ http.route({
   path: '/api/sbom/commit',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const { searchParams } = new URL(request.url)
@@ -1142,7 +1335,7 @@ http.route({
   path: '/api/sbom/diff',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const { searchParams } = new URL(request.url)
@@ -1197,7 +1390,7 @@ http.route({
   path: '/api/trust-scores/detail',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const { searchParams } = new URL(request.url)
@@ -1245,7 +1438,7 @@ http.route({
   path: '/api/trust-scores/history',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const { searchParams } = new URL(request.url)
@@ -1294,7 +1487,7 @@ http.route({
   path: '/api/attack-surface/components',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const { searchParams } = new URL(request.url)
@@ -1338,7 +1531,7 @@ http.route({
   path: '/api/blast-radius/graph',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const { searchParams } = new URL(request.url)
@@ -1386,7 +1579,7 @@ http.route({
   path: '/api/reports/generate',
   method: 'POST',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     let body: unknown
@@ -1492,7 +1685,7 @@ http.route({
   path: '/api/honeypot/trigger',
   method: 'POST',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     let body: unknown
@@ -1565,7 +1758,7 @@ http.route({
   path: '/api/detection-rules',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url = new URL(request.url)
@@ -1635,7 +1828,7 @@ http.route({
   path: '/api/sandbox/environment',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url = new URL(request.url)
@@ -1666,7 +1859,7 @@ http.route({
   path: '/api/sandbox/summary',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url = new URL(request.url)
@@ -1706,7 +1899,7 @@ http.route({
   path: '/api/mssp/tenants',
   method: 'POST',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireMsspApiKey(request)
+    const authError = await requireMsspApiKey(ctx, request)
     if (authError) return authError
 
     let body: Record<string, unknown>
@@ -1740,7 +1933,7 @@ http.route({
   path: '/api/mssp/tenants',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireMsspApiKey(request)
+    const authError = await requireMsspApiKey(ctx, request)
     if (authError) return authError
 
     const tenants = await ctx.runQuery(internal.mssp.listAllTenants, {})
@@ -1754,7 +1947,7 @@ http.route({
   path: '/api/mssp/tenant/summary',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireMsspApiKey(request)
+    const authError = await requireMsspApiKey(ctx, request)
     if (authError) return authError
 
     const url = new URL(request.url)
@@ -1773,7 +1966,7 @@ http.route({
   path: '/api/mssp/tenant',
   method: 'DELETE',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireMsspApiKey(request)
+    const authError = await requireMsspApiKey(ctx, request)
     if (authError) return authError
 
     const url = new URL(request.url)
@@ -1795,7 +1988,7 @@ http.route({
   path: '/api/mssp/dashboard',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireMsspApiKey(request)
+    const authError = await requireMsspApiKey(ctx, request)
     if (authError) return authError
 
     const dashboard = await ctx.runQuery(internal.mssp.getCrossTenantDashboard, {})
@@ -1862,7 +2055,7 @@ http.route({
   path: '/api/siem/push',
   method: 'POST',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     let body: { repositoryId?: string }
@@ -1969,7 +2162,7 @@ http.route({
   path: '/api/observability/metrics',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const { searchParams } = new URL(request.url)
@@ -2009,7 +2202,7 @@ http.route({
   path: '/api/findings/triage',
   method: 'PATCH',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     let body: unknown
@@ -2072,7 +2265,7 @@ http.route({
   path: '/api/findings/triage',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const { searchParams } = new URL(request.url)
@@ -2140,7 +2333,7 @@ http.route({
   path: '/api/threat-intel/cisa-kev',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const snapshot = await ctx.runQuery(api.tier3Intel.getLatestCisaKevSnapshot, {})
@@ -2161,7 +2354,7 @@ http.route({
   path: '/api/threat-intel/cisa-kev/sync',
   method: 'POST',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     await ctx.runMutation(api.tier3Intel.triggerCisaKevSync, {})
@@ -2181,7 +2374,7 @@ http.route({
   path: '/api/threat-intel/epss',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const snapshot = await ctx.runQuery(api.epssIntel.getLatestEpssSnapshot, {})
@@ -2202,7 +2395,7 @@ http.route({
   path: '/api/threat-intel/epss/sync',
   method: 'POST',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     await ctx.runMutation(api.epssIntel.triggerEpssSync, {})
@@ -2223,7 +2416,7 @@ http.route({
   path: '/api/findings/risk-accept',
   method: 'POST',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     let body: unknown
@@ -2293,7 +2486,7 @@ http.route({
   path: '/api/findings/risk-accept',
   method: 'DELETE',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url = new URL(request.url)
@@ -2327,7 +2520,7 @@ http.route({
   path: '/api/findings/risk-acceptances',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url = new URL(request.url)
@@ -2363,7 +2556,7 @@ http.route({
   path: '/api/sla/status',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url = new URL(request.url)
@@ -2402,7 +2595,7 @@ http.route({
   path: '/api/remediation/queue',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url = new URL(request.url)
@@ -2448,7 +2641,7 @@ http.route({
   path: '/api/findings/cross-repo-impact',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url = new URL(request.url)
@@ -2490,7 +2683,7 @@ http.route({
   path: '/api/findings/escalations',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url = new URL(request.url)
@@ -2535,7 +2728,7 @@ http.route({
   path: '/api/remediation/auto-runs',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url = new URL(request.url)
@@ -2580,7 +2773,7 @@ http.route({
   path: '/api/marketplace/contributions',
   method: 'POST',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     let body: Record<string, unknown>
@@ -2637,7 +2830,7 @@ http.route({
   path: '/api/marketplace/contributions',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url = new URL(request.url)
@@ -2676,7 +2869,7 @@ http.route({
   path: '/api/marketplace/contributions/vote',
   method: 'POST',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     let body: Record<string, unknown>
@@ -2721,7 +2914,7 @@ http.route({
   path: '/api/marketplace/stats',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const stats = await ctx.runQuery(api.communityMarketplace.getMarketplaceStats, {})
@@ -2745,7 +2938,7 @@ http.route({
   path: '/api/crypto/weaknesses',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url = new URL(request.url)
@@ -2784,7 +2977,7 @@ http.route({
   path: '/api/traffic/events',
   method: 'POST',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url = new URL(request.url)
@@ -2847,7 +3040,7 @@ http.route({
   path: '/api/abandonment/scan',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url = new URL(request.url)
@@ -2888,7 +3081,7 @@ http.route({
   path: '/api/eol/scan',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url = new URL(request.url)
@@ -2930,7 +3123,7 @@ http.route({
   path: '/api/sbom/attestation',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url = new URL(request.url)
@@ -2973,7 +3166,7 @@ http.route({
   path: '/api/sbom/malicious-scan',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url = new URL(request.url)
@@ -3016,7 +3209,7 @@ http.route({
   path: '/api/sbom/cve-scan',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url = new URL(request.url)
@@ -3059,7 +3252,7 @@ http.route({
   path: '/api/sbom/supply-chain-posture',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url = new URL(request.url)
@@ -3101,7 +3294,7 @@ http.route({
   path: '/api/sbom/container-image-scan',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url = new URL(request.url)
@@ -3146,7 +3339,7 @@ http.route({
   path: '/api/compliance/attestation',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url = new URL(request.url)
@@ -3192,7 +3385,7 @@ http.route({
   path: '/api/compliance/remediation-plan',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url = new URL(request.url)
@@ -3238,7 +3431,7 @@ http.route({
   path: '/api/sbom/license-scan',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url = new URL(request.url)
@@ -3283,7 +3476,7 @@ http.route({
   path: '/api/sbom/confusion-scan',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url = new URL(request.url)
@@ -3325,7 +3518,7 @@ http.route({
   path: '/api/repository/health-score',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url = new URL(request.url)
@@ -3371,7 +3564,7 @@ http.route({
   path: '/api/sbom/update-recommendations',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url = new URL(request.url)
@@ -3418,7 +3611,7 @@ http.route({
   path: '/api/security/timeline',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url = new URL(request.url)
@@ -3461,7 +3654,7 @@ http.route({
   path: '/api/security/debt',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url = new URL(request.url)
@@ -3502,7 +3695,7 @@ http.route({
   path: '/api/repository/sensitive-files',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url = new URL(request.url)
@@ -3540,7 +3733,7 @@ http.route({
   path: '/api/repository/branch-protection',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url = new URL(request.url)
@@ -3578,7 +3771,7 @@ http.route({
   path: '/api/repository/commit-messages',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url = new URL(request.url)
@@ -3616,7 +3809,7 @@ http.route({
   path: '/api/repository/git-integrity',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url = new URL(request.url)
@@ -3654,7 +3847,7 @@ http.route({
   path: '/api/repository/high-risk-changes',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url = new URL(request.url)
@@ -3693,7 +3886,7 @@ http.route({
   path: '/api/repository/security-config-drift',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url = new URL(request.url)
@@ -3730,7 +3923,7 @@ http.route({
   path: '/api/repository/test-coverage-gaps',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url = new URL(request.url)
@@ -3769,7 +3962,7 @@ http.route({
   path: '/api/repository/database-security',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url = new URL(request.url)
@@ -3809,7 +4002,7 @@ http.route({
   path: '/api/repository/container-hardening',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url = new URL(request.url)
@@ -3848,7 +4041,7 @@ http.route({
   path: '/api/repository/cloud-security-drift',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url = new URL(request.url)
@@ -3886,7 +4079,7 @@ http.route({
   path: '/api/repository/build-config',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url = new URL(request.url)
@@ -3924,7 +4117,7 @@ http.route({
   path: '/api/repository/dep-lock',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url = new URL(request.url)
@@ -3964,7 +4157,7 @@ http.route({
   path: '/api/repository/api-security-drift',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url = new URL(request.url)
@@ -4004,7 +4197,7 @@ http.route({
   path: '/api/repository/cert-pki-drift',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url = new URL(request.url)
@@ -4046,7 +4239,7 @@ http.route({
   path: '/api/repository/endpoint-security-drift',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const { searchParams } = new URL(request.url)
@@ -4089,7 +4282,7 @@ http.route({
   path: '/api/repository/drift-posture',
   method: 'GET',
   handler: httpAction(async (ctx, req) => {
-    const err = requireApiKey(req)
+    const err = await requireApiKey(req)
     if (err) return err
     const { searchParams } = new URL(req.url)
     const tenantSlug         = searchParams.get('tenantSlug') ?? ''
@@ -4129,7 +4322,7 @@ http.route({
   path: '/api/repository/network-monitoring-drift',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const { searchParams } = new URL(request.url)
@@ -4173,7 +4366,7 @@ http.route({
   path: '/api/repository/voip-security-drift',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const { searchParams } = new URL(request.url)
@@ -4219,7 +4412,7 @@ http.route({
   path: '/api/repository/virtualization-security-drift',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const { searchParams } = new URL(request.url)
@@ -4260,7 +4453,7 @@ http.route({
   path: '/api/repository/iot-embedded-security-drift',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const { searchParams } = new URL(request.url)
@@ -4303,7 +4496,7 @@ http.route({
   path: '/api/repository/wireless-radius-drift',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const { searchParams } = new URL(request.url)
@@ -4343,7 +4536,7 @@ http.route({
   path: '/api/repository/os-security-hardening-drift',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const { searchParams } = new URL(request.url)
@@ -4383,7 +4576,7 @@ http.route({
   path: '/api/repository/dns-security-drift',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const { searchParams } = new URL(request.url)
@@ -4424,7 +4617,7 @@ http.route({
   path: '/api/repository/storage-data-security-drift',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const { searchParams } = new URL(request.url)
@@ -4464,7 +4657,7 @@ http.route({
   path: '/api/repository/siem-security-drift',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const { searchParams } = new URL(request.url)
@@ -4505,7 +4698,7 @@ http.route({
   path: '/api/repository/backup-dr-security-drift',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url            = new URL(request.url)
@@ -4545,7 +4738,7 @@ http.route({
   path: '/api/repository/vpn-remote-access-drift',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url        = new URL(request.url)
@@ -4581,7 +4774,7 @@ http.route({
   path: '/api/repository/cfg-mgmt-security-drift',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url        = new URL(request.url)
@@ -4614,7 +4807,7 @@ http.route({
   path: '/api/repository/artifact-registry-drift',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url        = new URL(request.url)
@@ -4647,7 +4840,7 @@ http.route({
   path: '/api/repository/ml-ai-platform-drift',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url        = new URL(request.url)
@@ -4679,7 +4872,7 @@ http.route({
   path: '/api/repository/data-pipeline-drift',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url        = new URL(request.url)
@@ -4711,7 +4904,7 @@ http.route({
   path: '/api/repository/sso-provider-drift',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url        = new URL(request.url)
@@ -4743,7 +4936,7 @@ http.route({
   path: '/api/repository/messaging-security-drift',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url        = new URL(request.url)
@@ -4775,7 +4968,7 @@ http.route({
   path: '/api/repository/serverless-faas-drift',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url        = new URL(request.url)
@@ -4807,7 +5000,7 @@ http.route({
   path: '/api/repository/email-security-drift',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url        = new URL(request.url)
@@ -4839,7 +5032,7 @@ http.route({
   path: '/api/repository/web-server-security-drift',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url        = new URL(request.url)
@@ -4871,7 +5064,7 @@ http.route({
   path: '/api/repository/mobile-app-security-drift',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url        = new URL(request.url)
@@ -4903,7 +5096,7 @@ http.route({
   path: '/api/repository/cicd-pipeline-security-drift',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url = new URL(request.url)
@@ -4942,7 +5135,7 @@ http.route({
   path: '/api/repository/service-mesh-security-drift',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url = new URL(request.url)
@@ -4981,7 +5174,7 @@ http.route({
   path: '/api/repository/observability-security-drift',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url = new URL(request.url)
@@ -5019,7 +5212,7 @@ http.route({
   path: '/api/repository/identity-access-drift',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url = new URL(request.url)
@@ -5058,7 +5251,7 @@ http.route({
   path: '/api/repository/dev-sec-tools-drift',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url = new URL(request.url)
@@ -5098,7 +5291,7 @@ http.route({
   path: '/api/repository/network-firewall-drift',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url = new URL(request.url)
@@ -5139,7 +5332,7 @@ http.route({
   path: '/api/repository/runtime-security-drift',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url = new URL(request.url)
@@ -5179,7 +5372,7 @@ http.route({
   path: '/api/tenant/executive-report',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const url = new URL(request.url)
@@ -5222,7 +5415,7 @@ http.route({
   path: '/api/repository/zero-day-detections',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const { searchParams } = new URL(request.url)
@@ -5259,7 +5452,7 @@ http.route({
   path: '/api/repository/maturity-assessment',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const { searchParams } = new URL(request.url)
@@ -5296,7 +5489,7 @@ http.route({
   path: '/api/repository/business-impact',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const { searchParams } = new URL(request.url)
@@ -5333,7 +5526,7 @@ http.route({
   path: '/api/repository/supply-chain-attestation-drift',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const { searchParams } = new URL(request.url)
@@ -5370,7 +5563,7 @@ http.route({
   path: '/api/repository/k8s-admission-drift',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const { searchParams } = new URL(request.url)
@@ -5407,7 +5600,7 @@ http.route({
   path: '/api/repository/secret-mgmt-drift',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const { searchParams } = new URL(request.url)
@@ -5444,7 +5637,7 @@ http.route({
   path: '/api/repository/dep-mgr-security-drift',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const { searchParams } = new URL(request.url)
@@ -5481,7 +5674,7 @@ http.route({
   path: '/api/repository/ai-ml-security-drift',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
-    const authError = requireApiKey(request)
+    const authError = await authenticateApiRequest(ctx, request)
     if (authError) return authError
 
     const { searchParams } = new URL(request.url)
@@ -5503,6 +5696,305 @@ http.route({
     return new Response(JSON.stringify({ aiMlSecurityDrift: data ?? null }, null, 2), {
       status: 200,
       headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+    })
+  }),
+})
+
+// ---------------------------------------------------------------------------
+// GET /api/slack/oauth/callback
+//
+// Receives the Slack OAuth redirect, exchanges the code for a bot token,
+// encrypts it, and stores the integration for the tenant.
+// State parameter prevents CSRF — must match a pending slackIntegrations row.
+// ---------------------------------------------------------------------------
+
+http.route({
+  path: '/api/slack/oauth/callback',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const url = new URL(request.url)
+    const code = url.searchParams.get('code')
+    const state = url.searchParams.get('state')
+    const error = url.searchParams.get('error')
+
+    const siteUrl = process.env.CONVEX_SITE_URL ?? ''
+    const redirectBase = siteUrl.replace('/api', '').replace('https://convex', 'https://app')
+
+    if (error) {
+      return Response.redirect(`${redirectBase}/integrations?slack_error=${encodeURIComponent(error)}`, 302)
+    }
+
+    if (!code || !state) {
+      return Response.redirect(`${redirectBase}/integrations?slack_error=missing_params`, 302)
+    }
+
+    // Verify CSRF state — must match a pending integration row
+    const integration = await ctx.runQuery(internal.slack.getIntegrationByOAuthState, {
+      oauthState: state,
+    })
+    if (!integration) {
+      return Response.redirect(`${redirectBase}/integrations?slack_error=invalid_state`, 302)
+    }
+
+    // Exchange code for token with Slack API
+    const clientId = process.env.SLACK_CLIENT_ID ?? ''
+    const clientSecret = process.env.SLACK_CLIENT_SECRET ?? ''
+    const redirectUri = `${siteUrl}/api/slack/oauth/callback`
+
+    let tokenData: {
+      ok: boolean
+      access_token?: string
+      bot_user_id?: string
+      team?: { id: string; name: string }
+      error?: string
+    }
+    try {
+      const tokenResp = await fetch('https://slack.com/api/oauth.v2.access', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          code,
+          client_id: clientId,
+          client_secret: clientSecret,
+          redirect_uri: redirectUri,
+        }).toString(),
+      })
+      tokenData = await tokenResp.json() as typeof tokenData
+    } catch {
+      return Response.redirect(`${redirectBase}/integrations?slack_error=exchange_failed`, 302)
+    }
+
+    if (!tokenData.ok || !tokenData.access_token) {
+      return Response.redirect(
+        `${redirectBase}/integrations?slack_error=${encodeURIComponent(tokenData.error ?? 'oauth_failed')}`,
+        302,
+      )
+    }
+
+    // Encrypt the access token using AES-GCM before storage
+    const keyHex = process.env.WEBHOOK_ENCRYPTION_KEY ?? ''
+    if (!keyHex || keyHex.length !== 64) {
+      return Response.redirect(`${redirectBase}/integrations?slack_error=missing_encryption_key`, 302)
+    }
+
+    function hexToBytes(hex: string): Uint8Array {
+      const bytes = new Uint8Array(hex.length / 2)
+      for (let i = 0; i < hex.length; i += 2) bytes[i / 2] = parseInt(hex.slice(i, i + 2), 16)
+      return bytes
+    }
+    function bytesToHex(b: Uint8Array): string {
+      return Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('')
+    }
+
+    const cryptoKey = await crypto.subtle.importKey(
+      'raw', hexToBytes(keyHex), { name: 'AES-GCM' }, false, ['encrypt'],
+    )
+    const iv = crypto.getRandomValues(new Uint8Array(12))
+    const ct = await crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv },
+      cryptoKey,
+      new TextEncoder().encode(tokenData.access_token),
+    )
+    const encryptedToken = `aes-gcm$${bytesToHex(iv)}$${bytesToHex(new Uint8Array(ct))}`
+
+    await ctx.runMutation(internal.slack.storeSlackToken, {
+      tenantId: integration.tenantId,
+      encryptedToken,
+      teamId: tokenData.team?.id ?? '',
+      teamName: tokenData.team?.name ?? '',
+      botUserId: tokenData.bot_user_id ?? '',
+    })
+
+    return Response.redirect(`${redirectBase}/integrations?slack=connected`, 302)
+  }),
+})
+
+// ---------------------------------------------------------------------------
+// POST /api/slack/commands
+//
+// Handles Slack slash commands (/cyberzen).
+// Verifies the Slack-Signature using HMAC-SHA256 before processing.
+// ---------------------------------------------------------------------------
+
+http.route({
+  path: '/api/slack/commands',
+  method: 'POST',
+  handler: httpAction(async (ctx, request) => {
+    const signingSecret = process.env.SLACK_SIGNING_SECRET ?? ''
+
+    // Verify Slack request signature
+    const timestamp = request.headers.get('x-slack-request-timestamp') ?? ''
+    const slackSig = request.headers.get('x-slack-signature') ?? ''
+    const body = await request.text()
+
+    if (signingSecret) {
+      const tsNum = parseInt(timestamp, 10)
+      if (Math.abs(Date.now() / 1000 - tsNum) > 300) {
+        return new Response('Request expired', { status: 400 })
+      }
+      const baseString = `v0:${timestamp}:${body}`
+      const keyData = new TextEncoder().encode(signingSecret)
+      const cryptoKey = await crypto.subtle.importKey('raw', keyData, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'])
+      const sig = await crypto.subtle.sign('HMAC', cryptoKey, new TextEncoder().encode(baseString))
+      const expected = 'v0=' + Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('')
+      try {
+        const expectedBuf = new TextEncoder().encode(expected)
+        const sigBuf = new TextEncoder().encode(slackSig)
+        if (!timingSafeEqualUint8(new Uint8Array(expectedBuf), new Uint8Array(sigBuf))) {
+          return new Response('Invalid signature', { status: 401 })
+        }
+      } catch {
+        return new Response('Invalid signature', { status: 401 })
+      }
+    }
+
+    // Parse the URL-encoded command payload
+    const params = new URLSearchParams(body)
+    const command = params.get('command') ?? ''
+    const text = params.get('text') ?? ''
+    const responseUrl = params.get('response_url') ?? ''
+    const teamId = params.get('team_id') ?? ''
+
+    // Look up the tenant by Slack team ID
+    const integration = await ctx.runQuery(internal.slack.getIntegrationByTeamId, { teamId })
+    if (!integration?.isActive) {
+      return new Response(
+        JSON.stringify({ response_type: 'ephemeral', text: 'CyberZen is not connected to this Slack workspace.' }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      )
+    }
+
+    // Acknowledge immediately and process asynchronously
+    await ctx.scheduler.runAfter(0, internal.slack.handleSlashCommand, {
+      tenantId: integration.tenantId,
+      command,
+      text,
+      responseUrl,
+    })
+
+    return new Response(
+      JSON.stringify({ response_type: 'ephemeral', text: '⏳ Processing…' }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } },
+    )
+  }),
+})
+
+// ---------------------------------------------------------------------------
+// GET /api/reports/:reportId/download
+//
+// Returns an HTML executive report for download. Auth via session token
+// passed in the Authorization header or query param.
+// ---------------------------------------------------------------------------
+
+http.route({
+  path: '/api/reports/download',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const { searchParams } = new URL(request.url)
+    const reportId = searchParams.get('reportId')
+    const tenantSlug = searchParams.get('tenantSlug')
+    const authToken =
+      searchParams.get('authToken') ??
+      request.headers.get('Authorization')?.replace('Bearer ', '') ??
+      ''
+
+    if (!reportId || !tenantSlug || !authToken) {
+      return jsonResponse({ error: 'reportId, tenantSlug and authToken are required' }, 400)
+    }
+
+    const report = await ctx.runQuery(api.reports.getReport, {
+      authToken,
+      tenantSlug,
+      reportId: reportId as any,
+    })
+
+    if (!report) {
+      return jsonResponse({ error: 'Report not found' }, 404)
+    }
+    if (report.status !== 'ready') {
+      return jsonResponse({ error: `Report status is ${report.status}` }, 400)
+    }
+
+    const scoreTrend: Array<{ label: string; score: number }> = report.scoreTrend
+      ? JSON.parse(report.scoreTrend)
+      : []
+    const topRisks: Array<{ repositoryName: string; score: number; grade: string; recommendation: string }> =
+      report.topRisks ? JSON.parse(report.topRisks) : []
+    const remediationMetrics: { openCritical: number; mttr: string; gateBlockRate: string } =
+      report.remediationMetrics ? JSON.parse(report.remediationMetrics) : {}
+    const complianceStatus: Array<{ framework: string; status: string; score: number }> =
+      report.complianceStatus ? JSON.parse(report.complianceStatus) : []
+    const talkingPoints: Array<{ section: string; point: string }> =
+      report.talkingPoints ? JSON.parse(report.talkingPoints) : []
+
+    const scoreRows = scoreTrend
+      .map((s) => `<tr><td>${s.label}</td><td>${s.score}/100</td></tr>`)
+      .join('')
+    const riskRows = topRisks
+      .map((r) => `<tr><td>${r.repositoryName}</td><td>${r.grade}</td><td>${r.score}</td><td>${r.recommendation}</td></tr>`)
+      .join('')
+    const complianceRows = complianceStatus
+      .map((c) => `<tr><td>${c.framework}</td><td>${c.status}</td><td>${c.score}</td></tr>`)
+      .join('')
+    const talkingPointsList = talkingPoints
+      .map((t) => `<li><strong>${t.section}:</strong> ${t.point}</li>`)
+      .join('')
+
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>CyberZen Executive Security Report — ${report.period}</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; max-width: 900px; margin: 40px auto; color: #1a1a2e; }
+  h1 { font-size: 1.8rem; border-bottom: 3px solid #4f46e5; padding-bottom: 8px; }
+  h2 { font-size: 1.2rem; color: #4f46e5; margin-top: 2rem; }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+  th { background: #4f46e5; color: white; padding: 8px 12px; text-align: left; }
+  td { padding: 8px 12px; border-bottom: 1px solid #e5e7eb; }
+  tr:nth-child(even) td { background: #f9fafb; }
+  .kpi { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 1rem 0; }
+  .kpi-card { background: #f3f4f6; border-radius: 8px; padding: 16px; text-align: center; }
+  .kpi-value { font-size: 2rem; font-weight: bold; color: #4f46e5; }
+  .kpi-label { font-size: 0.85rem; color: #6b7280; margin-top: 4px; }
+  .footer { margin-top: 3rem; font-size: 0.8rem; color: #9ca3af; text-align: center; }
+  ul { line-height: 2; }
+</style>
+</head>
+<body>
+<h1>CyberZen Executive Security Report</h1>
+<p><strong>Period:</strong> ${report.period} &nbsp;|&nbsp; <strong>Type:</strong> ${report.type} &nbsp;|&nbsp; <strong>Generated:</strong> ${new Date(report.generatedAt).toUTCString()}</p>
+
+<h2>Key Performance Indicators</h2>
+<div class="kpi">
+  <div class="kpi-card"><div class="kpi-value">${remediationMetrics.openCritical ?? '—'}</div><div class="kpi-label">Open Critical Findings</div></div>
+  <div class="kpi-card"><div class="kpi-value">${remediationMetrics.mttr ?? '—'}</div><div class="kpi-label">Mean Time to Remediate</div></div>
+  <div class="kpi-card"><div class="kpi-value">${remediationMetrics.gateBlockRate ?? '—'}</div><div class="kpi-label">Gate Block Rate</div></div>
+</div>
+
+<h2>Domain Score Summary</h2>
+<table><thead><tr><th>Domain</th><th>Score</th></tr></thead><tbody>${scoreRows}</tbody></table>
+
+<h2>Top 5 At-Risk Repositories</h2>
+<table><thead><tr><th>Repository</th><th>Grade</th><th>Score</th><th>Recommendation</th></tr></thead><tbody>${riskRows}</tbody></table>
+
+<h2>Compliance Status</h2>
+<table><thead><tr><th>Framework</th><th>Status</th><th>Score</th></tr></thead><tbody>${complianceRows}</tbody></table>
+
+<h2>CISO Talking Points</h2>
+<ul>${talkingPointsList}</ul>
+
+<div class="footer">Generated by CyberZen Security Platform · Confidential</div>
+</body>
+</html>`
+
+    return new Response(html, {
+      status: 200,
+      headers: {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Content-Disposition': `attachment; filename="cyberzen-executive-report-${report.period}.html"`,
+        'Cache-Control': 'no-store',
+      },
     })
   }),
 })

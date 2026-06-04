@@ -1,0 +1,16 @@
+- generic [ref=e270]:
+  - generic [ref=e271]:
+    - img [ref=e273]
+    - generic [ref=e275]:
+      - paragraph [ref=e276]: CyberZen
+      - heading "Sign in to your workspace" [level=1] [ref=e277]
+  - paragraph [ref=e278]: Create or join a company workspace, invite teammates, and manage red-team automation from one place.
+  - generic [ref=e279]:
+    - generic [ref=e280]:
+      - generic [ref=e281]: Email
+      - textbox "Email" [ref=e282]
+    - generic [ref=e283]:
+      - generic [ref=e284]: Password
+      - textbox "Password" [ref=e285]
+    - button "Sign in" [ref=e286] [cursor=pointer]
+  - button "New here? Create an account" [ref=e287] [cursor=pointer]

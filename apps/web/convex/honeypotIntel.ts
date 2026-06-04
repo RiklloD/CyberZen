@@ -290,3 +290,112 @@ export const recordHoneypotTrigger = mutation({
     return { recorded: true, webhookScheduled }
   },
 })
+
+// ---------------------------------------------------------------------------
+// deployHoneypot — §3.12 CTA trigger
+//
+// Schedules the honeypot refresh plan computation for the repository.
+// The actual injection is handled by refreshHoneypotPlan (internalMutation).
+// ---------------------------------------------------------------------------
+
+export const deployHoneypot = mutation({
+  args: {
+    tenantSlug: v.string(),
+    repositoryFullName: v.string(),
+  },
+  returns: v.object({
+    scheduled: v.boolean(),
+    message: v.string(),
+  }),
+  handler: async (ctx, args) => {
+    const tenant = await ctx.db
+      .query('tenants')
+      .withIndex('by_slug', (q) => q.eq('slug', args.tenantSlug))
+      .unique()
+
+    if (!tenant) {
+      throw new ConvexError('Tenant not found')
+    }
+
+    const repository = await ctx.db
+      .query('repositories')
+      .withIndex('by_tenant_and_full_name', (q) =>
+        q.eq('tenantId', tenant._id).eq('fullName', args.repositoryFullName),
+      )
+      .unique()
+
+    if (!repository) {
+      throw new ConvexError('Repository not found')
+    }
+
+    await ctx.scheduler.runAfter(
+      0,
+      internal.honeypotIntel.refreshHoneypotPlan,
+      { repositoryId: repository._id },
+    )
+
+    return {
+      scheduled: true,
+      message: `Honeypot deployment scheduled for ${args.repositoryFullName}`,
+    }
+  },
+})
+
+// ---------------------------------------------------------------------------
+// tearDownHoneypot — §3.12 CTA trigger
+//
+// Marks the latest honeypot snapshot as inactive by inserting a new
+// zero-proposal snapshot, effectively "tearing down" the active honeypots.
+// ---------------------------------------------------------------------------
+
+export const tearDownHoneypot = mutation({
+  args: {
+    tenantSlug: v.string(),
+    repositoryFullName: v.string(),
+  },
+  returns: v.object({
+    tornDown: v.boolean(),
+    message: v.string(),
+  }),
+  handler: async (ctx, args) => {
+    const tenant = await ctx.db
+      .query('tenants')
+      .withIndex('by_slug', (q) => q.eq('slug', args.tenantSlug))
+      .unique()
+
+    if (!tenant) {
+      throw new ConvexError('Tenant not found')
+    }
+
+    const repository = await ctx.db
+      .query('repositories')
+      .withIndex('by_tenant_and_full_name', (q) =>
+        q.eq('tenantId', tenant._id).eq('fullName', args.repositoryFullName),
+      )
+      .unique()
+
+    if (!repository) {
+      throw new ConvexError('Repository not found')
+    }
+
+    // Insert a zero-proposal snapshot to supersede any active honeypots
+    await ctx.db.insert('honeypotSnapshots', {
+      tenantId: tenant._id,
+      repositoryId: repository._id,
+      totalProposals: 0,
+      endpointCount: 0,
+      fileCount: 0,
+      databaseFieldCount: 0,
+      tokenCount: 0,
+      topAttractiveness: 0,
+      proposals: [],
+      summary: 'Honeypots torn down via dashboard CTA.',
+      computedAt: Date.now(),
+    })
+
+    return {
+      tornDown: true,
+      message: `Honeypots torn down for ${args.repositoryFullName}`,
+    }
+  },
+})

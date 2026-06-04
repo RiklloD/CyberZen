@@ -1,0 +1,186 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e28]:
+    - complementary [ref=e29]:
+      - generic [ref=e30]:
+        - generic [ref=e31]:
+          - img [ref=e33]
+          - generic [ref=e35]:
+            - generic [ref=e36]: CyberZen
+            - generic [ref=e37]: Sentinel control plane
+        - generic [ref=e39]:
+          - generic [ref=e40]:
+            - img [ref=e42]
+            - generic [ref=e46]:
+              - paragraph [ref=e47]: No workspace yet
+              - paragraph [ref=e48]: Create a company workspace or join an invite to unlock the dashboard.
+          - link "Start onboarding" [ref=e49] [cursor=pointer]:
+            - /url: /onboarding
+          - button "Sign out" [ref=e50] [cursor=pointer]:
+            - img [ref=e51]
+            - text: Sign out
+        - navigation [ref=e54]:
+          - generic [ref=e55]:
+            - generic [ref=e56]: Overview
+            - link "Dashboard" [ref=e57] [cursor=pointer]:
+              - /url: /
+              - img [ref=e58]
+              - generic [ref=e63]: Dashboard
+            - link "Onboarding" [ref=e64] [cursor=pointer]:
+              - /url: /onboarding
+              - img [ref=e65]
+              - generic [ref=e70]: Onboarding
+          - generic [ref=e71]:
+            - generic [ref=e72]: Security
+            - link "Findings" [ref=e73] [cursor=pointer]:
+              - /url: /findings
+              - img [ref=e74]
+              - generic [ref=e76]: Findings
+            - link "Breach Intel" [ref=e77] [cursor=pointer]:
+              - /url: /breach-intel
+              - img [ref=e78]
+              - generic [ref=e80]: Breach Intel
+            - link "Supply Chain" [ref=e81] [cursor=pointer]:
+              - /url: /supply-chain
+              - img [ref=e82]
+              - generic [ref=e85]: Supply Chain
+          - generic [ref=e86]:
+            - generic [ref=e87]: Inventory
+            - link "Repositories" [ref=e88] [cursor=pointer]:
+              - /url: /repositories
+              - img [ref=e89]
+              - generic [ref=e93]: Repositories
+            - link "SBOM" [ref=e94] [cursor=pointer]:
+              - /url: /sbom
+              - img [ref=e95]
+              - generic [ref=e105]: SBOM
+          - generic [ref=e106]:
+            - generic [ref=e107]: Operations
+            - link "CI / CD Gates" [ref=e108] [cursor=pointer]:
+              - /url: /ci-cd
+              - img [ref=e109]
+              - generic [ref=e113]: CI / CD Gates
+            - link "Remediation" [ref=e114] [cursor=pointer]:
+              - /url: /remediation
+              - img [ref=e115]
+              - generic [ref=e117]: Remediation
+            - link "Compliance" [ref=e118] [cursor=pointer]:
+              - /url: /compliance
+              - img [ref=e119]
+              - generic [ref=e123]: Compliance
+          - generic [ref=e124]:
+            - generic [ref=e125]: Intelligence
+            - link "Agents & Learning" [ref=e126] [cursor=pointer]:
+              - /url: /agents
+              - img [ref=e127]
+              - generic [ref=e130]: Agents & Learning
+          - generic [ref=e131]:
+            - generic [ref=e132]: System
+            - link "Integrations" [ref=e133] [cursor=pointer]:
+              - /url: /integrations
+              - img [ref=e134]
+              - generic [ref=e136]: Integrations
+        - 'button "Theme mode: auto (system). Click to switch to light mode." [ref=e138]': Auto
+    - main [ref=e140]:
+      - generic [ref=e141]:
+        - generic [ref=e142]:
+          - generic [ref=e143]: first-run setup
+          - generic [ref=e144]: slug atlas-fintech
+          - generic [ref=e145]: quick start
+        - heading "Create the company workspace, import real manifests, and start scanning immediately." [level=1] [ref=e146]
+        - paragraph [ref=e147]: "This setup screen provisions the tenant record for the current deployment, registers one or more repositories, and can ingest a live SBOM bundle from the existing `sbom:import` parser so the dashboard is populated from real manifest data instead of a synthetic kickoff."
+      - generic [ref=e148]:
+        - generic [ref=e149]:
+          - generic [ref=e150]:
+            - img [ref=e152]
+            - generic [ref=e156]:
+              - paragraph [ref=e157]: Workspace
+              - heading "Company and repository onboarding" [level=2] [ref=e158]
+          - generic [ref=e159]:
+            - generic [ref=e160]:
+              - generic [ref=e161]:
+                - generic [ref=e162]: Company name
+                - textbox "Company name" [ref=e163]:
+                  - /placeholder: Acme Security
+                  - text: Atlas Fintech
+              - generic [ref=e164]:
+                - generic [ref=e165]: Deployment mode
+                - combobox "Deployment mode" [ref=e166]:
+                  - option "Cloud SaaS" [selected]
+                  - option "VPC Injection"
+                  - option "On-prem"
+            - generic [ref=e167]:
+              - generic [ref=e168]:
+                - generic [ref=e169]:
+                  - paragraph [ref=e170]: Repositories
+                  - paragraph [ref=e171]: Add every repo you want monitored. If you paste a live SBOM bundle below, the first repo will be seeded from real manifest data; otherwise we queue a sensible baseline from repo metadata.
+                - paragraph [ref=e172]: 0 connected
+              - generic [ref=e174]:
+                - generic [ref=e175]:
+                  - generic [ref=e176]: Full name
+                  - textbox "Full name" [ref=e177]:
+                    - /placeholder: acme/payments-api
+                - generic [ref=e178]:
+                  - generic [ref=e179]: Provider
+                  - combobox "Provider" [ref=e180]:
+                    - option "GitHub" [selected]
+                    - option "GitLab"
+                - generic [ref=e181]:
+                  - generic [ref=e182]: Default branch
+                  - textbox "Default branch" [ref=e183]:
+                    - /placeholder: main
+                    - text: main
+                - generic [ref=e184]:
+                  - generic [ref=e185]: Language
+                  - textbox "Language" [ref=e186]:
+                    - /placeholder: TypeScript
+                    - text: TypeScript
+                - generic [ref=e187]:
+                  - generic [ref=e188]: Visibility
+                  - combobox "Visibility" [ref=e189]:
+                    - option "Private" [selected]
+                    - option "Public"
+                - button "Remove" [disabled] [ref=e191]:
+                  - img [ref=e192]
+                  - text: Remove
+              - button "Add repository" [ref=e195] [cursor=pointer]:
+                - img [ref=e196]
+                - text: Add repository
+            - generic [ref=e197]:
+              - generic [ref=e198]:
+                - generic [ref=e199]:
+                  - paragraph [ref=e200]: Optional live import
+                  - paragraph [ref=e201]:
+                    - text: "Paste the JSON emitted by `bun run sbom:import --"
+                    - code [ref=e202]: <repo-path>
+                    - text: "...` or a CI artifact. If present, the first repository below will be imported from real manifest data instead of the demo push fallback."
+                - generic [ref=e203]: sbom bundle
+              - 'textbox "{ \"rootPath\": \"C:/repos/payments-api\", \"sourceFiles\": [\"package.json\", \"pnpm-lock.yaml\"], \"components\": [...] }" [ref=e204]':
+                - /placeholder: "{\n  \"rootPath\": \"C:/repos/payments-api\",\n  \"sourceFiles\": [\"package.json\", \"pnpm-lock.yaml\"],\n  \"components\": [...]\n}"
+              - paragraph [ref=e205]: Import mode currently supports one repository at a time.
+            - generic [ref=e206]:
+              - button "Create company & start scanning" [ref=e207] [cursor=pointer]:
+                - img [ref=e208]
+                - text: Create company & start scanning
+              - paragraph [ref=e213]: This queues a baseline push-style scan for each repo using the existing Convex pipeline.
+        - complementary [ref=e214]:
+          - generic [ref=e215]:
+            - paragraph [ref=e216]: What this does
+            - heading "Provision the workspace in one pass." [level=2] [ref=e217]
+            - list [ref=e218]:
+              - listitem [ref=e219]: Creates or updates the tenant record for this deployment slug.
+              - listitem [ref=e220]: Registers the repositories you entered under that tenant.
+              - listitem [ref=e221]: Queues a first scan through the same push-ingest path the webhooks use.
+              - listitem [ref=e222]: Leaves the workspace ready for real push events and CI triggers.
+          - generic [ref=e223]:
+            - paragraph [ref=e224]: Deployment slug
+            - paragraph [ref=e225]: "This app is configured for the current customer workspace slug:"
+            - code [ref=e227]: atlas-fintech
+            - paragraph [ref=e228]: After onboarding, use the dashboard and integrations screen to wire in GitHub, GitLab, CircleCI, or whatever stack the customer actually uses.
+          - generic [ref=e229]:
+            - paragraph [ref=e230]: Next step
+            - heading "Connect live webhooks." [level=2] [ref=e231]
+            - paragraph [ref=e232]: The onboarding flow now supports both a fast demo kickoff and a live SBOM bundle import. Once the customer connects repo webhooks, every new push will keep the scanners and findings current.
+            - link "View integrations" [ref=e234] [cursor=pointer]:
+              - /url: /integrations
+  - button "Open TanStack Devtools" [ref=e235] [cursor=pointer]:
+    - img "TanStack Devtools" [ref=e236]

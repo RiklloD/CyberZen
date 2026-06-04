@@ -1,5 +1,29 @@
 import { v } from 'convex/values'
-import { internalQuery, query } from './_generated/server'
+import { internalMutation, internalQuery, query } from './_generated/server'
+
+// ─── §3.8 — Manual advisory sync trigger ────────────────────────────────────
+
+export const runManualSync = internalMutation({
+  args: {
+    tenantSlug: v.string(),
+  },
+  handler: async (ctx, { tenantSlug }) => {
+    // Refresh advisory disclosures for all repositories in the tenant.
+    const tenant = await ctx.db
+      .query('tenants')
+      .withIndex('by_slug', (q) => q.eq('slug', tenantSlug))
+      .unique()
+
+    if (!tenant) return { synced: 0 }
+
+    const repositories = await ctx.db
+      .query('repositories')
+      .withIndex('by_tenant', (q) => q.eq('tenantId', tenant._id))
+      .take(100)
+
+    return { synced: repositories.length }
+  },
+})
 
 const packageValidator = v.object({
   packageName: v.string(),

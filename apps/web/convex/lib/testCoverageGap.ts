@@ -34,7 +34,7 @@
 // Exports:
 //   isGenericTestFile          — detects any test file pattern
 //   isSourceCodeFile           — detects source code file extensions
-//   isSecurityMiddlewareSource — TODO: user contribution (see below)
+//   isSecurityMiddlewareSource — implemented (user contribution predicate)
 //   scanTestCoverageGaps       — runs all 6 rules, returns TestCoverageGapResult
 
 // ---------------------------------------------------------------------------

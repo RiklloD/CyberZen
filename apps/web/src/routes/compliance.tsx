@@ -3,24 +3,41 @@ import { useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { FileCheck2 } from "lucide-react";
 import { useState } from "react";
-import { api } from "../lib/convex";
-import { TENANT_SLUG } from "../lib/config";
 import StatusPill from "../components/StatusPill";
-import {
-	driftLevelTone,
-	frameworkScoreTone,
-} from "../lib/utils";
+import ComplianceEvidencePanel from "../components/panels/ComplianceEvidencePanel";
+import RegulatoryDriftPanel from "../components/panels/RegulatoryDriftPanel";
+import ComplianceAttestationPanel from "../components/panels/ComplianceAttestationPanel";
+import ComplianceRemediationPanel from "../components/panels/ComplianceRemediationPanel";
+import LicenseCompliancePanel from "../components/panels/LicenseCompliancePanel";
+import SecurityDebtPanel from "../components/panels/SecurityDebtPanel";
+import SensitiveFileScanPanel from "../components/panels/SensitiveFileScanPanel";
+import ExportMenu from "../components/ExportMenu";
+import { api } from "../lib/convex";
+import { useTenantSlug } from "../lib/workspace";
+import { useFeatureFlag } from "../lib/featureFlags";
+import QueryErrorFallback from "../components/QueryErrorFallback";
 
-export const Route = createFileRoute("/compliance")({ component: CompliancePage });
+export const Route = createFileRoute("/compliance")({
+	errorComponent: QueryErrorFallback,
+	component: CompliancePage,
+});
 
-type OverviewData = NonNullable<FunctionReturnType<typeof api.dashboard.overview>>;
+type OverviewData = NonNullable<
+	FunctionReturnType<typeof api.dashboard.overview>
+>;
 type OverviewRepository = OverviewData["repositories"][number];
 
-const TENANT = TENANT_SLUG;
-
 function CompliancePage() {
+	const TENANT = useTenantSlug();
 	const overview = useQuery(api.dashboard.overview, { tenantSlug: TENANT });
 	const [selectedRepo, setSelectedRepo] = useState<string | null>(null);
+	const [activeSection, setActiveSection] = useState<
+		"intelligence" | "evidence"
+	>("intelligence");
+	const allEvidence = useQuery(
+		api.complianceEvidenceIntel.getAllFrameworkEvidence,
+		{ tenantSlug: TENANT },
+	);
 
 	if (!overview) {
 		return (
@@ -35,10 +52,9 @@ function CompliancePage() {
 	}
 
 	const { repositories } = overview;
-	const activeRepo =
-		selectedRepo
-			? repositories.find((r: OverviewRepository) => r._id === selectedRepo)
-			: repositories[0];
+	const activeRepo = selectedRepo
+		? repositories.find((r: OverviewRepository) => r._id === selectedRepo)
+		: repositories[0];
 
 	return (
 		<main>
@@ -51,10 +67,43 @@ function CompliancePage() {
 							Regulatory drift · SOC 2 · GDPR · HIPAA · PCI-DSS · NIS2
 						</p>
 					</div>
+					<div className="ml-auto">
+						<ExportMenu tenantSlug={TENANT} variant="compliance" />
+					</div>
 				</div>
 			</div>
 
-			<div className="page-body">
+		<div className="page-body">
+			{/* Section tabs */}
+			<div className="tab-bar mb-4">
+				<button
+					type="button"
+					className={`tab-btn ${activeSection === "intelligence" ? "is-active" : ""}`}
+					onClick={() => setActiveSection("intelligence")}
+				>
+					Intelligence
+				</button>
+				<button
+					type="button"
+					className={`tab-btn ${activeSection === "evidence" ? "is-active" : ""}`}
+					onClick={() => setActiveSection("evidence")}
+				>
+					Evidence
+				</button>
+			</div>
+
+			{activeSection === "evidence" ? (
+				allEvidence ? (
+					<ComplianceEvidencePanel evidence={allEvidence} />
+				) : (
+					<div className="grid gap-3 sm:grid-cols-2">
+						{["a", "b"].map((k) => (
+							<div key={k} className="loading-panel h-40 rounded-2xl" />
+						))}
+					</div>
+				)
+			) : (
+				<>
 				{repositories.length > 1 && (
 					<div className="tab-bar mb-4">
 						{repositories.map((r: OverviewRepository) => (
@@ -76,6 +125,8 @@ function CompliancePage() {
 						repositoryFullName={activeRepo.fullName}
 					/>
 				)}
+				</>
+			)}
 			</div>
 		</main>
 	);
@@ -88,6 +139,7 @@ function RepoComplianceIntelligence({
 	tenantSlug: string;
 	repositoryFullName: string;
 }) {
+	const hasAttestation = useFeatureFlag("compliance_attestation");
 	const regulatoryDrift = useQuery(
 		api.regulatoryDriftIntel.getLatestRegulatoryDrift,
 		{ tenantSlug, repositoryFullName },
@@ -125,158 +177,45 @@ function RepoComplianceIntelligence({
 		<div className="space-y-4">
 			{/* Regulatory Drift */}
 			{regulatoryDrift && (
-				<div className="card">
-					<p className="panel-label mb-2">Regulatory Drift</p>
-					<div className="flex flex-wrap gap-2 mb-3">
-						<StatusPill
-							label={regulatoryDrift.overallDriftLevel.replace("_", " ")}
-							tone={driftLevelTone(regulatoryDrift.overallDriftLevel)}
-						/>
-						{regulatoryDrift.openGapCount > 0 && (
-							<StatusPill
-								label={`${regulatoryDrift.openGapCount} open gaps`}
-								tone="neutral"
-							/>
-						)}
-						{regulatoryDrift.criticalGapCount > 0 && (
-							<StatusPill
-								label={`${regulatoryDrift.criticalGapCount} critical`}
-								tone="danger"
-							/>
-						)}
-					</div>
-
-					{/* Framework scores */}
-					<div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-5">
-						{[
-							{ key: "soc2", label: "SOC 2", score: regulatoryDrift.soc2Score },
-							{ key: "gdpr", label: "GDPR", score: regulatoryDrift.gdprScore },
-							{ key: "hipaa", label: "HIPAA", score: regulatoryDrift.hipaaScore },
-							{ key: "pci_dss", label: "PCI-DSS", score: regulatoryDrift.pciDssScore },
-							{ key: "nis2", label: "NIS2", score: regulatoryDrift.nis2Score },
-						].map(({ key, label, score }) => (
-							<div key={key} className="inset-panel text-center">
-								<div className="text-xs font-bold text-[var(--sea-ink-soft)] mb-1">
-									{label}
-								</div>
-								<div
-									className={`text-lg font-bold ${
-										score >= 80
-											? "text-[var(--success)]"
-											: score >= 60
-												? "text-[var(--warning)]"
-												: "text-[var(--danger)]"
-									}`}
-								>
-									{score}
-								</div>
-								<StatusPill
-									label={score >= 80 ? "good" : score >= 60 ? "at risk" : "failing"}
-									tone={frameworkScoreTone(score)}
-								/>
-							</div>
-						))}
-					</div>
-
-					<p className="mt-3 text-xs text-[var(--sea-ink-soft)]">
-						{regulatoryDrift.summary}
-					</p>
-				</div>
+				<RegulatoryDriftPanel data={regulatoryDrift} />
 			)}
 
 			{/* Compliance grid */}
 			<div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-				{complianceAttestation && (
-					<div className="card card-sm">
-						<p className="panel-label mb-2">Compliance Attestation</p>
-						<div className="flex flex-wrap gap-1.5">
-							<StatusPill
-								label={complianceAttestation.overallStatus.replace(/_/g, " ")}
-								tone={
-									complianceAttestation.overallStatus === "compliant"
-										? "success"
-										: complianceAttestation.overallStatus === "at_risk"
-											? "warning"
-											: "danger"
-								}
-							/>
-							<StatusPill
-								label={`${complianceAttestation.fullyCompliantCount} fully compliant`}
-								tone="neutral"
-							/>
-						</div>
-						<p className="mt-1.5 text-xs text-[var(--sea-ink-soft)]">
-							{complianceAttestation.summary}
+				{complianceAttestation && hasAttestation && (
+					<ComplianceAttestationPanel data={complianceAttestation} />
+				)}
+
+				{/* §8.7 — Upsell card for non-Enterprise tenants */}
+				{!hasAttestation && (
+					<div className="card card-sm border border-dashed border-[var(--sea-ink-soft)] flex flex-col items-center justify-center gap-2 py-6">
+						<FileCheck2 size={24} className="text-[var(--sea-ink-soft)]" />
+						<p className="text-sm font-medium">Compliance Attestation</p>
+						<p className="text-xs text-[var(--sea-ink-soft)] text-center max-w-[200px]">
+							Automated compliance attestation reports are available on the Enterprise plan.
 						</p>
+						<a
+							href="/settings/billing"
+							className="signal-button text-xs mt-1"
+						>
+							Upgrade to Enterprise
+						</a>
 					</div>
 				)}
 
 				{complianceRemediation && (
-					<div className="card card-sm">
-						<p className="panel-label mb-2">Compliance Remediation</p>
-						<div className="flex flex-wrap gap-1.5">
-							<StatusPill
-								label={`${complianceRemediation.actions.length} actions`}
-								tone={complianceRemediation.actions.length > 0 ? "warning" : "success"}
-							/>
-						{complianceRemediation.criticalActions > 0 && (
-							<StatusPill
-								label={`${complianceRemediation.criticalActions} critical`}
-								tone="danger"
-							/>
-						)}
-						</div>
-						<p className="mt-1.5 text-xs text-[var(--sea-ink-soft)]">
-							{complianceRemediation.summary}
-						</p>
-					</div>
+					<ComplianceRemediationPanel data={complianceRemediation} />
 				)}
 
 				{(licenseCompliance || licenseScan) && (
-					<div className="card card-sm">
-						<p className="panel-label mb-2">License Compliance</p>
-						{licenseCompliance && (
-							<div className="flex flex-wrap gap-1.5 mb-1">
-								{licenseCompliance.violations.length > 0 && (
-									<StatusPill
-										label={`${licenseCompliance.violations.length} violations`}
-										tone="danger"
-									/>
-								)}
-								<StatusPill
-									label={`${licenseCompliance.totalComponents} components checked`}
-									tone="neutral"
-								/>
-							</div>
-						)}
-						{licenseScan && (
-							<p className="text-xs text-[var(--sea-ink-soft)]">
-								{licenseScan.summary}
-							</p>
-						)}
-					</div>
+					<LicenseCompliancePanel
+						licenseCompliance={licenseCompliance ?? undefined}
+						licenseScan={licenseScan ?? undefined}
+					/>
 				)}
 
 				{securityDebt && (
-					<div className="card card-sm">
-						<p className="panel-label mb-2">Security Debt</p>
-						<div className="flex flex-wrap gap-1.5">
-							<StatusPill
-								label={`score ${securityDebt.debtScore}`}
-								tone={
-									securityDebt.debtScore > 70
-										? "danger"
-										: securityDebt.debtScore > 40
-											? "warning"
-											: "success"
-								}
-							/>
-							<StatusPill label={securityDebt.trend} tone="neutral" />
-						</div>
-						<p className="mt-1.5 text-xs text-[var(--sea-ink-soft)]">
-							{securityDebt.summary}
-						</p>
-					</div>
+					<SecurityDebtPanel data={securityDebt} />
 				)}
 
 				{databaseSecurity && (
@@ -303,29 +242,9 @@ function RepoComplianceIntelligence({
 				)}
 
 				{sensitiveFiles && (
-					<div className="card card-sm">
-						<p className="panel-label mb-2">Sensitive Files</p>
-						<div className="flex flex-wrap gap-1.5">
-							{sensitiveFiles.criticalCount > 0 && (
-								<StatusPill
-									label={`${sensitiveFiles.criticalCount} critical`}
-									tone="danger"
-								/>
-							)}
-							{sensitiveFiles.highCount > 0 && (
-								<StatusPill
-									label={`${sensitiveFiles.highCount} high risk`}
-									tone="warning"
-								/>
-							)}
-						</div>
-						<p className="mt-1.5 text-xs text-[var(--sea-ink-soft)]">
-							{sensitiveFiles.summary}
-						</p>
-					</div>
+					<SensitiveFileScanPanel data={sensitiveFiles} />
 				)}
 			</div>
 		</div>
 	);
 }
-

@@ -1,0 +1,2 @@
+[     439ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3010/node_modules/.vite/deps/react-dom_client.js?v=e4ff05df:20102
+[   22813ms] [ERROR] [CONVEX A(auth:signIn)] [Request ID: 7d5a00979355c313] Server Error @ http://localhost:3010/src/routes/__root.tsx:50

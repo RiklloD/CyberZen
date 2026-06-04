@@ -334,3 +334,70 @@ export const triggerSlaCheckForRepository = mutation({
     return { scheduled: true }
   },
 })
+
+// ── SLA Policy Configuration (spec §3.5) ──────────────────────────────────
+
+// Get the current custom SLA policy for a tenant, or null if using defaults.
+export const getCurrentPolicy = query({
+  args: { tenantSlug: v.string() },
+  handler: async (ctx, { tenantSlug }) => {
+    const tenant = await ctx.db
+      .query('tenants')
+      .withIndex('by_slug', (q) => q.eq('slug', tenantSlug))
+      .first()
+    if (!tenant) return null
+
+    const policy = await ctx.db
+      .query('slaPolicies')
+      .withIndex('by_tenant', (q) => q.eq('tenantId', tenant._id))
+      .first()
+
+    return policy ?? null
+  },
+})
+
+// Upsert the custom SLA policy for a tenant. Creates or replaces the single
+// row in `slaPolicies` for this tenant.
+export const upsertSlaPolicy = mutation({
+  args: {
+    tenantSlug: v.string(),
+    thresholdHours: v.object({
+      critical: v.number(),
+      high: v.number(),
+      medium: v.number(),
+      low: v.number(),
+    }),
+    approachingThreshold: v.number(),
+  },
+  handler: async (ctx, { tenantSlug, thresholdHours, approachingThreshold }) => {
+    const tenant = await ctx.db
+      .query('tenants')
+      .withIndex('by_slug', (q) => q.eq('slug', tenantSlug))
+      .first()
+    if (!tenant) throw new Error('Tenant not found.')
+
+    const existing = await ctx.db
+      .query('slaPolicies')
+      .withIndex('by_tenant', (q) => q.eq('tenantId', tenant._id))
+      .first()
+
+    const now = Date.now()
+
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        thresholdHours,
+        approachingThreshold,
+        updatedAt: now,
+      })
+      return { upserted: true, policyId: existing._id }
+    }
+
+    const policyId = await ctx.db.insert('slaPolicies', {
+      tenantId: tenant._id,
+      thresholdHours,
+      approachingThreshold,
+      updatedAt: now,
+    })
+    return { upserted: true, policyId }
+  },
+})

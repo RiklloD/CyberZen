@@ -1,34 +1,47 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
-import { GitBranch } from "lucide-react";
+type LearningProfileData = NonNullable<FunctionReturnType<typeof api.learningProfileIntel.getLatestLearningProfile>>;
+type VulnClassPattern = LearningProfileData["vulnClassPatterns"][number];
+type HoneypotData = NonNullable<FunctionReturnType<typeof api.honeypotIntel.getLatestHoneypotPlan>>;
+type HoneypotProposal = HoneypotData["proposals"][number];
+import { GitBranch, Loader2, Rocket, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { api } from "../lib/convex";
-import type { Id } from "../lib/convex";
-import { TENANT_SLUG } from "../lib/config";
+import RepositoryAttackSurfacePanel from "../components/panels/RepositoryAttackSurfacePanel";
+import RepositoryBlastRadiusPanel from "../components/panels/RepositoryBlastRadiusPanel";
+import RepositoryBusinessImpactPanel from "../components/panels/RepositoryBusinessImpactPanel";
+import RepositoryTrustScorePanel from "../components/panels/RepositoryTrustScorePanel";
+import RepositoryCloudBlastRadiusPanel from "../components/panels/RepositoryCloudBlastRadiusPanel";
+import RepositoryHealthScorePanel from "../components/panels/RepositoryHealthScorePanel";
+import RepositoryListPanel from "../components/panels/RepositoryListPanel";
+import RepositoryRemediationQueuePanel from "../components/panels/RepositoryRemediationQueuePanel";
+import RepositoryRiskAcceptancePanel from "../components/panels/RepositoryRiskAcceptancePanel";
+import RepositorySlaPanel from "../components/panels/RepositorySlaPanel";
+import RescanButton from "../components/RescanButton";
 import StatusPill from "../components/StatusPill";
+import type { Id } from "../lib/convex";
+import { api } from "../lib/convex";
 import {
-	attackSurfaceTone,
-	blastTierTone,
-	formatTimestamp,
 	honeypotScoreTone,
 	learningTrendTone,
 	maturityTone,
 	multiplierTone,
-	priorityTierTone,
-	repositoryHealthTone,
-	slaComplianceTone,
-	trendTone,
 } from "../lib/utils";
+import { useTenantSlug } from "../lib/workspace";
+import QueryErrorFallback from "../components/QueryErrorFallback";
 
-export const Route = createFileRoute("/repositories")({ component: RepositoriesPage });
+export const Route = createFileRoute("/repositories")({
+	errorComponent: QueryErrorFallback,
+	component: RepositoriesPage,
+});
 
-type OverviewData = NonNullable<FunctionReturnType<typeof api.dashboard.overview>>;
+type OverviewData = NonNullable<
+	FunctionReturnType<typeof api.dashboard.overview>
+>;
 type OverviewRepository = OverviewData["repositories"][number];
 
-const TENANT = TENANT_SLUG;
-
 function RepositoriesPage() {
+	const TENANT = useTenantSlug();
 	const overview = useQuery(api.dashboard.overview, { tenantSlug: TENANT });
 	const [selected, setSelected] = useState<string | null>(null);
 
@@ -46,7 +59,7 @@ function RepositoriesPage() {
 
 	const { repositories } = overview;
 	const selectedRepo = selected
-		? repositories.find((r) => r._id === selected) ?? null
+		? (repositories.find((r: OverviewRepository) => r._id === selected) ?? null)
 		: null;
 
 	return (
@@ -56,67 +69,27 @@ function RepositoriesPage() {
 					<GitBranch size={20} className="text-[var(--signal)]" />
 					<div>
 						<h1 className="page-title">Repositories</h1>
-						<p className="page-subtitle">{repositories.length} repositories tracked</p>
+						<p className="page-subtitle">
+							{repositories.length} repositories tracked
+						</p>
 					</div>
 				</div>
 			</div>
 
 			<div className="page-body">
 				{/* Repository list */}
-				<div className="repo-grid mb-6">
-					{repositories.map((repo: OverviewRepository) => (
-						<button
-							key={repo._id}
-							type="button"
-							onClick={() =>
-								setSelected(selected === repo._id ? null : repo._id)
-							}
-							className={`card card-sm text-left w-full ${
-								selected === repo._id
-									? "border-[rgba(158,255,100,0.4)] bg-[rgba(158,255,100,0.06)]"
-									: ""
-							}`}
-						>
-							<div className="repo-header">
-								<span className="repo-name">{repo.fullName}</span>
-								<StatusPill
-									label={repo.latestSnapshot ? "SBOM active" : "no SBOM"}
-									tone={repo.latestSnapshot ? "success" : "neutral"}
-								/>
-							</div>
-							{repo.latestSnapshot && (
-								<div className="flex flex-wrap gap-1.5 mt-1">
-									<StatusPill
-										label={`${repo.latestSnapshot.previewComponents.length} components`}
-										tone="neutral"
-									/>
-									{repo.latestSnapshot.vulnerablePreview.length > 0 && (
-										<StatusPill
-											label={`${repo.latestSnapshot.vulnerablePreview.length} vulnerable`}
-											tone="danger"
-										/>
-									)}
-									{repo.latestSnapshot.comparison && (
-										<StatusPill
-											label={`${repo.latestSnapshot.comparison.addedPreview.length} added`}
-											tone="info"
-										/>
-									)}
-								</div>
-							)}
-							<p className="mt-1.5 text-xs text-[var(--sea-ink-soft)]">
-								{formatTimestamp(repo.latestSnapshot?.capturedAt)}
-							</p>
-						</button>
-					))}
-				</div>
+				<RepositoryListPanel
+					repos={repositories}
+					selected={selected}
+					onSelect={(id) =>
+						setSelected(selected === id ? null : id)
+					}
+					tenantSlug={TENANT}
+				/>
 
 				{/* Drill-down panel for selected repo */}
 				{selectedRepo && (
-					<RepositoryDrillDown
-						tenantSlug={TENANT}
-						repo={selectedRepo}
-					/>
+					<RepositoryDrillDown tenantSlug={TENANT} repo={selectedRepo} />
 				)}
 
 				{!selectedRepo && repositories.length > 0 && (
@@ -175,6 +148,14 @@ function RepositoryDrillDown({
 		api.riskAcceptanceIntel.getAcceptanceSummaryForRepository,
 		{ repositoryId },
 	);
+	const businessImpact = useQuery(
+		api.businessImpactIntel.getLatestBusinessImpactBySlug,
+		{ tenantSlug, repositoryFullName },
+	);
+	const cloudBlast = useQuery(
+		api.cloudBlastRadiusIntel.getCloudBlastRadiusBySlug,
+		{ tenantSlug, repositoryFullName },
+	);
 
 	return (
 		<div className="space-y-4">
@@ -183,181 +164,61 @@ function RepositoryDrillDown({
 				<h2 className="text-base font-bold text-[var(--sea-ink)]">
 					{repo.fullName}
 				</h2>
+				<div className="flex flex-wrap gap-1 ml-auto">
+					<RescanButton
+						scannerType="full_scan"
+						tenantSlug={tenantSlug}
+						repositoryFullName={repo.fullName}
+						label="Full Re-scan"
+					/>
+					<RescanButton
+						scannerType="secret_detection"
+						tenantSlug={tenantSlug}
+						repositoryFullName={repo.fullName}
+					/>
+					<RescanButton
+						scannerType="iac_scan"
+						tenantSlug={tenantSlug}
+						repositoryFullName={repo.fullName}
+					/>
+					<RescanButton
+						scannerType="cicd_scan"
+						tenantSlug={tenantSlug}
+						repositoryFullName={repo.fullName}
+					/>
+				</div>
 			</div>
 
 			<div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
 				{/* Trust Score */}
-				{trustScore && (
-					<div className="card card-sm">
-						<p className="panel-label">Trust Score</p>
-					<div className="flex flex-wrap gap-1.5 mt-1">
-						<StatusPill
-							label={`score ${trustScore.repositoryScore}`}
-							tone={trustScore.repositoryScore >= 70 ? "success" : trustScore.repositoryScore >= 40 ? "warning" : "danger"}
-						/>
-						{trustScore.untrustedCount > 0 && (
-							<StatusPill label={`${trustScore.untrustedCount} untrusted`} tone="danger" />
-						)}
-						{trustScore.vulnerableCount > 0 && (
-							<StatusPill label={`${trustScore.vulnerableCount} vulnerable`} tone="warning" />
-						)}
-					</div>
-					</div>
-				)}
+				{trustScore && <RepositoryTrustScorePanel score={trustScore} />}
 
 				{/* Repository Health */}
 				{healthScore && (
-					<div className="card card-sm">
-						<p className="panel-label">Repository Health</p>
-						<div className="flex flex-wrap gap-1.5 mt-1">
-							<StatusPill
-								label={`score ${healthScore.overallScore}`}
-								tone={repositoryHealthTone(healthScore.overallScore)}
-							/>
-						<StatusPill
-							label={`grade ${healthScore.overallGrade}`}
-							tone={repositoryHealthTone(healthScore.overallScore)}
-						/>
-						</div>
-						<p className="mt-1.5 text-xs text-[var(--sea-ink-soft)]">
-							{healthScore.summary}
-						</p>
-					</div>
+					<RepositoryHealthScorePanel healthScore={healthScore} />
 				)}
 
 				{/* Blast Radius */}
 				{blastRadius && blastRadius.maxRiskTier !== "low" && (
-					<div className="card card-sm">
-						<p className="panel-label">Blast Radius</p>
-						<div className="flex flex-wrap gap-1.5 mt-1">
-							<StatusPill
-								label={`max risk: ${blastRadius.maxRiskTier}`}
-								tone={blastTierTone(blastRadius.maxRiskTier)}
-							/>
-							{blastRadius.totalReachableServices.length > 0 && (
-								<StatusPill
-									label={`${blastRadius.totalReachableServices.length} reachable services`}
-									tone="neutral"
-								/>
-							)}
-						</div>
-						{blastRadius.topFindings.slice(0, 3).map((f) => (
-							<div key={f.findingId} className="mt-1 flex flex-wrap gap-1.5">
-								<StatusPill label={f.riskTier} tone={blastTierTone(f.riskTier)} />
-								<StatusPill label={`score ${f.businessImpactScore}`} tone="neutral" />
-								<span className="text-xs text-[var(--sea-ink-soft)] truncate max-w-[200px]">
-									{f.title}
-								</span>
-							</div>
-						))}
-					</div>
+					<RepositoryBlastRadiusPanel blastRadius={blastRadius} />
 				)}
 
 				{/* Attack Surface */}
 				{attackSurface && (
-					<div className="card card-sm">
-						<p className="panel-label">Attack Surface</p>
-						<div className="flex flex-wrap gap-1.5 mt-1">
-							<StatusPill
-								label={`score ${attackSurface.snapshot.score}`}
-								tone={attackSurfaceTone(attackSurface.snapshot.score)}
-							/>
-							<StatusPill
-								label={attackSurface.snapshot.trend}
-								tone={trendTone(attackSurface.snapshot.trend)}
-							/>
-							{attackSurface.snapshot.openCriticalCount > 0 && (
-								<StatusPill
-									label={`${attackSurface.snapshot.openCriticalCount} critical`}
-									tone="danger"
-								/>
-							)}
-						</div>
-						{attackSurface.history.length > 1 && (
-							<div className="mt-2 flex h-6 items-end gap-[2px]">
-								{attackSurface.history.slice(-12).map((p, i) => (
-									<div
-										// biome-ignore lint/suspicious/noArrayIndexKey: history points have no stable id
-										key={i}
-										className="flex-1 rounded-sm bg-[var(--sea-ink-soft)]/25"
-										style={{ height: `${Math.max(8, p.score)}%` }}
-										title={`Score ${p.score}`}
-									/>
-								))}
-							</div>
-						)}
-						<p className="mt-1.5 text-xs text-[var(--sea-ink-soft)]">
-							{attackSurface.snapshot.summary}
-						</p>
-					</div>
+					<RepositoryAttackSurfacePanel attackSurface={attackSurface} />
 				)}
 
 				{/* SLA Enforcement */}
 				{sla && sla.summary.totalTracked > 0 && (
-					<div className="card card-sm">
-						<p className="panel-label">SLA Enforcement</p>
-						<div className="flex flex-wrap gap-1.5 mt-1">
-							<StatusPill
-								label={`${Math.round(sla.summary.complianceRate * 100)}% compliant`}
-								tone={slaComplianceTone(sla.summary.complianceRate)}
-							/>
-							{sla.summary.breachedSla > 0 && (
-								<StatusPill label={`${sla.summary.breachedSla} breached`} tone="danger" />
-							)}
-							{sla.summary.approachingSla > 0 && (
-								<StatusPill
-									label={`${sla.summary.approachingSla} approaching`}
-									tone="warning"
-								/>
-							)}
-							{sla.summary.mttrHours !== null && (
-								<StatusPill
-									label={`MTTR ${Math.round(sla.summary.mttrHours)}h`}
-									tone="neutral"
-								/>
-							)}
-						</div>
-					</div>
+					<RepositorySlaPanel sla={sla} />
 				)}
 
 				{/* Remediation Queue */}
-			{remediationQueue && remediationQueue.summary.totalCandidates > 0 && (
-				<div className="card card-sm">
-					<p className="panel-label">Remediation Queue</p>
-					<div className="flex flex-wrap gap-1.5 mt-1">
-						<StatusPill
-							label={`${remediationQueue.summary.totalCandidates} in queue`}
-							tone="neutral"
-						/>
-						{remediationQueue.summary.p0Count > 0 && (
-							<StatusPill label={`P0: ${remediationQueue.summary.p0Count}`} tone="danger" />
-						)}
-						{remediationQueue.summary.p1Count > 0 && (
-							<StatusPill label={`P1: ${remediationQueue.summary.p1Count}`} tone="warning" />
-						)}
-						{remediationQueue.summary.p2Count > 0 && (
-							<StatusPill label={`P2: ${remediationQueue.summary.p2Count}`} tone="info" />
-						)}
-					</div>
-					{remediationQueue.queue.slice(0, 3).map((item) => (
-						<div key={item.findingId} className="mt-1.5 inset-panel">
-							<div className="flex flex-wrap gap-1.5">
-								<StatusPill
-									label={item.priorityTier.toUpperCase()}
-									tone={priorityTierTone(item.priorityTier)}
-								/>
-								<StatusPill
-									label={`score ${item.priorityScore.toFixed(0)}`}
-									tone="neutral"
-								/>
-							</div>
-							<p className="mt-1 text-xs text-[var(--sea-ink-soft)] truncate">
-								{item.title}
-							</p>
-						</div>
-					))}
-				</div>
-			)}
+				{remediationQueue && remediationQueue.summary.totalCandidates > 0 && (
+					<RepositoryRemediationQueuePanel
+						remediationQueue={remediationQueue}
+					/>
+				)}
 
 				{/* Learning Profile */}
 				{learningProfile && (
@@ -379,7 +240,7 @@ function RepositoryDrillDown({
 								/>
 							)}
 						</div>
-						{learningProfile.vulnClassPatterns.slice(0, 2).map((p) => (
+						{learningProfile.vulnClassPatterns.slice(0, 2).map((p: VulnClassPattern) => (
 							<div key={p.vulnClass} className="mt-1 flex flex-wrap gap-1.5">
 								<StatusPill
 									label={p.vulnClass.replaceAll("_", " ")}
@@ -397,56 +258,178 @@ function RepositoryDrillDown({
 					</div>
 				)}
 
-				{/* Honeypot */}
-				{honeypot && honeypot.totalProposals > 0 && (
-					<div className="card card-sm">
-						<p className="panel-label">Honeypot Plan</p>
-						<div className="flex flex-wrap gap-1.5 mt-1">
+			{/* Honeypot */}
+			{(honeypot || true) && (
+				<div className="card card-sm">
+					<p className="panel-label">Honeypot Plan</p>
+
+					{/* §3.12 — Deploy / Teardown CTAs */}
+					<HoneypotCtaButtons
+						tenantSlug={tenantSlug}
+						repositoryFullName={repositoryFullName}
+						hasActiveHoneypots={!!honeypot && honeypot.totalProposals > 0}
+					/>
+
+					{honeypot && honeypot.totalProposals > 0 && (
+					<>
+					<div className="flex flex-wrap gap-1.5 mt-1">
+						<StatusPill
+							label={`${honeypot.totalProposals} proposals`}
+							tone="neutral"
+						/>
+						{honeypot.endpointCount > 0 && (
 							<StatusPill
-								label={`${honeypot.totalProposals} proposals`}
+								label={`${honeypot.endpointCount} endpoints`}
 								tone="neutral"
 							/>
-							{honeypot.endpointCount > 0 && (
-								<StatusPill label={`${honeypot.endpointCount} endpoints`} tone="neutral" />
-							)}
-							{honeypot.tokenCount > 0 && (
-								<StatusPill label={`${honeypot.tokenCount} tokens`} tone="neutral" />
-							)}
+						)}
+						{honeypot.tokenCount > 0 && (
+							<StatusPill
+								label={`${honeypot.tokenCount} tokens`}
+								tone="neutral"
+							/>
+						)}
+					</div>
+					{honeypot.proposals.slice(0, 2).map((p: HoneypotProposal) => (
+						<div key={p.path} className="mt-1 flex flex-wrap gap-1.5">
+							<StatusPill
+								label={`score ${p.attractivenessScore}`}
+								tone={honeypotScoreTone(p.attractivenessScore)}
+							/>
+							<span className="font-mono text-xs text-[var(--sea-ink-soft)] truncate">
+								{p.path}
+							</span>
 						</div>
-						{honeypot.proposals.slice(0, 2).map((p) => (
-							<div key={p.path} className="mt-1 flex flex-wrap gap-1.5">
-								<StatusPill
-									label={`score ${p.attractivenessScore}`}
-									tone={honeypotScoreTone(p.attractivenessScore)}
-								/>
-								<span className="font-mono text-xs text-[var(--sea-ink-soft)] truncate">
-									{p.path}
-								</span>
-							</div>
-						))}
+					))}
+					</>
+					)}
+
+					{!honeypot && (
+					<p className="mt-1 text-xs text-[var(--sea-ink-soft)] italic">
+						No honeypot plan computed yet. Deploy to generate one.
+					</p>
+					)}
+				</div>
+			)}
+
+				{/* Business Impact (full-width within grid) */}
+				{businessImpact && (
+					<div className="lg:col-span-2 xl:col-span-3">
+						<RepositoryBusinessImpactPanel
+							impact={businessImpact}
+							repositoryFullName={repo.fullName}
+						/>
+					</div>
+				)}
+
+				{/* Cloud Blast Radius (full-width within grid) */}
+				{cloudBlast && cloudBlast.providers.length > 0 && (
+					<div className="lg:col-span-2 xl:col-span-3">
+						<RepositoryCloudBlastRadiusPanel
+							data={cloudBlast}
+							repositoryFullName={repo.fullName}
+						/>
 					</div>
 				)}
 
 				{/* Risk Acceptances */}
 				{riskAcceptance && riskAcceptance.totalActive > 0 && (
-					<div className="card card-sm">
-						<p className="panel-label">Risk Acceptances</p>
-						<div className="flex flex-wrap gap-1.5 mt-1">
-							<StatusPill label={`${riskAcceptance.totalActive} active`} tone="neutral" />
-							{riskAcceptance.expiringSoon > 0 && (
-								<StatusPill
-									label={`${riskAcceptance.expiringSoon} expiring soon`}
-									tone="warning"
-								/>
-							)}
-							{riskAcceptance.permanent > 0 && (
-								<StatusPill label={`${riskAcceptance.permanent} permanent`} tone="neutral" />
-							)}
-						</div>
-					</div>
+					<RepositoryRiskAcceptancePanel
+						riskAcceptance={riskAcceptance}
+						repositoryId={repositoryId}
+					/>
 				)}
 			</div>
 		</div>
 	);
 }
 
+/**
+ * §3.12 — Honeypot Deploy / Teardown CTAs.
+ *
+ * "Deploy" calls `api.honeypotIntel.deployHoneypot`.
+ * "Teardown" calls `api.honeypotIntel.tearDownHoneypot`.
+ * Both show a loading spinner while the mutation is in-flight.
+ */
+function HoneypotCtaButtons({
+	tenantSlug,
+	repositoryFullName,
+	hasActiveHoneypots,
+}: {
+	tenantSlug: string;
+	repositoryFullName: string;
+	hasActiveHoneypots: boolean;
+}) {
+	const [deploying, setDeploying] = useState(false);
+	const [tearingDown, setTearingDown] = useState(false);
+	const [deployMsg, setDeployMsg] = useState<string | null>(null);
+	const [teardownMsg, setTeardownMsg] = useState<string | null>(null);
+
+	const deploy = useMutation(api.honeypotIntel.deployHoneypot);
+	const teardown = useMutation(api.honeypotIntel.tearDownHoneypot);
+
+	const handleDeploy = async () => {
+		setDeploying(true);
+		setDeployMsg(null);
+		try {
+			const res = await deploy({ tenantSlug, repositoryFullName });
+			setDeployMsg(res.message);
+		} catch (err) {
+			setDeployMsg(err instanceof Error ? err.message : "Deploy failed");
+		} finally {
+			setDeploying(false);
+		}
+	};
+
+	const handleTeardown = async () => {
+		setTearingDown(true);
+		setTeardownMsg(null);
+		try {
+			const res = await teardown({ tenantSlug, repositoryFullName });
+			setTeardownMsg(res.message);
+		} catch (err) {
+			setTeardownMsg(err instanceof Error ? err.message : "Teardown failed");
+		} finally {
+			setTearingDown(false);
+		}
+	};
+
+	return (
+		<div className="mt-2 flex flex-wrap items-center gap-2">
+			<button
+				type="button"
+				className="signal-button inline-flex items-center gap-1.5 text-xs"
+				onClick={handleDeploy}
+				disabled={deploying}
+			>
+				{deploying ? (
+					<Loader2 size={12} className="animate-spin" />
+				) : (
+					<Rocket size={12} />
+				)}
+				{deploying ? "Deploying…" : "Deploy"}
+			</button>
+
+			<button
+				type="button"
+				className="signal-button secondary-button inline-flex items-center gap-1.5 text-xs"
+				onClick={handleTeardown}
+				disabled={tearingDown || !hasActiveHoneypots}
+			>
+				{tearingDown ? (
+					<Loader2 size={12} className="animate-spin" />
+				) : (
+					<Trash2 size={12} />
+				)}
+				{tearingDown ? "Tearing down…" : "Teardown"}
+			</button>
+
+			{deployMsg && (
+				<span className="text-xs text-[var(--success)]">{deployMsg}</span>
+			)}
+			{teardownMsg && (
+				<span className="text-xs text-[var(--warning)]">{teardownMsg}</span>
+			)}
+		</div>
+	);
+}

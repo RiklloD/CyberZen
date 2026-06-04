@@ -1,6 +1,7 @@
 import { ConvexError, v } from 'convex/values'
 import { mutation, query } from './_generated/server'
 import { internal } from './_generated/api'
+import { requireSessionAuth } from './lib/sessionAuth' // FIX: C2 — needed for list query auth
 
 // ---------------------------------------------------------------------------
 // Shared validators
@@ -22,6 +23,7 @@ const findingStatus = v.union(
   v.literal('accepted_risk'),
   v.literal('false_positive'),
   v.literal('ignored'),
+  v.literal('snoozed'),
 )
 
 const validationStatus = v.union(
@@ -70,6 +72,7 @@ const findingListRow = v.object({
 export const list = query({
   args: {
     tenantSlug: v.string(),
+    authToken: v.string(), // FIX: C2 — required for membership verification
     status: v.optional(findingStatus),
     severity: v.optional(severity),
     repositoryId: v.optional(v.id('repositories')),
@@ -83,6 +86,16 @@ export const list = query({
       .unique()
 
     if (!tenant) return []
+
+    // FIX: C2 — verify the caller is a member of this tenant
+    const { userId } = await requireSessionAuth(ctx as any, args.authToken)
+    const membership = await ctx.db
+      .query('tenantMembers')
+      .withIndex('by_tenant_and_user', (q: any) =>
+        q.eq('tenantId', tenant._id).eq('userId', userId),
+      )
+      .unique()
+    if (!membership) return []
 
     const cap = Math.min(args.limit ?? 50, 200)
 
@@ -575,6 +588,79 @@ export const updateFindingStatus = mutation({
       previousStatus,
       newStatus: args.newStatus,
     }
+  },
+})
+
+// ---------------------------------------------------------------------------
+// findings.bulkDismissFindings — dismiss multiple findings at once (status: ignored)
+// ---------------------------------------------------------------------------
+
+export const bulkDismissFindings = mutation({
+  args: {
+    findingIds: v.array(v.id('findings')),
+    reason: v.string(),
+  },
+  returns: v.object({ updated: v.number() }),
+  handler: async (ctx, args) => {
+    if (args.findingIds.length === 0) return { updated: 0 }
+    const batch = args.findingIds.slice(0, 50)
+    const now = Date.now()
+    let updated = 0
+    for (const id of batch) {
+      const finding = await ctx.db.get(id)
+      if (!finding) continue
+      await ctx.db.patch(id, { status: 'ignored', resolvedAt: now })
+      updated++
+    }
+    return { updated }
+  },
+})
+
+// ---------------------------------------------------------------------------
+// findings.bulkAssignFindings — assign multiple findings to one person
+// ---------------------------------------------------------------------------
+
+export const bulkAssignFindings = mutation({
+  args: {
+    findingIds: v.array(v.id('findings')),
+    assigneeId: v.string(),
+  },
+  returns: v.object({ updated: v.number() }),
+  handler: async (ctx, args) => {
+    if (args.findingIds.length === 0) return { updated: 0 }
+    const batch = args.findingIds.slice(0, 50)
+    let updated = 0
+    for (const id of batch) {
+      const finding = await ctx.db.get(id)
+      if (!finding) continue
+      await ctx.db.patch(id, { assigneeId: args.assigneeId })
+      updated++
+    }
+    return { updated }
+  },
+})
+
+// ---------------------------------------------------------------------------
+// findings.bulkUpdateSeverity — change severity on multiple findings
+// ---------------------------------------------------------------------------
+
+export const bulkUpdateSeverity = mutation({
+  args: {
+    findingIds: v.array(v.id('findings')),
+    severity,
+  },
+  returns: v.object({ updated: v.number() }),
+  handler: async (ctx, args) => {
+    if (args.findingIds.length === 0) return { updated: 0 }
+    const batch = args.findingIds.slice(0, 50)
+    let updated = 0
+    for (const id of batch) {
+      const finding = await ctx.db.get(id)
+      if (!finding) continue
+      await ctx.db.patch(id, { severity: args.severity })
+      updated++
+    }
+    return { updated }
   },
 })
 

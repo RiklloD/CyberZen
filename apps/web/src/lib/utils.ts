@@ -141,8 +141,3 @@ export function repositoryHealthTone(score: number): Tone {
 	if (score >= 60) return "warning";
 	return "danger";
 }
-
-export function formatLayerLabel(layer: string) {
-	if (layer === "ai_model") return "AI model";
-	return layer.replace("_", " ");
-}

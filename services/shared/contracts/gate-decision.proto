@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+package cyberzen.shared.v1;
+
+option go_package = "github.com/cyberzen/shared/generated/go/contracts;contracts";
+
+import "google/protobuf/timestamp.proto";
+
+// Outcome of a policy gate evaluation for a commit.
+enum GateStatus {
+  GATE_STATUS_UNSPECIFIED = 0;
+  GATE_STATUS_PASS = 1;
+  GATE_STATUS_FAIL = 2;
+  GATE_STATUS_WARN = 3;
+}
+
+// A single policy rule violation contributing to a gate decision.
+message PolicyViolation {
+  // Stable identifier of the policy rule (e.g. "no-critical-cves").
+  string rule_id = 1;
+
+  // Human-readable rule name.
+  string rule_name = 2;
+
+  // Detailed message explaining the violation.
+  string message = 3;
+
+  // Free-form severity label as configured on the policy rule.
+  string severity = 4;
+
+  // Optional pointer to the offending finding or breach event identifier.
+  string evidence_id = 5;
+}
+
+// Result of evaluating policy gates against a commit.
+message GateDecision {
+  // Tenant the decision belongs to.
+  string tenant_id = 1;
+
+  // Repository URL.
+  string repo_url = 2;
+
+  // Commit SHA the decision was rendered for.
+  string commit_sha = 3;
+
+  // Overall gate outcome.
+  GateStatus status = 4;
+
+  // Per-rule violations contributing to the decision.
+  repeated PolicyViolation policy_violations = 5;
+
+  // When the decision was rendered.
+  google.protobuf.Timestamp timestamp = 6;
+
+  // Stable identifier of the policy bundle that produced this decision.
+  string policy_bundle_id = 7;
+
+  // Free-form annotations from the gate engine.
+  map<string, string> annotations = 8;
+}

@@ -109,9 +109,39 @@ describe('validateEndpointUrl', () => {
     expect(r.valid).toBe(true)
   })
 
-  it('accepts http URLs (for local dev)', () => {
+  it('rejects localhost (SSRF)', () => {
     const r = validateEndpointUrl('http://localhost:3000/webhook')
-    expect(r.valid).toBe(true)
+    expect(r.valid).toBe(false)
+  })
+
+  it('rejects 127.0.0.1 (SSRF loopback)', () => {
+    const r = validateEndpointUrl('http://127.0.0.1/webhook')
+    expect(r.valid).toBe(false)
+  })
+
+  it('rejects 10.x.x.x private range (SSRF)', () => {
+    const r = validateEndpointUrl('https://10.0.0.1/webhook')
+    expect(r.valid).toBe(false)
+  })
+
+  it('rejects 192.168.x.x private range (SSRF)', () => {
+    const r = validateEndpointUrl('https://192.168.1.1/webhook')
+    expect(r.valid).toBe(false)
+  })
+
+  it('rejects 172.16.x.x private range (SSRF)', () => {
+    const r = validateEndpointUrl('https://172.16.0.1/webhook')
+    expect(r.valid).toBe(false)
+  })
+
+  it('rejects 169.254.x.x link-local (SSRF)', () => {
+    const r = validateEndpointUrl('https://169.254.169.254/webhook')
+    expect(r.valid).toBe(false)
+  })
+
+  it('rejects ::1 IPv6 loopback (SSRF)', () => {
+    const r = validateEndpointUrl('http://[::1]/webhook')
+    expect(r.valid).toBe(false)
   })
 
   it('rejects non-URL strings', () => {

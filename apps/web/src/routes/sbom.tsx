@@ -3,19 +3,23 @@ import { useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { Boxes } from "lucide-react";
 import { useState } from "react";
-import { api } from "../lib/convex";
-import { TENANT_SLUG } from "../lib/config";
 import StatusPill from "../components/StatusPill";
+import { api } from "../lib/convex";
 import { formatTimestamp } from "../lib/utils";
+import { useTenantSlug } from "../lib/workspace";
+import RouteErrorBoundary from "../components/RouteErrorBoundary";
 
-export const Route = createFileRoute("/sbom")({ component: SbomPage });
+export const Route = createFileRoute("/sbom")({ errorComponent: RouteErrorBoundary, component: SbomPage });
 
-type OverviewData = NonNullable<FunctionReturnType<typeof api.dashboard.overview>>;
+type OverviewData = NonNullable<
+	FunctionReturnType<typeof api.dashboard.overview>
+>;
 type OverviewRepository = OverviewData["repositories"][number];
 type OverviewSnapshot = NonNullable<OverviewRepository["latestSnapshot"]>;
 type OverviewComponent = OverviewSnapshot["previewComponents"][number];
-
-const TENANT = TENANT_SLUG;
+type VulnerableComponent = OverviewSnapshot["vulnerablePreview"][number];
+type AddedComponent = NonNullable<OverviewSnapshot["comparison"]>["addedPreview"][number];
+type UpdatedComponent = NonNullable<OverviewSnapshot["comparison"]>["updatedPreview"][number];
 
 function componentLayerTone(
 	layer: string,
@@ -29,6 +33,7 @@ function componentLayerTone(
 }
 
 function SbomPage() {
+	const TENANT = useTenantSlug();
 	const overview = useQuery(api.dashboard.overview, { tenantSlug: TENANT });
 	const [selectedRepo, setSelectedRepo] = useState<string | null>(null);
 
@@ -115,10 +120,10 @@ function SbomRepoView({
 		tenantSlug,
 		repositoryFullName,
 	});
-	const attestation = useQuery(
-		api.sbomAttestationIntel.getLatestAttestation,
-		{ tenantSlug, repositoryFullName },
-	);
+	const attestation = useQuery(api.sbomAttestationIntel.getLatestAttestation, {
+		tenantSlug,
+		repositoryFullName,
+	});
 	const cveScan = useQuery(api.cveVersionScanIntel.getLatestCveScan, {
 		tenantSlug,
 		repositoryFullName,
@@ -138,9 +143,9 @@ function SbomRepoView({
 						<h2 className="text-sm font-bold text-[var(--sea-ink)]">
 							{repo.fullName}
 						</h2>
-					<p className="text-xs text-[var(--sea-ink-soft)] mt-0.5">
-						{formatTimestamp(snapshot.capturedAt)}
-					</p>
+						<p className="text-xs text-[var(--sea-ink-soft)] mt-0.5">
+							{formatTimestamp(snapshot.capturedAt)}
+						</p>
 					</div>
 					<div className="flex flex-wrap gap-2">
 						<StatusPill
@@ -160,26 +165,31 @@ function SbomRepoView({
 				<div className="mt-4">
 					<p className="panel-label mb-2">Component preview</p>
 					<div className="space-y-1.5">
-						{snapshot.previewComponents.slice(0, 10).map((c: OverviewComponent) => (
-							<div
-								key={`${c.name}-${c.version}`}
-								className="flex flex-wrap items-center gap-2"
-							>
-								<StatusPill
-									label={c.layer}
-									tone={componentLayerTone(c.layer, c.hasKnownVulnerabilities)}
-								/>
-								<span className="font-mono text-xs text-[var(--sea-ink)]">
-									{c.name}@{c.version}
-								</span>
-								<span className="text-xs text-[var(--sea-ink-soft)]">
-									{c.ecosystem}
-								</span>
-								{c.hasKnownVulnerabilities && (
-									<StatusPill label="vulnerable" tone="danger" />
-								)}
-							</div>
-						))}
+						{snapshot.previewComponents
+							.slice(0, 10)
+							.map((c: OverviewComponent) => (
+								<div
+									key={`${c.name}-${c.version}`}
+									className="flex flex-wrap items-center gap-2"
+								>
+									<StatusPill
+										label={c.layer}
+										tone={componentLayerTone(
+											c.layer,
+											c.hasKnownVulnerabilities,
+										)}
+									/>
+									<span className="font-mono text-xs text-[var(--sea-ink)]">
+										{c.name}@{c.version}
+									</span>
+									<span className="text-xs text-[var(--sea-ink-soft)]">
+										{c.ecosystem}
+									</span>
+									{c.hasKnownVulnerabilities && (
+										<StatusPill label="vulnerable" tone="danger" />
+									)}
+								</div>
+							))}
 					</div>
 				</div>
 
@@ -190,7 +200,7 @@ function SbomRepoView({
 							Vulnerable Components ({snapshot.vulnerablePreview.length})
 						</p>
 						<div className="space-y-1.5">
-							{snapshot.vulnerablePreview.map((c) => (
+							{snapshot.vulnerablePreview.map((c: VulnerableComponent) => (
 								<div
 									key={`${c.name}-${c.version}`}
 									className="flex flex-wrap items-center gap-2 inset-panel"
@@ -231,15 +241,25 @@ function SbomRepoView({
 								/>
 							)}
 						</div>
-						{snapshot.comparison.addedPreview.slice(0, 5).map((c) => (
-							<div key={`${c.name}-${c.version}`} className="flex flex-wrap items-center gap-2 mt-1">
+						{snapshot.comparison.addedPreview.slice(0, 5).map((c: AddedComponent) => (
+							<div
+								key={`${c.name}-${c.version}`}
+								className="flex flex-wrap items-center gap-2 mt-1"
+							>
 								<StatusPill label="+ added" tone="info" />
-								<span className="font-mono text-xs">{c.name}@{c.version}</span>
-								<span className="text-xs text-[var(--sea-ink-soft)]">{c.ecosystem}</span>
+								<span className="font-mono text-xs">
+									{c.name}@{c.version}
+								</span>
+								<span className="text-xs text-[var(--sea-ink-soft)]">
+									{c.ecosystem}
+								</span>
 							</div>
 						))}
-						{snapshot.comparison.updatedPreview.slice(0, 5).map((c) => (
-							<div key={c.name} className="flex flex-wrap items-center gap-2 mt-1">
+						{snapshot.comparison.updatedPreview.slice(0, 5).map((c: UpdatedComponent) => (
+							<div
+								key={c.name}
+								className="flex flex-wrap items-center gap-2 mt-1"
+							>
 								<StatusPill label="↑ updated" tone="neutral" />
 								<span className="font-mono text-xs">{c.name}</span>
 								<span className="text-xs text-[var(--sea-ink-soft)]">
@@ -256,42 +276,50 @@ function SbomRepoView({
 				{quality && (
 					<div className="card card-sm">
 						<p className="panel-label mb-2">SBOM Quality</p>
-					<div className="flex flex-wrap gap-1.5">
-						<StatusPill
-							label={`score ${quality.overallScore}/100`}
-							tone={quality.overallScore >= 80 ? "success" : quality.overallScore >= 60 ? "warning" : "danger"}
-						/>
-						<StatusPill label={quality.grade} tone="neutral" />
-					</div>
-					<p className="mt-1 text-xs text-[var(--sea-ink-soft)]">{quality.summary}</p>
+						<div className="flex flex-wrap gap-1.5">
+							<StatusPill
+								label={`score ${quality.overallScore}/100`}
+								tone={
+									quality.overallScore >= 80
+										? "success"
+										: quality.overallScore >= 60
+											? "warning"
+											: "danger"
+								}
+							/>
+							<StatusPill label={quality.grade} tone="neutral" />
+						</div>
+						<p className="mt-1 text-xs text-[var(--sea-ink-soft)]">
+							{quality.summary}
+						</p>
 					</div>
 				)}
 
 				{attestation && (
 					<div className="card card-sm">
 						<p className="panel-label mb-2">SBOM Attestation</p>
-					<div className="flex flex-wrap gap-1.5">
-						<StatusPill
-							label={attestation.status}
-							tone={
-								attestation.status === "valid"
-									? "success"
-									: attestation.status === "tampered"
-										? "danger"
-										: "warning"
-							}
-						/>
-						<StatusPill
-							label={`v${attestation.attestationVersion}`}
-							tone="neutral"
-						/>
-					</div>
-					<p className="mt-1.5 text-xs text-[var(--sea-ink-soft)]">
-						{attestation.componentCount} components attested
-					</p>
-					<p className="mt-0.5 text-xs text-[var(--sea-ink-soft)]">
-						{formatTimestamp(attestation.attestedAt)}
-					</p>
+						<div className="flex flex-wrap gap-1.5">
+							<StatusPill
+								label={attestation.status}
+								tone={
+									attestation.status === "valid"
+										? "success"
+										: attestation.status === "tampered"
+											? "danger"
+											: "warning"
+								}
+							/>
+							<StatusPill
+								label={`v${attestation.attestationVersion}`}
+								tone="neutral"
+							/>
+						</div>
+						<p className="mt-1.5 text-xs text-[var(--sea-ink-soft)]">
+							{attestation.componentCount} components attested
+						</p>
+						<p className="mt-0.5 text-xs text-[var(--sea-ink-soft)]">
+							{formatTimestamp(attestation.attestedAt)}
+						</p>
 					</div>
 				)}
 
@@ -299,15 +327,21 @@ function SbomRepoView({
 					<div className="card card-sm">
 						<p className="panel-label mb-2">CVE Version Scan</p>
 						<div className="flex flex-wrap gap-1.5">
-						<StatusPill
-							label={`${cveScan.totalVulnerable} CVE matches`}
-							tone={cveScan.totalVulnerable > 0 ? "danger" : "success"}
-						/>
+							<StatusPill
+								label={`${cveScan.totalVulnerable} CVE matches`}
+								tone={cveScan.totalVulnerable > 0 ? "danger" : "success"}
+							/>
 							{cveScan.criticalCount > 0 && (
-								<StatusPill label={`${cveScan.criticalCount} critical`} tone="danger" />
+								<StatusPill
+									label={`${cveScan.criticalCount} critical`}
+									tone="danger"
+								/>
 							)}
 							{cveScan.highCount > 0 && (
-								<StatusPill label={`${cveScan.highCount} high`} tone="warning" />
+								<StatusPill
+									label={`${cveScan.highCount} high`}
+									tone="warning"
+								/>
 							)}
 						</div>
 						<p className="mt-1.5 text-xs text-[var(--sea-ink-soft)]">
@@ -324,18 +358,18 @@ function SbomRepoView({
 								label={`${containerScan.totalImages} images`}
 								tone="neutral"
 							/>
-						{containerScan.criticalCount > 0 && (
-							<StatusPill
-								label={`${containerScan.criticalCount} critical`}
-								tone="danger"
-							/>
-						)}
-						{containerScan.highCount > 0 && (
-							<StatusPill
-								label={`${containerScan.highCount} high`}
-								tone="warning"
-							/>
-						)}
+							{containerScan.criticalCount > 0 && (
+								<StatusPill
+									label={`${containerScan.criticalCount} critical`}
+									tone="danger"
+								/>
+							)}
+							{containerScan.highCount > 0 && (
+								<StatusPill
+									label={`${containerScan.highCount} high`}
+									tone="warning"
+								/>
+							)}
 						</div>
 						<p className="mt-1.5 text-xs text-[var(--sea-ink-soft)]">
 							{containerScan.summary}
@@ -346,4 +380,3 @@ function SbomRepoView({
 		</div>
 	);
 }
-

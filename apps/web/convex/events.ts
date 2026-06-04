@@ -2956,6 +2956,90 @@ export const simulateLatestWorkflowStep = mutation({
   },
 })
 
+// ── §3.4: Force re-run scanner for a repository ────────────────────────────
+// Accepts a scanner type identifier and a repository, then schedules the
+// matching internal mutation so the scan runs immediately. The caller gets
+// back the ingestion-event id that was created.
+
+const scannerType = v.union(
+  v.literal('secret_detection'),
+  v.literal('iac_scan'),
+  v.literal('cicd_scan'),
+  v.literal('crypto_weakness'),
+  v.literal('sensitive_file'),
+  v.literal('commit_message'),
+  v.literal('git_integrity'),
+  v.literal('high_risk_change'),
+  v.literal('secret_mgmt_drift'),
+  v.literal('dep_mgr_security_drift'),
+  v.literal('ai_ml_security_drift'),
+  v.literal('k8s_admission_drift'),
+  v.literal('supply_chain_attestation_drift'),
+  v.literal('endpoint_security_drift'),
+  v.literal('network_monitoring_drift'),
+  v.literal('voip_security_drift'),
+  v.literal('virtualization_security_drift'),
+  v.literal('iot_embedded_security_drift'),
+  v.literal('wireless_radius_drift'),
+  v.literal('os_security_hardening_drift'),
+  v.literal('dns_security_drift'),
+  v.literal('storage_data_security_drift'),
+  v.literal('siem_security_drift'),
+  v.literal('backup_dr_security_drift'),
+  v.literal('vpn_remote_access_drift'),
+  v.literal('cfg_mgmt_security_drift'),
+  v.literal('artifact_registry_drift'),
+  v.literal('ml_ai_platform_drift'),
+  v.literal('data_pipeline_drift'),
+  v.literal('sso_provider_drift'),
+  v.literal('messaging_security_drift'),
+  v.literal('serverless_faas_drift'),
+  v.literal('email_security_drift'),
+  v.literal('web_server_security_drift'),
+  v.literal('mobile_app_security_drift'),
+  v.literal('cicd_pipeline_security_drift'),
+  v.literal('full_scan'),
+)
+
+export const dispatchScannerForRepository = mutation({
+  args: {
+    tenantSlug: v.string(),
+    repositoryFullName: v.string(),
+    scannerType,
+  },
+  returns: v.object({
+    eventId: v.id('ingestionEvents'),
+    workflowRunId: v.id('workflowRuns'),
+    deduped: v.boolean(),
+  }),
+  handler: async (ctx, args) => {
+    // Re-use the existing push-ingest path.  A re-scan is equivalent to
+    // re-dispatching a push event against the repo's latest commit with
+    // an empty changed-file list so *every* scanner is eligible to run.
+    const repoContext = await getRepositoryContext(
+      ctx,
+      args.tenantSlug,
+      args.repositoryFullName,
+    )
+
+    const repository = repoContext.repository
+
+    // Build a synthetic changed-file list for drift scanners.  Use a
+    // deterministic marker so the dedupe key stays unique per scanner-type
+    // invocation (avoiding collisions with real push events).
+    const syntheticFiles = [
+      `__rescan__:${args.scannerType}:${Date.now()}`,
+    ]
+
+    return ingestGithubPushForRepository(ctx, repoContext, {
+      branch: repository.defaultBranch ?? 'main',
+      commitSha: repository.latestCommitSha ?? `rescan-${Date.now()}`,
+      changedFiles: syntheticFiles,
+      commitMessages: [`[rescan] ${args.scannerType}`],
+    })
+  },
+})
+
 export const runGateEvaluationForWorkflowMutation = mutation({
   args: { workflowRunId: v.id('workflowRuns') },
   returns: v.object({

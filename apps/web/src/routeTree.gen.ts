@@ -9,22 +9,82 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ZeroDayRouteImport } from './routes/zero-day'
+import { Route as TimelineRouteImport } from './routes/timeline'
 import { Route as SupplyChainRouteImport } from './routes/supply-chain'
+import { Route as StatusRouteImport } from './routes/status'
 import { Route as SbomRouteImport } from './routes/sbom'
 import { Route as RepositoriesRouteImport } from './routes/repositories'
 import { Route as RemediationRouteImport } from './routes/remediation'
+import { Route as PricingRouteImport } from './routes/pricing'
+import { Route as PostureRouteImport } from './routes/posture'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as NeuralMemoryRouteImport } from './routes/neural-memory'
+import { Route as MsspRouteImport } from './routes/mssp'
+import { Route as MaturityRouteImport } from './routes/maturity'
+import { Route as MarketplaceRouteImport } from './routes/marketplace'
 import { Route as IntegrationsRouteImport } from './routes/integrations'
 import { Route as FindingsRouteImport } from './routes/findings'
+import { Route as ExploitValidationRouteImport } from './routes/exploit-validation'
+import { Route as ExecutiveReportRouteImport } from './routes/executive-report'
+import { Route as DriftPostureRouteImport } from './routes/drift-posture'
+import { Route as CrossRepoRouteImport } from './routes/cross-repo'
 import { Route as ComplianceRouteImport } from './routes/compliance'
 import { Route as CiCdRouteImport } from './routes/ci-cd'
+import { Route as BusinessImpactRouteImport } from './routes/business-impact'
 import { Route as BreachIntelRouteImport } from './routes/breach-intel'
+import { Route as AuditLogRouteImport } from './routes/audit-log'
+import { Route as AttackPathsRouteImport } from './routes/attack-paths'
 import { Route as AgentsRouteImport } from './routes/agents'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as SettingsIndexRouteImport } from './routes/settings/index'
+import { Route as DashboardsIndexRouteImport } from './routes/dashboards/index'
+import { Route as SettingsWebhooksRouteImport } from './routes/settings/webhooks'
+import { Route as SettingsTwoFactorRouteImport } from './routes/settings/two-factor'
+import { Route as SettingsTeamRouteImport } from './routes/settings/team'
+import { Route as SettingsSuppressionRouteImport } from './routes/settings/suppression'
+import { Route as SettingsSsoRouteImport } from './routes/settings/sso'
+import { Route as SettingsSlaRouteImport } from './routes/settings/sla'
+import { Route as SettingsSessionsRouteImport } from './routes/settings/sessions'
+import { Route as SettingsScansRouteImport } from './routes/settings/scans'
+import { Route as SettingsRolesRouteImport } from './routes/settings/roles'
+import { Route as SettingsRetentionRouteImport } from './routes/settings/retention'
+import { Route as SettingsPoliciesRouteImport } from './routes/settings/policies'
+import { Route as SettingsOnCallRouteImport } from './routes/settings/on-call'
+import { Route as SettingsNotificationsRouteImport } from './routes/settings/notifications'
+import { Route as SettingsMsspKeysRouteImport } from './routes/settings/mssp-keys'
+import { Route as SettingsJobsRouteImport } from './routes/settings/jobs'
+import { Route as SettingsIpAllowlistRouteImport } from './routes/settings/ip-allowlist'
+import { Route as SettingsGeneralRouteImport } from './routes/settings/general'
+import { Route as SettingsDeploymentRouteImport } from './routes/settings/deployment'
+import { Route as SettingsDataPrivacyRouteImport } from './routes/settings/data-privacy'
+import { Route as SettingsBillingRouteImport } from './routes/settings/billing'
+import { Route as SettingsApiKeysRouteImport } from './routes/settings/api-keys'
+import { Route as SettingsAccessReviewRouteImport } from './routes/settings/access-review'
+import { Route as DocsGithubIntegrationRouteImport } from './routes/docs/github-integration'
+import { Route as DocsApiRouteImport } from './routes/docs/api'
+import { Route as DashboardsIdRouteImport } from './routes/dashboards/$id'
+import { Route as ConnectGithubRouteImport } from './routes/connect/github'
 
+const ZeroDayRoute = ZeroDayRouteImport.update({
+  id: '/zero-day',
+  path: '/zero-day',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TimelineRoute = TimelineRouteImport.update({
+  id: '/timeline',
+  path: '/timeline',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SupplyChainRoute = SupplyChainRouteImport.update({
   id: '/supply-chain',
   path: '/supply-chain',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StatusRoute = StatusRouteImport.update({
+  id: '/status',
+  path: '/status',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SbomRoute = SbomRouteImport.update({
@@ -42,6 +102,41 @@ const RemediationRoute = RemediationRouteImport.update({
   path: '/remediation',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PricingRoute = PricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PostureRoute = PostureRouteImport.update({
+  id: '/posture',
+  path: '/posture',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NeuralMemoryRoute = NeuralMemoryRouteImport.update({
+  id: '/neural-memory',
+  path: '/neural-memory',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MsspRoute = MsspRouteImport.update({
+  id: '/mssp',
+  path: '/mssp',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MaturityRoute = MaturityRouteImport.update({
+  id: '/maturity',
+  path: '/maturity',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MarketplaceRoute = MarketplaceRouteImport.update({
+  id: '/marketplace',
+  path: '/marketplace',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IntegrationsRoute = IntegrationsRouteImport.update({
   id: '/integrations',
   path: '/integrations',
@@ -50,6 +145,26 @@ const IntegrationsRoute = IntegrationsRouteImport.update({
 const FindingsRoute = FindingsRouteImport.update({
   id: '/findings',
   path: '/findings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ExploitValidationRoute = ExploitValidationRouteImport.update({
+  id: '/exploit-validation',
+  path: '/exploit-validation',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ExecutiveReportRoute = ExecutiveReportRouteImport.update({
+  id: '/executive-report',
+  path: '/executive-report',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DriftPostureRoute = DriftPostureRouteImport.update({
+  id: '/drift-posture',
+  path: '/drift-posture',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CrossRepoRoute = CrossRepoRouteImport.update({
+  id: '/cross-repo',
+  path: '/cross-repo',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ComplianceRoute = ComplianceRouteImport.update({
@@ -62,9 +177,24 @@ const CiCdRoute = CiCdRouteImport.update({
   path: '/ci-cd',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BusinessImpactRoute = BusinessImpactRouteImport.update({
+  id: '/business-impact',
+  path: '/business-impact',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BreachIntelRoute = BreachIntelRouteImport.update({
   id: '/breach-intel',
   path: '/breach-intel',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuditLogRoute = AuditLogRouteImport.update({
+  id: '/audit-log',
+  path: '/audit-log',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AttackPathsRoute = AttackPathsRouteImport.update({
+  id: '/attack-paths',
+  path: '/attack-paths',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AgentsRoute = AgentsRouteImport.update({
@@ -82,49 +212,324 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsIndexRoute = SettingsIndexRouteImport.update({
+  id: '/settings/',
+  path: '/settings/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardsIndexRoute = DashboardsIndexRouteImport.update({
+  id: '/dashboards/',
+  path: '/dashboards/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsWebhooksRoute = SettingsWebhooksRouteImport.update({
+  id: '/settings/webhooks',
+  path: '/settings/webhooks',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsTwoFactorRoute = SettingsTwoFactorRouteImport.update({
+  id: '/settings/two-factor',
+  path: '/settings/two-factor',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsTeamRoute = SettingsTeamRouteImport.update({
+  id: '/settings/team',
+  path: '/settings/team',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsSuppressionRoute = SettingsSuppressionRouteImport.update({
+  id: '/settings/suppression',
+  path: '/settings/suppression',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsSsoRoute = SettingsSsoRouteImport.update({
+  id: '/settings/sso',
+  path: '/settings/sso',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsSlaRoute = SettingsSlaRouteImport.update({
+  id: '/settings/sla',
+  path: '/settings/sla',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsSessionsRoute = SettingsSessionsRouteImport.update({
+  id: '/settings/sessions',
+  path: '/settings/sessions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsScansRoute = SettingsScansRouteImport.update({
+  id: '/settings/scans',
+  path: '/settings/scans',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRolesRoute = SettingsRolesRouteImport.update({
+  id: '/settings/roles',
+  path: '/settings/roles',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRetentionRoute = SettingsRetentionRouteImport.update({
+  id: '/settings/retention',
+  path: '/settings/retention',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsPoliciesRoute = SettingsPoliciesRouteImport.update({
+  id: '/settings/policies',
+  path: '/settings/policies',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsOnCallRoute = SettingsOnCallRouteImport.update({
+  id: '/settings/on-call',
+  path: '/settings/on-call',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsNotificationsRoute = SettingsNotificationsRouteImport.update({
+  id: '/settings/notifications',
+  path: '/settings/notifications',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsMsspKeysRoute = SettingsMsspKeysRouteImport.update({
+  id: '/settings/mssp-keys',
+  path: '/settings/mssp-keys',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsJobsRoute = SettingsJobsRouteImport.update({
+  id: '/settings/jobs',
+  path: '/settings/jobs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsIpAllowlistRoute = SettingsIpAllowlistRouteImport.update({
+  id: '/settings/ip-allowlist',
+  path: '/settings/ip-allowlist',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsGeneralRoute = SettingsGeneralRouteImport.update({
+  id: '/settings/general',
+  path: '/settings/general',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsDeploymentRoute = SettingsDeploymentRouteImport.update({
+  id: '/settings/deployment',
+  path: '/settings/deployment',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsDataPrivacyRoute = SettingsDataPrivacyRouteImport.update({
+  id: '/settings/data-privacy',
+  path: '/settings/data-privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsBillingRoute = SettingsBillingRouteImport.update({
+  id: '/settings/billing',
+  path: '/settings/billing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsApiKeysRoute = SettingsApiKeysRouteImport.update({
+  id: '/settings/api-keys',
+  path: '/settings/api-keys',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsAccessReviewRoute = SettingsAccessReviewRouteImport.update({
+  id: '/settings/access-review',
+  path: '/settings/access-review',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsGithubIntegrationRoute = DocsGithubIntegrationRouteImport.update({
+  id: '/docs/github-integration',
+  path: '/docs/github-integration',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsApiRoute = DocsApiRouteImport.update({
+  id: '/docs/api',
+  path: '/docs/api',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardsIdRoute = DashboardsIdRouteImport.update({
+  id: '/dashboards/$id',
+  path: '/dashboards/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConnectGithubRoute = ConnectGithubRouteImport.update({
+  id: '/connect/github',
+  path: '/connect/github',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/agents': typeof AgentsRoute
+  '/attack-paths': typeof AttackPathsRoute
+  '/audit-log': typeof AuditLogRoute
   '/breach-intel': typeof BreachIntelRoute
+  '/business-impact': typeof BusinessImpactRoute
   '/ci-cd': typeof CiCdRoute
   '/compliance': typeof ComplianceRoute
+  '/cross-repo': typeof CrossRepoRoute
+  '/drift-posture': typeof DriftPostureRoute
+  '/executive-report': typeof ExecutiveReportRoute
+  '/exploit-validation': typeof ExploitValidationRoute
   '/findings': typeof FindingsRoute
   '/integrations': typeof IntegrationsRoute
+  '/marketplace': typeof MarketplaceRoute
+  '/maturity': typeof MaturityRoute
+  '/mssp': typeof MsspRoute
+  '/neural-memory': typeof NeuralMemoryRoute
+  '/onboarding': typeof OnboardingRoute
+  '/posture': typeof PostureRoute
+  '/pricing': typeof PricingRoute
   '/remediation': typeof RemediationRoute
   '/repositories': typeof RepositoriesRoute
   '/sbom': typeof SbomRoute
+  '/status': typeof StatusRoute
   '/supply-chain': typeof SupplyChainRoute
+  '/timeline': typeof TimelineRoute
+  '/zero-day': typeof ZeroDayRoute
+  '/connect/github': typeof ConnectGithubRoute
+  '/dashboards/$id': typeof DashboardsIdRoute
+  '/docs/api': typeof DocsApiRoute
+  '/docs/github-integration': typeof DocsGithubIntegrationRoute
+  '/settings/access-review': typeof SettingsAccessReviewRoute
+  '/settings/api-keys': typeof SettingsApiKeysRoute
+  '/settings/billing': typeof SettingsBillingRoute
+  '/settings/data-privacy': typeof SettingsDataPrivacyRoute
+  '/settings/deployment': typeof SettingsDeploymentRoute
+  '/settings/general': typeof SettingsGeneralRoute
+  '/settings/ip-allowlist': typeof SettingsIpAllowlistRoute
+  '/settings/jobs': typeof SettingsJobsRoute
+  '/settings/mssp-keys': typeof SettingsMsspKeysRoute
+  '/settings/notifications': typeof SettingsNotificationsRoute
+  '/settings/on-call': typeof SettingsOnCallRoute
+  '/settings/policies': typeof SettingsPoliciesRoute
+  '/settings/retention': typeof SettingsRetentionRoute
+  '/settings/roles': typeof SettingsRolesRoute
+  '/settings/scans': typeof SettingsScansRoute
+  '/settings/sessions': typeof SettingsSessionsRoute
+  '/settings/sla': typeof SettingsSlaRoute
+  '/settings/sso': typeof SettingsSsoRoute
+  '/settings/suppression': typeof SettingsSuppressionRoute
+  '/settings/team': typeof SettingsTeamRoute
+  '/settings/two-factor': typeof SettingsTwoFactorRoute
+  '/settings/webhooks': typeof SettingsWebhooksRoute
+  '/dashboards/': typeof DashboardsIndexRoute
+  '/settings/': typeof SettingsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/agents': typeof AgentsRoute
+  '/attack-paths': typeof AttackPathsRoute
+  '/audit-log': typeof AuditLogRoute
   '/breach-intel': typeof BreachIntelRoute
+  '/business-impact': typeof BusinessImpactRoute
   '/ci-cd': typeof CiCdRoute
   '/compliance': typeof ComplianceRoute
+  '/cross-repo': typeof CrossRepoRoute
+  '/drift-posture': typeof DriftPostureRoute
+  '/executive-report': typeof ExecutiveReportRoute
+  '/exploit-validation': typeof ExploitValidationRoute
   '/findings': typeof FindingsRoute
   '/integrations': typeof IntegrationsRoute
+  '/marketplace': typeof MarketplaceRoute
+  '/maturity': typeof MaturityRoute
+  '/mssp': typeof MsspRoute
+  '/neural-memory': typeof NeuralMemoryRoute
+  '/onboarding': typeof OnboardingRoute
+  '/posture': typeof PostureRoute
+  '/pricing': typeof PricingRoute
   '/remediation': typeof RemediationRoute
   '/repositories': typeof RepositoriesRoute
   '/sbom': typeof SbomRoute
+  '/status': typeof StatusRoute
   '/supply-chain': typeof SupplyChainRoute
+  '/timeline': typeof TimelineRoute
+  '/zero-day': typeof ZeroDayRoute
+  '/connect/github': typeof ConnectGithubRoute
+  '/dashboards/$id': typeof DashboardsIdRoute
+  '/docs/api': typeof DocsApiRoute
+  '/docs/github-integration': typeof DocsGithubIntegrationRoute
+  '/settings/access-review': typeof SettingsAccessReviewRoute
+  '/settings/api-keys': typeof SettingsApiKeysRoute
+  '/settings/billing': typeof SettingsBillingRoute
+  '/settings/data-privacy': typeof SettingsDataPrivacyRoute
+  '/settings/deployment': typeof SettingsDeploymentRoute
+  '/settings/general': typeof SettingsGeneralRoute
+  '/settings/ip-allowlist': typeof SettingsIpAllowlistRoute
+  '/settings/jobs': typeof SettingsJobsRoute
+  '/settings/mssp-keys': typeof SettingsMsspKeysRoute
+  '/settings/notifications': typeof SettingsNotificationsRoute
+  '/settings/on-call': typeof SettingsOnCallRoute
+  '/settings/policies': typeof SettingsPoliciesRoute
+  '/settings/retention': typeof SettingsRetentionRoute
+  '/settings/roles': typeof SettingsRolesRoute
+  '/settings/scans': typeof SettingsScansRoute
+  '/settings/sessions': typeof SettingsSessionsRoute
+  '/settings/sla': typeof SettingsSlaRoute
+  '/settings/sso': typeof SettingsSsoRoute
+  '/settings/suppression': typeof SettingsSuppressionRoute
+  '/settings/team': typeof SettingsTeamRoute
+  '/settings/two-factor': typeof SettingsTwoFactorRoute
+  '/settings/webhooks': typeof SettingsWebhooksRoute
+  '/dashboards': typeof DashboardsIndexRoute
+  '/settings': typeof SettingsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/agents': typeof AgentsRoute
+  '/attack-paths': typeof AttackPathsRoute
+  '/audit-log': typeof AuditLogRoute
   '/breach-intel': typeof BreachIntelRoute
+  '/business-impact': typeof BusinessImpactRoute
   '/ci-cd': typeof CiCdRoute
   '/compliance': typeof ComplianceRoute
+  '/cross-repo': typeof CrossRepoRoute
+  '/drift-posture': typeof DriftPostureRoute
+  '/executive-report': typeof ExecutiveReportRoute
+  '/exploit-validation': typeof ExploitValidationRoute
   '/findings': typeof FindingsRoute
   '/integrations': typeof IntegrationsRoute
+  '/marketplace': typeof MarketplaceRoute
+  '/maturity': typeof MaturityRoute
+  '/mssp': typeof MsspRoute
+  '/neural-memory': typeof NeuralMemoryRoute
+  '/onboarding': typeof OnboardingRoute
+  '/posture': typeof PostureRoute
+  '/pricing': typeof PricingRoute
   '/remediation': typeof RemediationRoute
   '/repositories': typeof RepositoriesRoute
   '/sbom': typeof SbomRoute
+  '/status': typeof StatusRoute
   '/supply-chain': typeof SupplyChainRoute
+  '/timeline': typeof TimelineRoute
+  '/zero-day': typeof ZeroDayRoute
+  '/connect/github': typeof ConnectGithubRoute
+  '/dashboards/$id': typeof DashboardsIdRoute
+  '/docs/api': typeof DocsApiRoute
+  '/docs/github-integration': typeof DocsGithubIntegrationRoute
+  '/settings/access-review': typeof SettingsAccessReviewRoute
+  '/settings/api-keys': typeof SettingsApiKeysRoute
+  '/settings/billing': typeof SettingsBillingRoute
+  '/settings/data-privacy': typeof SettingsDataPrivacyRoute
+  '/settings/deployment': typeof SettingsDeploymentRoute
+  '/settings/general': typeof SettingsGeneralRoute
+  '/settings/ip-allowlist': typeof SettingsIpAllowlistRoute
+  '/settings/jobs': typeof SettingsJobsRoute
+  '/settings/mssp-keys': typeof SettingsMsspKeysRoute
+  '/settings/notifications': typeof SettingsNotificationsRoute
+  '/settings/on-call': typeof SettingsOnCallRoute
+  '/settings/policies': typeof SettingsPoliciesRoute
+  '/settings/retention': typeof SettingsRetentionRoute
+  '/settings/roles': typeof SettingsRolesRoute
+  '/settings/scans': typeof SettingsScansRoute
+  '/settings/sessions': typeof SettingsSessionsRoute
+  '/settings/sla': typeof SettingsSlaRoute
+  '/settings/sso': typeof SettingsSsoRoute
+  '/settings/suppression': typeof SettingsSuppressionRoute
+  '/settings/team': typeof SettingsTeamRoute
+  '/settings/two-factor': typeof SettingsTwoFactorRoute
+  '/settings/webhooks': typeof SettingsWebhooksRoute
+  '/dashboards/': typeof DashboardsIndexRoute
+  '/settings/': typeof SettingsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -132,67 +537,268 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/agents'
+    | '/attack-paths'
+    | '/audit-log'
     | '/breach-intel'
+    | '/business-impact'
     | '/ci-cd'
     | '/compliance'
+    | '/cross-repo'
+    | '/drift-posture'
+    | '/executive-report'
+    | '/exploit-validation'
     | '/findings'
     | '/integrations'
+    | '/marketplace'
+    | '/maturity'
+    | '/mssp'
+    | '/neural-memory'
+    | '/onboarding'
+    | '/posture'
+    | '/pricing'
     | '/remediation'
     | '/repositories'
     | '/sbom'
+    | '/status'
     | '/supply-chain'
+    | '/timeline'
+    | '/zero-day'
+    | '/connect/github'
+    | '/dashboards/$id'
+    | '/docs/api'
+    | '/docs/github-integration'
+    | '/settings/access-review'
+    | '/settings/api-keys'
+    | '/settings/billing'
+    | '/settings/data-privacy'
+    | '/settings/deployment'
+    | '/settings/general'
+    | '/settings/ip-allowlist'
+    | '/settings/jobs'
+    | '/settings/mssp-keys'
+    | '/settings/notifications'
+    | '/settings/on-call'
+    | '/settings/policies'
+    | '/settings/retention'
+    | '/settings/roles'
+    | '/settings/scans'
+    | '/settings/sessions'
+    | '/settings/sla'
+    | '/settings/sso'
+    | '/settings/suppression'
+    | '/settings/team'
+    | '/settings/two-factor'
+    | '/settings/webhooks'
+    | '/dashboards/'
+    | '/settings/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/about'
     | '/agents'
+    | '/attack-paths'
+    | '/audit-log'
     | '/breach-intel'
+    | '/business-impact'
     | '/ci-cd'
     | '/compliance'
+    | '/cross-repo'
+    | '/drift-posture'
+    | '/executive-report'
+    | '/exploit-validation'
     | '/findings'
     | '/integrations'
+    | '/marketplace'
+    | '/maturity'
+    | '/mssp'
+    | '/neural-memory'
+    | '/onboarding'
+    | '/posture'
+    | '/pricing'
     | '/remediation'
     | '/repositories'
     | '/sbom'
+    | '/status'
     | '/supply-chain'
+    | '/timeline'
+    | '/zero-day'
+    | '/connect/github'
+    | '/dashboards/$id'
+    | '/docs/api'
+    | '/docs/github-integration'
+    | '/settings/access-review'
+    | '/settings/api-keys'
+    | '/settings/billing'
+    | '/settings/data-privacy'
+    | '/settings/deployment'
+    | '/settings/general'
+    | '/settings/ip-allowlist'
+    | '/settings/jobs'
+    | '/settings/mssp-keys'
+    | '/settings/notifications'
+    | '/settings/on-call'
+    | '/settings/policies'
+    | '/settings/retention'
+    | '/settings/roles'
+    | '/settings/scans'
+    | '/settings/sessions'
+    | '/settings/sla'
+    | '/settings/sso'
+    | '/settings/suppression'
+    | '/settings/team'
+    | '/settings/two-factor'
+    | '/settings/webhooks'
+    | '/dashboards'
+    | '/settings'
   id:
     | '__root__'
     | '/'
     | '/about'
     | '/agents'
+    | '/attack-paths'
+    | '/audit-log'
     | '/breach-intel'
+    | '/business-impact'
     | '/ci-cd'
     | '/compliance'
+    | '/cross-repo'
+    | '/drift-posture'
+    | '/executive-report'
+    | '/exploit-validation'
     | '/findings'
     | '/integrations'
+    | '/marketplace'
+    | '/maturity'
+    | '/mssp'
+    | '/neural-memory'
+    | '/onboarding'
+    | '/posture'
+    | '/pricing'
     | '/remediation'
     | '/repositories'
     | '/sbom'
+    | '/status'
     | '/supply-chain'
+    | '/timeline'
+    | '/zero-day'
+    | '/connect/github'
+    | '/dashboards/$id'
+    | '/docs/api'
+    | '/docs/github-integration'
+    | '/settings/access-review'
+    | '/settings/api-keys'
+    | '/settings/billing'
+    | '/settings/data-privacy'
+    | '/settings/deployment'
+    | '/settings/general'
+    | '/settings/ip-allowlist'
+    | '/settings/jobs'
+    | '/settings/mssp-keys'
+    | '/settings/notifications'
+    | '/settings/on-call'
+    | '/settings/policies'
+    | '/settings/retention'
+    | '/settings/roles'
+    | '/settings/scans'
+    | '/settings/sessions'
+    | '/settings/sla'
+    | '/settings/sso'
+    | '/settings/suppression'
+    | '/settings/team'
+    | '/settings/two-factor'
+    | '/settings/webhooks'
+    | '/dashboards/'
+    | '/settings/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
   AgentsRoute: typeof AgentsRoute
+  AttackPathsRoute: typeof AttackPathsRoute
+  AuditLogRoute: typeof AuditLogRoute
   BreachIntelRoute: typeof BreachIntelRoute
+  BusinessImpactRoute: typeof BusinessImpactRoute
   CiCdRoute: typeof CiCdRoute
   ComplianceRoute: typeof ComplianceRoute
+  CrossRepoRoute: typeof CrossRepoRoute
+  DriftPostureRoute: typeof DriftPostureRoute
+  ExecutiveReportRoute: typeof ExecutiveReportRoute
+  ExploitValidationRoute: typeof ExploitValidationRoute
   FindingsRoute: typeof FindingsRoute
   IntegrationsRoute: typeof IntegrationsRoute
+  MarketplaceRoute: typeof MarketplaceRoute
+  MaturityRoute: typeof MaturityRoute
+  MsspRoute: typeof MsspRoute
+  NeuralMemoryRoute: typeof NeuralMemoryRoute
+  OnboardingRoute: typeof OnboardingRoute
+  PostureRoute: typeof PostureRoute
+  PricingRoute: typeof PricingRoute
   RemediationRoute: typeof RemediationRoute
   RepositoriesRoute: typeof RepositoriesRoute
   SbomRoute: typeof SbomRoute
+  StatusRoute: typeof StatusRoute
   SupplyChainRoute: typeof SupplyChainRoute
+  TimelineRoute: typeof TimelineRoute
+  ZeroDayRoute: typeof ZeroDayRoute
+  ConnectGithubRoute: typeof ConnectGithubRoute
+  DashboardsIdRoute: typeof DashboardsIdRoute
+  DocsApiRoute: typeof DocsApiRoute
+  DocsGithubIntegrationRoute: typeof DocsGithubIntegrationRoute
+  SettingsAccessReviewRoute: typeof SettingsAccessReviewRoute
+  SettingsApiKeysRoute: typeof SettingsApiKeysRoute
+  SettingsBillingRoute: typeof SettingsBillingRoute
+  SettingsDataPrivacyRoute: typeof SettingsDataPrivacyRoute
+  SettingsDeploymentRoute: typeof SettingsDeploymentRoute
+  SettingsGeneralRoute: typeof SettingsGeneralRoute
+  SettingsIpAllowlistRoute: typeof SettingsIpAllowlistRoute
+  SettingsJobsRoute: typeof SettingsJobsRoute
+  SettingsMsspKeysRoute: typeof SettingsMsspKeysRoute
+  SettingsNotificationsRoute: typeof SettingsNotificationsRoute
+  SettingsOnCallRoute: typeof SettingsOnCallRoute
+  SettingsPoliciesRoute: typeof SettingsPoliciesRoute
+  SettingsRetentionRoute: typeof SettingsRetentionRoute
+  SettingsRolesRoute: typeof SettingsRolesRoute
+  SettingsScansRoute: typeof SettingsScansRoute
+  SettingsSessionsRoute: typeof SettingsSessionsRoute
+  SettingsSlaRoute: typeof SettingsSlaRoute
+  SettingsSsoRoute: typeof SettingsSsoRoute
+  SettingsSuppressionRoute: typeof SettingsSuppressionRoute
+  SettingsTeamRoute: typeof SettingsTeamRoute
+  SettingsTwoFactorRoute: typeof SettingsTwoFactorRoute
+  SettingsWebhooksRoute: typeof SettingsWebhooksRoute
+  DashboardsIndexRoute: typeof DashboardsIndexRoute
+  SettingsIndexRoute: typeof SettingsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/zero-day': {
+      id: '/zero-day'
+      path: '/zero-day'
+      fullPath: '/zero-day'
+      preLoaderRoute: typeof ZeroDayRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/timeline': {
+      id: '/timeline'
+      path: '/timeline'
+      fullPath: '/timeline'
+      preLoaderRoute: typeof TimelineRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/supply-chain': {
       id: '/supply-chain'
       path: '/supply-chain'
       fullPath: '/supply-chain'
       preLoaderRoute: typeof SupplyChainRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/status': {
+      id: '/status'
+      path: '/status'
+      fullPath: '/status'
+      preLoaderRoute: typeof StatusRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sbom': {
@@ -216,6 +822,55 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RemediationRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/pricing': {
+      id: '/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof PricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/posture': {
+      id: '/posture'
+      path: '/posture'
+      fullPath: '/posture'
+      preLoaderRoute: typeof PostureRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/neural-memory': {
+      id: '/neural-memory'
+      path: '/neural-memory'
+      fullPath: '/neural-memory'
+      preLoaderRoute: typeof NeuralMemoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mssp': {
+      id: '/mssp'
+      path: '/mssp'
+      fullPath: '/mssp'
+      preLoaderRoute: typeof MsspRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/maturity': {
+      id: '/maturity'
+      path: '/maturity'
+      fullPath: '/maturity'
+      preLoaderRoute: typeof MaturityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/marketplace': {
+      id: '/marketplace'
+      path: '/marketplace'
+      fullPath: '/marketplace'
+      preLoaderRoute: typeof MarketplaceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/integrations': {
       id: '/integrations'
       path: '/integrations'
@@ -228,6 +883,34 @@ declare module '@tanstack/react-router' {
       path: '/findings'
       fullPath: '/findings'
       preLoaderRoute: typeof FindingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/exploit-validation': {
+      id: '/exploit-validation'
+      path: '/exploit-validation'
+      fullPath: '/exploit-validation'
+      preLoaderRoute: typeof ExploitValidationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/executive-report': {
+      id: '/executive-report'
+      path: '/executive-report'
+      fullPath: '/executive-report'
+      preLoaderRoute: typeof ExecutiveReportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/drift-posture': {
+      id: '/drift-posture'
+      path: '/drift-posture'
+      fullPath: '/drift-posture'
+      preLoaderRoute: typeof DriftPostureRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cross-repo': {
+      id: '/cross-repo'
+      path: '/cross-repo'
+      fullPath: '/cross-repo'
+      preLoaderRoute: typeof CrossRepoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/compliance': {
@@ -244,11 +927,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CiCdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/business-impact': {
+      id: '/business-impact'
+      path: '/business-impact'
+      fullPath: '/business-impact'
+      preLoaderRoute: typeof BusinessImpactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/breach-intel': {
       id: '/breach-intel'
       path: '/breach-intel'
       fullPath: '/breach-intel'
       preLoaderRoute: typeof BreachIntelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/audit-log': {
+      id: '/audit-log'
+      path: '/audit-log'
+      fullPath: '/audit-log'
+      preLoaderRoute: typeof AuditLogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/attack-paths': {
+      id: '/attack-paths'
+      path: '/attack-paths'
+      fullPath: '/attack-paths'
+      preLoaderRoute: typeof AttackPathsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/agents': {
@@ -272,6 +976,202 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings/': {
+      id: '/settings/'
+      path: '/settings'
+      fullPath: '/settings/'
+      preLoaderRoute: typeof SettingsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboards/': {
+      id: '/dashboards/'
+      path: '/dashboards'
+      fullPath: '/dashboards/'
+      preLoaderRoute: typeof DashboardsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings/webhooks': {
+      id: '/settings/webhooks'
+      path: '/settings/webhooks'
+      fullPath: '/settings/webhooks'
+      preLoaderRoute: typeof SettingsWebhooksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings/two-factor': {
+      id: '/settings/two-factor'
+      path: '/settings/two-factor'
+      fullPath: '/settings/two-factor'
+      preLoaderRoute: typeof SettingsTwoFactorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings/team': {
+      id: '/settings/team'
+      path: '/settings/team'
+      fullPath: '/settings/team'
+      preLoaderRoute: typeof SettingsTeamRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings/suppression': {
+      id: '/settings/suppression'
+      path: '/settings/suppression'
+      fullPath: '/settings/suppression'
+      preLoaderRoute: typeof SettingsSuppressionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings/sso': {
+      id: '/settings/sso'
+      path: '/settings/sso'
+      fullPath: '/settings/sso'
+      preLoaderRoute: typeof SettingsSsoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings/sla': {
+      id: '/settings/sla'
+      path: '/settings/sla'
+      fullPath: '/settings/sla'
+      preLoaderRoute: typeof SettingsSlaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings/sessions': {
+      id: '/settings/sessions'
+      path: '/settings/sessions'
+      fullPath: '/settings/sessions'
+      preLoaderRoute: typeof SettingsSessionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings/scans': {
+      id: '/settings/scans'
+      path: '/settings/scans'
+      fullPath: '/settings/scans'
+      preLoaderRoute: typeof SettingsScansRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings/roles': {
+      id: '/settings/roles'
+      path: '/settings/roles'
+      fullPath: '/settings/roles'
+      preLoaderRoute: typeof SettingsRolesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings/retention': {
+      id: '/settings/retention'
+      path: '/settings/retention'
+      fullPath: '/settings/retention'
+      preLoaderRoute: typeof SettingsRetentionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings/policies': {
+      id: '/settings/policies'
+      path: '/settings/policies'
+      fullPath: '/settings/policies'
+      preLoaderRoute: typeof SettingsPoliciesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings/on-call': {
+      id: '/settings/on-call'
+      path: '/settings/on-call'
+      fullPath: '/settings/on-call'
+      preLoaderRoute: typeof SettingsOnCallRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings/notifications': {
+      id: '/settings/notifications'
+      path: '/settings/notifications'
+      fullPath: '/settings/notifications'
+      preLoaderRoute: typeof SettingsNotificationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings/mssp-keys': {
+      id: '/settings/mssp-keys'
+      path: '/settings/mssp-keys'
+      fullPath: '/settings/mssp-keys'
+      preLoaderRoute: typeof SettingsMsspKeysRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings/jobs': {
+      id: '/settings/jobs'
+      path: '/settings/jobs'
+      fullPath: '/settings/jobs'
+      preLoaderRoute: typeof SettingsJobsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings/ip-allowlist': {
+      id: '/settings/ip-allowlist'
+      path: '/settings/ip-allowlist'
+      fullPath: '/settings/ip-allowlist'
+      preLoaderRoute: typeof SettingsIpAllowlistRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings/general': {
+      id: '/settings/general'
+      path: '/settings/general'
+      fullPath: '/settings/general'
+      preLoaderRoute: typeof SettingsGeneralRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings/deployment': {
+      id: '/settings/deployment'
+      path: '/settings/deployment'
+      fullPath: '/settings/deployment'
+      preLoaderRoute: typeof SettingsDeploymentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings/data-privacy': {
+      id: '/settings/data-privacy'
+      path: '/settings/data-privacy'
+      fullPath: '/settings/data-privacy'
+      preLoaderRoute: typeof SettingsDataPrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings/billing': {
+      id: '/settings/billing'
+      path: '/settings/billing'
+      fullPath: '/settings/billing'
+      preLoaderRoute: typeof SettingsBillingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings/api-keys': {
+      id: '/settings/api-keys'
+      path: '/settings/api-keys'
+      fullPath: '/settings/api-keys'
+      preLoaderRoute: typeof SettingsApiKeysRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings/access-review': {
+      id: '/settings/access-review'
+      path: '/settings/access-review'
+      fullPath: '/settings/access-review'
+      preLoaderRoute: typeof SettingsAccessReviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs/github-integration': {
+      id: '/docs/github-integration'
+      path: '/docs/github-integration'
+      fullPath: '/docs/github-integration'
+      preLoaderRoute: typeof DocsGithubIntegrationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs/api': {
+      id: '/docs/api'
+      path: '/docs/api'
+      fullPath: '/docs/api'
+      preLoaderRoute: typeof DocsApiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboards/$id': {
+      id: '/dashboards/$id'
+      path: '/dashboards/$id'
+      fullPath: '/dashboards/$id'
+      preLoaderRoute: typeof DashboardsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/connect/github': {
+      id: '/connect/github'
+      path: '/connect/github'
+      fullPath: '/connect/github'
+      preLoaderRoute: typeof ConnectGithubRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -279,26 +1179,61 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   AgentsRoute: AgentsRoute,
+  AttackPathsRoute: AttackPathsRoute,
+  AuditLogRoute: AuditLogRoute,
   BreachIntelRoute: BreachIntelRoute,
+  BusinessImpactRoute: BusinessImpactRoute,
   CiCdRoute: CiCdRoute,
   ComplianceRoute: ComplianceRoute,
+  CrossRepoRoute: CrossRepoRoute,
+  DriftPostureRoute: DriftPostureRoute,
+  ExecutiveReportRoute: ExecutiveReportRoute,
+  ExploitValidationRoute: ExploitValidationRoute,
   FindingsRoute: FindingsRoute,
   IntegrationsRoute: IntegrationsRoute,
+  MarketplaceRoute: MarketplaceRoute,
+  MaturityRoute: MaturityRoute,
+  MsspRoute: MsspRoute,
+  NeuralMemoryRoute: NeuralMemoryRoute,
+  OnboardingRoute: OnboardingRoute,
+  PostureRoute: PostureRoute,
+  PricingRoute: PricingRoute,
   RemediationRoute: RemediationRoute,
   RepositoriesRoute: RepositoriesRoute,
   SbomRoute: SbomRoute,
+  StatusRoute: StatusRoute,
   SupplyChainRoute: SupplyChainRoute,
+  TimelineRoute: TimelineRoute,
+  ZeroDayRoute: ZeroDayRoute,
+  ConnectGithubRoute: ConnectGithubRoute,
+  DashboardsIdRoute: DashboardsIdRoute,
+  DocsApiRoute: DocsApiRoute,
+  DocsGithubIntegrationRoute: DocsGithubIntegrationRoute,
+  SettingsAccessReviewRoute: SettingsAccessReviewRoute,
+  SettingsApiKeysRoute: SettingsApiKeysRoute,
+  SettingsBillingRoute: SettingsBillingRoute,
+  SettingsDataPrivacyRoute: SettingsDataPrivacyRoute,
+  SettingsDeploymentRoute: SettingsDeploymentRoute,
+  SettingsGeneralRoute: SettingsGeneralRoute,
+  SettingsIpAllowlistRoute: SettingsIpAllowlistRoute,
+  SettingsJobsRoute: SettingsJobsRoute,
+  SettingsMsspKeysRoute: SettingsMsspKeysRoute,
+  SettingsNotificationsRoute: SettingsNotificationsRoute,
+  SettingsOnCallRoute: SettingsOnCallRoute,
+  SettingsPoliciesRoute: SettingsPoliciesRoute,
+  SettingsRetentionRoute: SettingsRetentionRoute,
+  SettingsRolesRoute: SettingsRolesRoute,
+  SettingsScansRoute: SettingsScansRoute,
+  SettingsSessionsRoute: SettingsSessionsRoute,
+  SettingsSlaRoute: SettingsSlaRoute,
+  SettingsSsoRoute: SettingsSsoRoute,
+  SettingsSuppressionRoute: SettingsSuppressionRoute,
+  SettingsTeamRoute: SettingsTeamRoute,
+  SettingsTwoFactorRoute: SettingsTwoFactorRoute,
+  SettingsWebhooksRoute: SettingsWebhooksRoute,
+  DashboardsIndexRoute: DashboardsIndexRoute,
+  SettingsIndexRoute: SettingsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

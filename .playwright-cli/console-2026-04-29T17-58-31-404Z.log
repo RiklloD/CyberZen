@@ -1,0 +1,5 @@
+[     449ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3010/node_modules/.vite/deps/react-dom_client.js?v=e4ff05df:20102
+[   11871ms] [ERROR] [CONVEX A(auth:signIn)] [Request ID: 19948ba7eb48db56] Server Error @ http://localhost:3010/src/routes/__root.tsx:50
+[  193961ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:3010/src/routes/__root.tsx:50
+[  193962ms] [ERROR] Failed to load resource: net::ERR_INCOMPLETE_CHUNKED_ENCODING @ http://localhost:3010/__tsd/console-pipe/sse:0
+[  195783ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3010/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:20102

@@ -1,0 +1,61 @@
+[    1922ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:20102
+[   24923ms] [LOG] WebSocket reconnected at t=24.9s @ http://localhost:3011/src/routes/__root.tsx:50
+[   72049ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:20102
+[   72632ms] [LOG] WebSocket reconnected at t=0.9s @ http://localhost:3011/src/routes/__root.tsx:50
+[   72878ms] [LOG] WebSocket reconnected at t=1.2s @ http://localhost:3011/src/routes/__root.tsx:50
+[  234180ms] [ERROR] [vite] SyntaxError: The requested module '/node_modules/.vite/deps/@convex-dev_auth_react.js?v=1a3fc306' does not provide an export named 'useAuth' @ http://localhost:3011/src/routes/__root.tsx:50
+[  234180ms] [ERROR] [vite] Failed to reload /src/routes/__root.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:3011/src/routes/__root.tsx:50
+[  286787ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:20102
+[  287344ms] [LOG] WebSocket reconnected at t=0.6s @ http://localhost:3011/src/routes/__root.tsx?t=1777486054993:50
+[  287596ms] [LOG] WebSocket reconnected at t=0.9s @ http://localhost:3011/src/routes/__root.tsx?t=1777486054993:50
+[  308461ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:20102
+[  308936ms] [LOG] WebSocket reconnected at t=0.5s @ http://localhost:3011/src/routes/__root.tsx?t=1777486054993:50
+[  309188ms] [LOG] WebSocket reconnected at t=0.8s @ http://localhost:3011/src/routes/__root.tsx?t=1777486054993:50
+[  390037ms] [ERROR] [CONVEX M(onboarding:provisionWorkspace)] [Request ID: 4ea2be7172a91c00] Server Error
+Uncaught Error: Not signed in
+    at handler (../convex/onboarding.ts:122:23)
+ @ http://localhost:3011/src/routes/__root.tsx?t=1777486054993:50
+[  448750ms] [ERROR] [CONVEX M(onboarding:provisionWorkspace)] [Request ID: 6e58de47031bdf42] Server Error
+Uncaught Error: Not signed in
+    at handler (../convex/onboarding.ts:122:23)
+ @ http://localhost:3011/src/routes/__root.tsx?t=1777486054993:50
+[  474239ms] [ERROR] %o
+
+%s
+
+%s
+ ReferenceError: convexQueryClient is not defined
+    at AppConvexProvider (http://localhost:3011/src/integrations/convex/provider.tsx?t=1777486242513:9:3)
+    at Object.react_stack_bottom_frame (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:18509:20)
+    at renderWithHooks (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:5654:24)
+    at updateFunctionComponent (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:7475:21)
+    at beginWork (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:8525:20)
+    at runWithFiberInDEV (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:997:72)
+    at performUnitOfWork (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:12561:98)
+    at workLoopSync (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:12424:43)
+    at renderRootSync (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:12408:13)
+    at performWorkOnRoot (http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:11827:37) The above error occurred in the <AppConvexProvider> component. React will try to recreate this component tree from scratch using the error boundary you provided, CatchBoundaryImpl. @ http://localhost:3011/src/routes/__root.tsx?t=1777486054993:50
+[  474239ms] [WARNING] Warning: The following error wasn't caught by any route! At the very least, consider setting an 'errorComponent' in your RootRoute! @ http://localhost:3011/src/routes/__root.tsx?t=1777486054993:50
+[  474240ms] [WARNING] Warning: convexQueryClient is not defined @ http://localhost:3011/src/routes/__root.tsx?t=1777486054993:50
+[  488524ms] [LOG] WebSocket reconnected at t=180.1s @ http://localhost:3011/src/routes/__root.tsx?t=1777486054993:50
+[  488793ms] [LOG] WebSocket reconnected at t=180.4s @ http://localhost:3011/src/routes/__root.tsx?t=1777486054993:50
+[  510270ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:20102
+[  510790ms] [LOG] WebSocket reconnected at t=0.9s @ http://localhost:3011/src/routes/__root.tsx?t=1777486256317:50
+[  511054ms] [LOG] WebSocket reconnected at t=1.1s @ http://localhost:3011/src/routes/__root.tsx?t=1777486256317:50
+[  553890ms] [ERROR] [CONVEX M(onboarding:provisionWorkspace)] [Request ID: f1e2478b964e3d07] Server Error
+Uncaught Error: Not signed in
+    at handler (../convex/onboarding.ts:122:23)
+ @ http://localhost:3011/src/routes/__root.tsx?t=1777486256317:50
+[  677489ms] [LOG] WebSocket reconnected at t=167.6s @ http://localhost:3011/src/routes/__root.tsx?t=1777486256317:50
+[  701263ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:20102
+[  701616ms] [LOG] WebSocket reconnected at t=0.7s @ http://localhost:3011/src/routes/__root.tsx?t=1777486445325:50
+[  716719ms] [ERROR] [CONVEX M(onboarding:provisionWorkspace)] [Request ID: dac58ad8d0345da1] Server Error
+Uncaught Error: Not signed in
+    at handler (../convex/onboarding.ts:122:23)
+ @ http://localhost:3011/src/routes/__root.tsx?t=1777486445325:50
+[  786238ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:20102
+[  786641ms] [LOG] WebSocket reconnected at t=0.9s @ http://localhost:3011/src/routes/__root.tsx?t=1777486445325:50
+[  793299ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:20102
+[  793647ms] [LOG] WebSocket reconnected at t=0.5s @ http://localhost:3011/src/routes/__root.tsx?t=1777486445325:50
+[  816141ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3011/node_modules/.vite/deps/react-dom_client.js?v=1a3fc306:20102
+[  816515ms] [LOG] WebSocket reconnected at t=0.5s @ http://localhost:3011/src/routes/__root.tsx?t=1777486445325:50

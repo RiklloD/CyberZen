@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { Shield, Waypoints } from "lucide-react";
+import NotificationBell from "./NotificationBell";
 import ThemeToggle from "./ThemeToggle";
 
 export default function Header() {
@@ -31,6 +32,7 @@ export default function Header() {
 						Phase 0 to Phase 1
 					</div>
 
+					<NotificationBell />
 					<ThemeToggle />
 				</div>
 
