@@ -39,6 +39,46 @@ const GITHUB_SCOPES = ["read:user", "user:email", "public_repo", "repo"];
 
 const STATE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
+// ── User resolution helper ──────────────────────────────────────────────
+
+/**
+ * Look up the `users` row for the currently authenticated identity.
+ * `identity.subject` is a composite auth string (e.g.
+ * `"provider|providerAccountId"`), NOT a Convex `v.id("users")`.
+ * We resolve by email instead.
+ */
+async function resolveCurrentUser(ctx: any) {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+    const email = identity.email;
+    if (!email) throw new Error("Identity has no email claim");
+    const user = await ctx.db
+        .query("users")
+        .withIndex("email", (q: any) => q.eq("email", email))
+        .first();
+    if (!user) throw new Error(`No user found for email ${email}`);
+    return { user, identity };
+}
+
+/** Internal query so the action can resolve the user. */
+export const _resolveUser = query({
+    args: {},
+    returns: v.union(
+        v.null(),
+        v.object({ userId: v.id("users"), email: v.string() }),
+    ),
+    handler: async (ctx) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity?.email) return null;
+        const user = await ctx.db
+            .query("users")
+            .withIndex("email", (q) => q.eq("email", identity.email!))
+            .first();
+        if (!user) return null;
+        return { userId: user._id, email: identity.email! };
+    },
+});
+
 // ── State table helpers ────────────────────────────────────────────────
 
 /** Internal mutation: persist a `state → userId` mapping for CSRF
@@ -157,12 +197,18 @@ export const getGithubConnectionStatus = query({
     ),
     handler: async (ctx) => {
         const identity = await ctx.auth.getUserIdentity();
-        if (!identity) return { connected: false as const };
+        if (!identity?.email) return { connected: false as const };
+
+        const user = await ctx.db
+            .query("users")
+            .withIndex("email", (q) => q.eq("email", identity.email!))
+            .first();
+        if (!user) return { connected: false as const };
 
         const row = (await ctx.db
             .query("userGithubTokens")
             .withIndex("by_user", (q) =>
-                q.eq("userId", identity.subject as Id<"users">),
+                q.eq("userId", user._id),
             )
             .first()) as Doc<"userGithubTokens"> | null;
         if (!row) return { connected: false as const };
@@ -182,14 +228,11 @@ export const disconnectGithub = mutation({
     args: {},
     returns: v.object({ removed: v.boolean() }),
     handler: async (ctx) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (!identity) {
-            throw new Error("Not authenticated");
-        }
+        const { user } = await resolveCurrentUser(ctx);
         const row = await ctx.db
             .query("userGithubTokens")
             .withIndex("by_user", (q) =>
-                q.eq("userId", identity.subject as Id<"users">),
+                q.eq("userId", user._id),
             )
             .first();
         if (!row) return { removed: false };
@@ -218,10 +261,18 @@ export const startGithubConnect = action({
         state: string;
         expiresAt: number;
     }> => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (!identity) {
-            throw new Error("Not authenticated");
+        // Resolve the real Convex user ID.  identity.subject is a
+        // composite auth string, NOT a v.id("users").
+        const resolved = await ctx.runQuery(
+            internal.githubOAuth._resolveUser,
+            {},
+        );
+        if (!resolved) {
+            throw new Error(
+                "Could not resolve current user. Make sure you are signed in.",
+            );
         }
+
         const clientId = process.env["AUTH_GITHUB_API_ID"];
         const siteUrl = process.env["CONVEX_SITE_URL"];
         if (!clientId) {
@@ -244,7 +295,7 @@ export const startGithubConnect = action({
             internal.githubOAuth.createOAuthState,
             {
                 state,
-                userId: identity.subject as Id<"users">,
+                userId: resolved.userId,
                 tenantSlug: args.tenantSlug,
                 returnTo,
             },
