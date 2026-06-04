@@ -151,6 +151,16 @@ function OnboardingPage() {
 				"",
 				window.location.pathname + window.location.hash,
 			);
+		} else if (params.get("github") === "connected") {
+			// The API OAuth flow completed. Clear any stale error and
+			// reset githubRepos so the repos useEffect re-fetches.
+			setGithubConnectError(null);
+			setGithubRepos(null);
+			window.history.replaceState(
+				{},
+				"",
+				window.location.pathname + window.location.hash,
+			);
 		}
 	}, []);
 
@@ -188,6 +198,10 @@ function OnboardingPage() {
 		);
 		if (!hasGithub || githubRepos || githubReposLoading) return;
 
+		// Only auto-fetch repos if the user has completed the API OAuth flow.
+		// Without a stored `userGithubTokens` row, listGithubRepos will throw.
+		if (!githubConnection?.connected) return;
+
 		setGithubReposLoading(true);
 		setGithubReposError(null);
 		listGithubRepos({ tenantSlug: TENANT, perPage: 100 })
@@ -203,7 +217,7 @@ function OnboardingPage() {
 				);
 			})
 			.finally(() => setGithubReposLoading(false));
-	}, [linkedProviders, listGithubRepos, TENANT, githubRepos, githubReposLoading]);
+	}, [linkedProviders, listGithubRepos, TENANT, githubRepos, githubReposLoading, githubConnection]);
 
 	// If the user picks a provider that no longer has linked+connected status,
 	// reset the field so the form can never submit an invalid combination.
