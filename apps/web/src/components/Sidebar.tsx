@@ -48,6 +48,7 @@ import {
 import { useState } from "react";
 import { useFeatureFlag } from "../lib/featureFlags";
 import ThemeToggle from "./ThemeToggle";
+import UserProfileButton from "./UserProfileButton";
 import WorkspaceSwitcher from "./WorkspaceSwitcher";
 
 type NavItem = {
@@ -203,6 +204,7 @@ export default function Sidebar() {
 			</nav>
 
 			<div className="sidebar-footer">
+				<UserProfileButton />
 				<ThemeToggle />
 			</div>
 		</div>

@@ -325,6 +325,7 @@ import type * as trafficAnomalyIntel from "../trafficAnomalyIntel.js";
 import type * as trustScoreIntel from "../trustScoreIntel.js";
 import type * as twoFactor from "../twoFactor.js";
 import type * as usage from "../usage.js";
+import type * as userProfile from "../userProfile.js";
 import type * as vendorTrust from "../vendorTrust.js";
 import type * as virtualizationSecurityDriftIntel from "../virtualizationSecurityDriftIntel.js";
 import type * as voipSecurityDriftIntel from "../voipSecurityDriftIntel.js";
@@ -659,6 +660,7 @@ declare const fullApi: ApiFromModules<{
   trustScoreIntel: typeof trustScoreIntel;
   twoFactor: typeof twoFactor;
   usage: typeof usage;
+  userProfile: typeof userProfile;
   vendorTrust: typeof vendorTrust;
   virtualizationSecurityDriftIntel: typeof virtualizationSecurityDriftIntel;
   voipSecurityDriftIntel: typeof voipSecurityDriftIntel;
