@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { FileCheck2 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import StatusPill from "../components/StatusPill";
 import ComplianceEvidencePanel from "../components/panels/ComplianceEvidencePanel";
 import RegulatoryDriftPanel from "../components/panels/RegulatoryDriftPanel";
@@ -13,6 +13,7 @@ import SecurityDebtPanel from "../components/panels/SecurityDebtPanel";
 import SensitiveFileScanPanel from "../components/panels/SensitiveFileScanPanel";
 import ExportMenu from "../components/ExportMenu";
 import { api } from "../lib/convex";
+import type { Id } from "../lib/convex";
 import { useTenantSlug } from "../lib/workspace";
 import { useFeatureFlag } from "../lib/featureFlags";
 import QueryErrorFallback from "../components/QueryErrorFallback";
@@ -34,9 +35,10 @@ function CompliancePage() {
 	const [activeSection, setActiveSection] = useState<
 		"intelligence" | "evidence"
 	>("intelligence");
+	const [allEvidenceId, setAllEvidenceId] = useState<Id<"repositories"> | null>(null);
 	const allEvidence = useQuery(
 		api.complianceEvidenceIntel.getAllFrameworkEvidence,
-		{ tenantSlug: TENANT },
+		allEvidenceId ? { repositoryId: allEvidenceId } : "skip",
 	);
 
 	if (!overview) {
@@ -55,6 +57,13 @@ function CompliancePage() {
 	const activeRepo = selectedRepo
 		? repositories.find((r: OverviewRepository) => r._id === selectedRepo)
 		: repositories[0];
+
+	// Sync evidence query to the active repo
+	useEffect(() => {
+		if (activeRepo) {
+			setAllEvidenceId(activeRepo._id as Id<"repositories">);
+		}
+	}, [activeRepo]);
 
 	return (
 		<main>

@@ -87,20 +87,20 @@ function AgentsPage() {
 					>
 						Per-repository
 					</button>
-				<button
-					type="button"
-					className={`tab-btn ${activeTab === "certification" ? "is-active" : ""}`}
-					onClick={() => setActiveTab("certification")}
-				>
-					LLM Certification
-				</button>
-				<button
-					type="button"
-					className={`tab-btn ${activeTab === "provenance" ? "is-active" : ""}`}
-					onClick={() => setActiveTab("provenance")}
-				>
-					Model Provenance
-				</button>
+					<button
+						type="button"
+						className={`tab-btn ${activeTab === "certification" ? "is-active" : ""}`}
+						onClick={() => setActiveTab("certification")}
+					>
+						LLM Certification
+					</button>
+					<button
+						type="button"
+						className={`tab-btn ${activeTab === "provenance" ? "is-active" : ""}`}
+						onClick={() => setActiveTab("provenance")}
+					>
+						Model Provenance
+					</button>
 				</div>
 
 				{activeTab === "overview" && (
@@ -109,59 +109,69 @@ function AgentsPage() {
 						<div>
 							<div className="section-header mb-3">
 								<h2 className="section-title">Semantic Fingerprinting</h2>
-								<StatusPill
-									label={`${semanticFingerprint.openCandidateCount} candidates`}
-									tone={
-										semanticFingerprint.openCandidateCount > 0
-											? "warning"
-											: "success"
-									}
-								/>
-							</div>
-
-							<div className="card mb-3">
-								<div className="flex flex-wrap gap-2 mb-2">
+								{semanticFingerprint && (
 									<StatusPill
-										label={`${semanticFingerprint.openCandidateCount} open candidates`}
+										label={`${semanticFingerprint.openCandidateCount} candidates`}
 										tone={
 											semanticFingerprint.openCandidateCount > 0
 												? "warning"
 												: "success"
 										}
 									/>
-									<StatusPill
-										label={`${semanticFingerprint.pendingValidationCount} pending validation`}
-										tone="neutral"
-									/>
-								</div>
+								)}
 							</div>
 
-							{semanticFingerprint.recentFindings.length > 0 && (
-								<div className="space-y-2">
-									{semanticFingerprint.recentFindings.map(
-										(finding: OverviewSemanticFinding) => (
-											<div key={finding._id} className="card card-sm">
-												<div className="flex flex-wrap items-center gap-2">
-													<StatusPill
-														label={finding.severity}
-														tone={severityTone(finding.severity)}
-													/>
-													<StatusPill
-														label={finding.vulnClass.replace(/_/g, " ")}
-														tone="info"
-													/>
-													<StatusPill
-														label={`${(finding.confidence * 100).toFixed(0)}% confidence`}
-														tone="neutral"
-													/>
-												</div>
-												<p className="mt-1 text-xs text-[var(--sea-ink-soft)]">
-													{finding.repositoryName} ·{" "}
-													{formatTimestamp(finding.createdAt)}
-												</p>
-											</div>
-										),
+							{semanticFingerprint ? (
+								<div className="card mb-3">
+									<div className="flex flex-wrap gap-2 mb-2">
+										<StatusPill
+											label={`${semanticFingerprint.openCandidateCount} open candidates`}
+											tone={
+												semanticFingerprint.openCandidateCount > 0
+													? "warning"
+													: "success"
+											}
+										/>
+										<StatusPill
+											label={`${semanticFingerprint.pendingValidationCount} pending validation`}
+											tone="neutral"
+										/>
+									</div>
+
+									{semanticFingerprint.recentFindings.length > 0 && (
+										<div className="space-y-2">
+											{semanticFingerprint.recentFindings.map(
+												(finding: OverviewSemanticFinding) => (
+													<div key={finding._id} className="card card-sm">
+														<div className="flex flex-wrap items-center gap-2">
+															<StatusPill
+																label={finding.severity}
+																tone={severityTone(finding.severity)}
+															/>
+															<StatusPill
+																label={finding.vulnClass.replace(/_/g, " ")}
+																tone="info"
+															/>
+															<StatusPill
+																label={`${(finding.confidence * 100).toFixed(0)}% confidence`}
+																tone="neutral"
+															/>
+														</div>
+														<p className="mt-1 text-xs text-[var(--sea-ink-soft)]">
+															{finding.repositoryName} ·{" "}
+															{formatTimestamp(finding.createdAt)}
+														</p>
+													</div>
+												),
+											)}
+										</div>
 									)}
+								</div>
+							) : (
+								<div className="card">
+									<div className="empty-state border border-dashed border-[var(--line)] rounded-2xl">
+										<p>No semantic fingerprint data available yet.</p>
+									</div>
 								</div>
 							)}
 						</div>
@@ -171,35 +181,43 @@ function AgentsPage() {
 							<div className="section-header mb-3">
 								<h2 className="section-title">Exploit Validation</h2>
 							</div>
-							<div className="space-y-2">
-								{exploitValidation.recentRuns.map((run: OverviewExploitRun) => (
-									<div key={run._id} className="card card-sm">
-										<div className="flex flex-wrap items-center gap-2">
-											<StatusPill
-												label={run.outcome ?? run.status}
-												tone={validationTone(run.outcome ?? undefined)}
-											/>
-											<StatusPill label={run.status} tone="neutral" />
-										</div>
-										<p className="mt-1 text-xs font-medium text-[var(--sea-ink)]">
-											{run.findingTitle}
-										</p>
-										<p className="mt-0.5 text-xs text-[var(--sea-ink-soft)]">
-											{run.repositoryName} · {formatTimestamp(run.startedAt)}
-										</p>
-										{run.evidenceSummary && (
-											<p className="mt-1 text-xs text-[var(--sea-ink-soft)]">
-												{run.evidenceSummary}
+							{exploitValidation ? (
+								<div className="space-y-2">
+									{exploitValidation.recentRuns.map((run: OverviewExploitRun) => (
+										<div key={run._id} className="card card-sm">
+											<div className="flex flex-wrap items-center gap-2">
+												<StatusPill
+													label={run.outcome ?? run.status}
+													tone={validationTone(run.outcome ?? undefined)}
+												/>
+												<StatusPill label={run.status} tone="neutral" />
+											</div>
+											<p className="mt-1 text-xs font-medium text-[var(--sea-ink)]">
+												{run.findingTitle}
 											</p>
-										)}
-									</div>
-								))}
-								{exploitValidation.recentRuns.length === 0 && (
+											<p className="mt-0.5 text-xs text-[var(--sea-ink-soft)]">
+												{run.repositoryName} · {formatTimestamp(run.startedAt)}
+											</p>
+											{run.evidenceSummary && (
+												<p className="mt-1 text-xs text-[var(--sea-ink-soft)]">
+													{run.evidenceSummary}
+												</p>
+											)}
+										</div>
+									))}
+									{exploitValidation.recentRuns.length === 0 && (
+										<div className="empty-state border border-dashed border-[var(--line)] rounded-2xl">
+											<p>No exploit validation runs.</p>
+										</div>
+									)}
+								</div>
+							) : (
+								<div className="card">
 									<div className="empty-state border border-dashed border-[var(--line)] rounded-2xl">
-										<p>No exploit validation runs.</p>
+										<p>No exploit validation data available yet.</p>
 									</div>
-								)}
-							</div>
+								</div>
+							)}
 						</div>
 					</div>
 				)}
