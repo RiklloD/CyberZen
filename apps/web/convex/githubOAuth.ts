@@ -42,21 +42,35 @@ const STATE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 // ── User resolution helper ──────────────────────────────────────────────
 
 /**
+ * Extract the `users` table document ID from `identity.subject`.
+ * `@convex-dev/auth` encodes the subject as `"<userId>|<sessionId>"`.
+ */
+function userIdFromSubject(subject: string): Id<"users"> {
+    return subject.split("|")[0] as Id<"users">;
+}
+
+/**
  * Look up the `users` row for the currently authenticated identity.
- * `identity.subject` is a composite auth string (e.g.
- * `"provider|providerAccountId"`), NOT a Convex `v.id("users")`.
- * We resolve by email instead.
+ * Tries email first (fast index), then falls back to extracting the
+ * userId from `identity.subject` when the email claim is absent.
  */
 async function resolveCurrentUser(ctx: any) {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
-    const email = identity.email;
-    if (!email) throw new Error("Identity has no email claim");
-    const user = await ctx.db
-        .query("users")
-        .withIndex("email", (q: any) => q.eq("email", email))
-        .first();
-    if (!user) throw new Error(`No user found for email ${email}`);
+    
+    // Path 1: resolve by email (fast)
+    if (identity.email) {
+        const user = await ctx.db
+            .query("users")
+            .withIndex("email", (q: any) => q.eq("email", identity.email))
+            .first();
+        if (user) return { user, identity };
+    }
+
+    // Path 2: resolve by subject ("userId|sessionId")
+    const userId = userIdFromSubject(identity.subject);
+    const user = await ctx.db.get(userId);
+    if (!user) throw new Error("No user found for identity");
     return { user, identity };
 }
 
@@ -229,18 +243,28 @@ export const getGithubConnectionStatus = query({
     ),
     handler: async (ctx) => {
         const identity = await ctx.auth.getUserIdentity();
-        if (!identity?.email) return { connected: false as const };
+        if (!identity) return { connected: false as const };
 
-        const user = await ctx.db
-            .query("users")
-            .withIndex("email", (q) => q.eq("email", identity.email!))
-            .first();
-        if (!user) return { connected: false as const };
+        // Resolve user — try email first, then subject fallback
+        let userId: Id<"users"> | null = null;
+        if (identity.email) {
+            const user = await ctx.db
+                .query("users")
+                .withIndex("email", (q) => q.eq("email", identity.email!))
+                .first();
+            if (user) userId = user._id;
+        }
+        if (!userId) {
+            userId = userIdFromSubject(identity.subject);
+            // Verify the user actually exists
+            const user = await ctx.db.get(userId);
+            if (!user) return { connected: false as const };
+        }
 
         const row = (await ctx.db
             .query("userGithubTokens")
             .withIndex("by_user", (q) =>
-                q.eq("userId", user._id),
+                q.eq("userId", userId!),
             )
             .first()) as Doc<"userGithubTokens"> | null;
         if (!row) return { connected: false as const };
