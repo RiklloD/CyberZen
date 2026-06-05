@@ -37,6 +37,9 @@ function DashboardPage() {
 	const overview = useQuery(api.dashboard.overview, {
 		tenantSlug: TENANT,
 	});
+	const eduStats = useQuery(api.securityEducation.getEducationStats, {
+		tenantSlug: TENANT,
+	});
 
 	if (overview === undefined) {
 		return (
@@ -79,10 +82,6 @@ function DashboardPage() {
 			</main>
 		);
 	}
-
-	const eduStats = useQuery(api.securityEducation.getEducationStats, {
-		tenantSlug: TENANT,
-	});
 
 	const {
 		tenant,
