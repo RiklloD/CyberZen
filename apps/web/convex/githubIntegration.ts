@@ -13,6 +13,15 @@ import type { Doc, Id } from "./_generated/dataModel";
 
 const GITHUB_API = "https://api.github.com";
 
+/**
+ * Extract the `users` table document ID from `identity.subject`.
+ * `@convex-dev/auth` encodes the subject as `"<userId>|<sessionId>"`,
+ * but the first segment is the actual `Id<"users">` we need for queries.
+ */
+function userIdFromSubject(subject: string): Id<"users"> {
+    return subject.split("|")[0] as Id<"users">;
+}
+
 type GithubRepo = {
 	id: number;
 	full_name: string;
@@ -50,7 +59,7 @@ export const getGithubAccessToken = internalQuery({
         const row = (await ctx.db
             .query("userGithubTokens")
             .withIndex("by_user", (q) =>
-                q.eq("userId", identity.subject as Id<"users">),
+                q.eq("userId", userIdFromSubject(identity.subject)),
             )
             .first()) as Doc<"userGithubTokens"> | null;
 
@@ -209,11 +218,12 @@ export const listLinkedProviders = query({
         void args.tenantSlug;
 
         // Source 1: `@convex-dev/auth` GitHub sign-in row.
+        const userId = userIdFromSubject(identity.subject);
         const authAccount = (await ctx.db
             .query("authAccounts")
             .withIndex("userIdAndProvider", (q) =>
                 q
-                    .eq("userId", identity.subject as Id<"users">)
+                    .eq("userId", userId)
                     .eq("provider", "github"),
             )
             .first()) as Doc<"authAccounts"> | null;
@@ -222,7 +232,7 @@ export const listLinkedProviders = query({
         const token = (await ctx.db
             .query("userGithubTokens")
             .withIndex("by_user", (q) =>
-                q.eq("userId", identity.subject as Id<"users">),
+                q.eq("userId", userId),
             )
             .first()) as Doc<"userGithubTokens"> | null;
 
