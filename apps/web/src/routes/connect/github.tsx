@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Github, CheckCircle2, ArrowRight, Loader2, GitBranch, Search } from "lucide-react";
-import { useQuery, useMutation } from "convex/react";
-import { useState, useEffect } from "react";
+import { useQuery, useMutation, useAction } from "convex/react";
+import { useState, useEffect, useCallback } from "react";
 import { api } from "../../lib/convex";
 import { useTenantSlug } from "../../lib/workspace";
 import RouteErrorBoundary from "../../components/RouteErrorBoundary";
@@ -21,8 +21,12 @@ function GitHubConnectWizard() {
 	const [repoFilter, setRepoFilter] = useState("");
 	const [scanTriggered, setScanTriggered] = useState(false);
 
-	// Repositories fetched from the GitHub API (if connected) or from tenant data
-	const githubRepos = useQuery(api.githubIntegration.listGithubRepos, { tenantSlug: TENANT });
+	// GitHub repos are fetched via action (external API call, not reactive)
+	const fetchGithubRepos = useAction(api.githubIntegration.listGithubRepos);
+	const [githubRepos, setGithubRepos] = useState<any[] | null>(null);
+	const [githubReposLoading, setGithubReposLoading] = useState(false);
+
+	// Tenant repos from local DB (reactive query)
 	const tenantRepos = useQuery(api.dashboard.repoSummaries, { tenantSlug: TENANT });
 
 	const steps: { key: WizardStep; label: string; num: number }[] = [
@@ -47,6 +51,26 @@ function GitHubConnectWizard() {
 			return next;
 		});
 	}
+
+	// Fetch GitHub repos via action when connection is confirmed
+	const loadGithubRepos = useCallback(() => {
+		if (githubReposLoading || githubRepos) return;
+		setGithubReposLoading(true);
+		fetchGithubRepos({ tenantSlug: TENANT, perPage: 100 })
+			.then((result) => setGithubRepos(result.repos))
+			.catch((err) => {
+				console.error("Failed to fetch GitHub repos:", err);
+				setGithubRepos(null);
+			})
+			.finally(() => setGithubReposLoading(false));
+	}, [fetchGithubRepos, TENANT, githubReposLoading, githubRepos]);
+
+	// Auto-fetch repos when GitHub connection is confirmed
+	useEffect(() => {
+		if (githubConnection?.connected) {
+			loadGithubRepos();
+		}
+	}, [githubConnection?.connected, loadGithubRepos]);
 
 	// Use GitHub repos if available, otherwise fall back to tenant repos
 	const repoList = (githubRepos ?? tenantRepos ?? []) as any[];
