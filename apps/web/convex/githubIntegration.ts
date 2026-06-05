@@ -69,6 +69,34 @@ export const getGithubAccessToken = internalQuery({
 });
 
 /**
+ * Check if the current user has a GitHub token stored (i.e. they connected
+ * their GitHub account via the application-managed OAuth flow).
+ * Used by the Connect GitHub wizard to skip the install step if already linked.
+ */
+export const getGithubConnectionStatus = query({
+    args: { tenantSlug: v.string() },
+    returns: v.object({
+        connected: v.boolean(),
+        login: v.union(v.string(), v.null()),
+    }),
+    handler: async (ctx, _args) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) return { connected: false, login: null };
+
+        const userId = userIdFromSubject(identity.subject);
+        const tokenRow = await ctx.db
+            .query("userGithubTokens")
+            .withIndex("by_user", (q) => q.eq("userId", userId))
+            .first();
+
+        return {
+            connected: !!tokenRow?.accessToken,
+            login: (tokenRow as any)?.login ?? null,
+        };
+    },
+});
+
+/**
  * Return the GitHub repos the currently signed-in user can see.
  *
  * The `provider` value used by `@auth/core/providers/github` is the

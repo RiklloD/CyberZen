@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Github, CheckCircle2, ArrowRight, Loader2, GitBranch, Search } from "lucide-react";
-import { useQuery } from "convex/react";
-import { useState } from "react";
+import { useQuery, useMutation } from "convex/react";
+import { useState, useEffect } from "react";
 import { api } from "../../lib/convex";
 import { useTenantSlug } from "../../lib/workspace";
 import RouteErrorBoundary from "../../components/RouteErrorBoundary";
@@ -21,8 +21,9 @@ function GitHubConnectWizard() {
 	const [repoFilter, setRepoFilter] = useState("");
 	const [scanTriggered, setScanTriggered] = useState(false);
 
-	// Available repos after app install (simulated)
-	const repositories = useQuery(api.dashboard.overview, { tenantSlug: TENANT });
+	// Repositories fetched from the GitHub API (if connected) or from tenant data
+	const githubRepos = useQuery(api.githubIntegration.listGithubRepos, { tenantSlug: TENANT });
+	const tenantRepos = useQuery(api.dashboard.repoSummaries, { tenantSlug: TENANT });
 
 	const steps: { key: WizardStep; label: string; num: number }[] = [
 		{ key: "install", label: "Install App", num: 1 },
@@ -47,16 +48,45 @@ function GitHubConnectWizard() {
 		});
 	}
 
-	const repoList = (repositories as any)?.repositorySummaries ?? [];
+	// Use GitHub repos if available, otherwise fall back to tenant repos
+	const repoList = (githubRepos ?? tenantRepos ?? []) as any[];
 	const filteredRepos = repoFilter
 		? repoList.filter((r: any) =>
 				(r.fullName ?? r.name ?? "").toLowerCase().includes(repoFilter.toLowerCase()),
 			)
 		: repoList;
 
-	function handleSimulateInstall() {
-		// In production this would redirect to GitHub App install URL
-		setStep("select-repos");
+	// Pre-select repos that were added during onboarding
+	useEffect(() => {
+		if (tenantRepos && selectedRepos.size === 0) {
+			const existing = new Set(
+				(tenantRepos as any[])?.map((r: any) => r.fullName).filter(Boolean) ?? [],
+			);
+			if (existing.size > 0) setSelectedRepos(existing);
+		}
+	}, [tenantRepos]);
+
+	// Check if GitHub is already connected via the application-managed OAuth flow
+	const githubConnection = useQuery(api.githubIntegration.getGithubConnectionStatus, { tenantSlug: TENANT });
+
+	// Auto-skip to repo selection if GitHub is already connected
+	useEffect(() => {
+		if (githubConnection?.connected && step === "install") {
+			setStep("select-repos");
+		}
+	}, [githubConnection?.connected, step]);
+
+	function handleInstallApp() {
+		// The application-managed GitHub OAuth flow is initiated from onboarding.
+		// If the user reaches this page without GitHub connected, redirect to
+		// the OAuth authorize URL. The callback stores the token and redirects back.
+		const githubAppId = process.env.NEXT_PUBLIC_GITHUB_APP_ID;
+		if (githubAppId) {
+			window.location.href = `https://github.com/apps/${githubAppId}/installations/new`;
+		} else {
+			// Fallback: redirect to onboarding which has the OAuth connect button
+			window.location.href = `/onboarding?github=connect`;
+		}
 	}
 
 	function handleConfirmRepos() {
@@ -68,16 +98,27 @@ function GitHubConnectWizard() {
 		setStep("initial-scan");
 	}
 
-	function handleStartScan() {
+	const dispatchScan = useMutation(api.events.dispatchScannerForRepository);
+
+	async function handleStartScan() {
 		setScanTriggered(true);
 		track("scan.triggered", {
 			scannerSlug: "initial-onboarding-scan",
 			triggerType: "manual",
 		});
-		// Simulate scan start
-		setTimeout(() => {
+		try {
+			for (const repoName of selectedRepos) {
+				await dispatchScan({
+					tenantSlug: TENANT,
+					repositoryFullName: repoName,
+					scannerType: "full_scan",
+				});
+			}
 			setStep("complete");
-		}, 2000);
+		} catch (err) {
+			console.error("Scan dispatch failed:", err);
+			setScanTriggered(false);
+		}
 	}
 
 	return (
@@ -168,7 +209,7 @@ function GitHubConnectWizard() {
 								<button
 									type="button"
 									className="signal-button"
-									onClick={handleSimulateInstall}
+									onClick={handleInstallApp}
 								>
 									Install GitHub App
 									<ArrowRight size={14} />

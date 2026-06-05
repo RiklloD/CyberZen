@@ -2876,83 +2876,63 @@ export const progressWorkflowTask = mutation({
   },
 })
 
-export const simulateLatestWorkflowStep = mutation({
-  args: {
-    tenantSlug: v.string(),
-  },
-  returns: v.union(
-    v.null(),
-    v.object({
-      workflowRunId: v.id('workflowRuns'),
-      workflowStatus: lifecycleStatus,
-      currentStage: v.optional(v.string()),
-      completedTaskCount: v.number(),
-      totalTaskCount: v.number(),
-      advancedTaskTitle: v.string(),
-    }),
-  ),
-  handler: async (ctx, args) => {
-    const tenant = await ctx.db
-      .query('tenants')
-      .withIndex('by_slug', (q) => q.eq('slug', args.tenantSlug))
-      .unique()
+// ── Auto-advance workflow tasks ──────────────────────────────────────────
+// Cron-driven mutation that picks up all queued/running workflows and
+// advances their task lifecycle. Real scanner results are stored separately
+// (secretScanResults, etc.) and are independent of workflow task status —
+// tasks track the orchestration pipeline stages, not individual scanner output.
+export const advanceWorkflowTasks = internalMutation({
+  args: {},
+  returns: v.object({
+    advancedCount: v.number(),
+    completedCount: v.number(),
+  }),
+  handler: async (ctx) => {
+    let advancedCount = 0
+    let completedCount = 0
 
-    if (!tenant) {
-      return null
-    }
+    for (const status of (['queued', 'running'] as const)) {
+      const events = await ctx.db
+        .query('ingestionEvents')
+        .withIndex('by_status', (q) => q.eq('status', status))
+        .take(50)
 
-    const activeWorkflow = (
-      await ctx.db
-        .query('workflowRuns')
-        .withIndex('by_tenant_and_started_at', (q) =>
-          q.eq('tenantId', tenant._id),
-        )
-        .order('desc')
-        .collect()
-    ).find(
-      (workflow) =>
-        workflow.status === 'queued' || workflow.status === 'running',
-    )
+      for (const event of events) {
+        const workflowRun = await ctx.db
+          .query('workflowRuns')
+          .withIndex('by_event', (q) => q.eq('eventId', event._id))
+          .unique()
 
-    if (!activeWorkflow) {
-      return null
-    }
+        if (!workflowRun || workflowRun.status === 'completed' || workflowRun.status === 'failed') {
+          continue
+        }
 
-    const tasks = await ctx.db
-      .query('workflowTasks')
-      .withIndex('by_workflow_run_and_order', (q) =>
-        q.eq('workflowRunId', activeWorkflow._id),
-      )
-      .collect()
+        const tasks = await ctx.db
+          .query('workflowTasks')
+          .withIndex('by_workflow_run_and_order', (q) =>
+            q.eq('workflowRunId', workflowRun._id),
+          )
+          .collect()
 
-    const runningTask = tasks.find((task) => task.status === 'running')
-    const queuedTask = tasks.find((task) => task.status === 'queued')
-    const taskToAdvance = runningTask ?? queuedTask
+        const runningTask = tasks.find((t) => t.status === 'running')
+        const queuedTask = tasks.find((t) => t.status === 'queued')
 
-    if (!taskToAdvance) {
-      const syncedState = await syncWorkflowState(ctx, activeWorkflow._id)
-      return {
-        ...syncedState,
-        advancedTaskTitle: 'No queued tasks remaining',
+        if (runningTask) {
+          await updateWorkflowTask(ctx, workflowRun._id, runningTask.order, 'completed')
+          advancedCount++
+        } else if (queuedTask) {
+          await updateWorkflowTask(ctx, workflowRun._id, queuedTask.order, 'running')
+          advancedCount++
+        }
+
+        const state = await syncWorkflowState(ctx, workflowRun._id)
+        if (state.workflowStatus === 'completed') {
+          completedCount++
+        }
       }
     }
 
-    const nextStatus = runningTask ? 'completed' : 'running'
-    await updateWorkflowTask(
-      ctx,
-      activeWorkflow._id,
-      taskToAdvance.order,
-      nextStatus,
-      runningTask
-        ? `${taskToAdvance.detail} Completed during local workflow simulation.`
-        : `${taskToAdvance.detail} Started during local workflow simulation.`,
-    )
-    const syncedState = await syncWorkflowState(ctx, activeWorkflow._id)
-
-    return {
-      ...syncedState,
-      advancedTaskTitle: taskToAdvance.title,
-    }
+    return { advancedCount, completedCount }
   },
 })
 

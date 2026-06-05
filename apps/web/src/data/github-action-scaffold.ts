@@ -68,7 +68,7 @@ runs:
 export const ENTRYPOINT_SH = `#!/usr/bin/env bash
 set -euo pipefail
 
-API_BASE="https://api.cyberzen.dev"
+API_BASE="\${CYBERZEN_API_URL:-https://animated-viper-811.eu-west-1.convex.site}"
 POLL_INTERVAL=15
 
 echo "CyberZen Security Scan"
@@ -79,13 +79,12 @@ echo "Fail on severity: \${FAIL_ON_SEVERITY}"
 
 # Trigger scan
 RESPONSE=$(curl -sf -X POST "\${API_BASE}/api/repositories/scan" \\
-  -H "Authorization: Bearer \${CYBERZEN_API_KEY}" \\
+  -H "X-Sentinel-Api-Key: \${CYBERZEN_API_KEY}" \\
   -H "Content-Type: application/json" \\
   -d '{
     "workspace": "'"'\${CYBERZEN_WORKSPACE}'"'",
     "repository": "'"'\${CYBERZEN_REPO}'"'",
-    "branch": "'"'\${CYBERZEN_BRANCH}'"'",
-    "triggeredBy": "github_actions"
+    "branch": "'"'\${CYBERZEN_BRANCH}'"'"
   }')
 
 SCAN_ID=$(echo "\${RESPONSE}" | jq -r '.scanId')
@@ -103,7 +102,7 @@ while [ "\${ELAPSED}" -lt "\${MAX_SECONDS}" ]; do
   ELAPSED=\$((ELAPSED + POLL_INTERVAL))
 
   STATUS_RESP=$(curl -sf "\${API_BASE}/api/scans/\${SCAN_ID}" \\
-    -H "Authorization: Bearer \${CYBERZEN_API_KEY}")
+    -H "X-Sentinel-Api-Key: \${CYBERZEN_API_KEY}")
 
   STATUS=$(echo "\${STATUS_RESP}" | jq -r '.status')
 

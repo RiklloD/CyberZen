@@ -6087,4 +6087,56 @@ http.route({
   }),
 })
 
+// ---------------------------------------------------------------------------
+// POST /api/repositories/scan
+//
+// API-key-authenticated endpoint for triggering a full security scan on a
+// repository. Used by the CyberZen GitHub Action and external CI/CD integrations.
+// Accepts: { workspace: string, repository: string, branch?: string }
+// Returns: { scanId, workflowRunId, url }
+// ---------------------------------------------------------------------------
+http.route({
+  path: '/api/repositories/scan',
+  method: 'POST',
+  handler: httpAction(async (ctx, request) => {
+    const authError = await authenticateApiRequest(ctx, request)
+    if (authError) return authError
+
+    let body: { workspace?: string; repository?: string; branch?: string }
+    try {
+      body = await request.json()
+    } catch {
+      return jsonResponse({ error: 'Invalid JSON body.' }, 400)
+    }
+
+    if (!body.workspace || !body.repository) {
+      return jsonResponse(
+        { error: 'Missing required fields: workspace, repository' },
+        400,
+      )
+    }
+
+    try {
+      const result = await ctx.runMutation(api.events.dispatchScannerForRepository, {
+        tenantSlug: body.workspace,
+        repositoryFullName: body.repository,
+        scannerType: 'full_scan',
+      })
+
+      const siteUrl = process.env.SITE_URL ?? process.env.CONVEX_SITE_URL ?? ''
+      return jsonResponse(
+        {
+          scanId: result.eventId,
+          workflowRunId: result.workflowRunId,
+          url: `${siteUrl}/repositories`,
+        },
+        200,
+      )
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      return jsonResponse({ error: message }, 500)
+    }
+  }),
+})
+
 export default http

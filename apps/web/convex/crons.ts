@@ -326,4 +326,15 @@ crons.interval(
   {},
 )
 
+// Workflow auto-advance — every 30 seconds.
+// Picks up queued/running workflows and advances their tasks through the
+// lifecycle (queued → running → completed). Real scanner results are stored
+// independently; this cron drives the orchestration pipeline forward.
+crons.interval(
+  'advance workflow tasks',
+  { seconds: 30 },
+  internal.events.advanceWorkflowTasks,
+  {},
+)
+
 export default crons
