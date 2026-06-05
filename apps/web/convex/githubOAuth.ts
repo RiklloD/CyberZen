@@ -60,7 +60,15 @@ async function resolveCurrentUser(ctx: any) {
     return { user, identity };
 }
 
-/** Internal query so the action can resolve the user. */
+/** Internal query so the action can resolve the user.
+ *
+ *  Tries two resolution paths:
+ *    1. If `identity.email` is present, look up by email index (fast).
+ *    2. If `identity.email` is absent (e.g. GitHub user with private
+ *       email), extract the userId from `identity.subject` — Convex Auth
+ *       encodes it as `"<userId>|<sessionId>"` — and fetch the user
+ *       document directly.
+ */
 export const _resolveUser = query({
     args: {},
     returns: v.union(
@@ -69,13 +77,27 @@ export const _resolveUser = query({
     ),
     handler: async (ctx) => {
         const identity = await ctx.auth.getUserIdentity();
-        if (!identity?.email) return null;
-        const user = await ctx.db
-            .query("users")
-            .withIndex("email", (q) => q.eq("email", identity.email!))
-            .first();
-        if (!user) return null;
-        return { userId: user._id, email: identity.email! };
+        if (!identity) return null;
+
+        // Path 1: email present in JWT claims
+        if (identity.email) {
+            const user = await ctx.db
+                .query("users")
+                .withIndex("email", (q) => q.eq("email", identity.email!))
+                .first();
+            if (user) return { userId: user._id, email: identity.email! };
+        }
+
+        // Path 2: extract userId from subject ("userId|sessionId")
+        const userIdRaw = identity.subject.split("|")[0];
+        if (userIdRaw) {
+            const user = await ctx.db.get(userIdRaw as Id<"users">);
+            if (user && user.email) {
+                return { userId: user._id, email: user.email };
+            }
+        }
+
+        return null;
     },
 });
 
@@ -272,8 +294,21 @@ export const startGithubConnect = action({
         expiresAt: number;
     }> => {
         const identity = await ctx.auth.getUserIdentity();
-        if (!identity?.email) {
-            throw new Error("Not authenticated or email not available");
+        if (!identity) {
+            throw new Error("Not authenticated");
+        }
+
+        // Resolve user — works even when identity.email is missing
+        // (e.g. GitHub users with private emails) by falling back to
+        // the userId embedded in identity.subject.
+        const resolved = await ctx.runQuery(
+            internal.githubOAuth._resolveUser,
+            {},
+        );
+        if (!resolved) {
+            throw new Error(
+                "Could not resolve current user. Please sign in again.",
+            );
         }
 
         const clientId = process.env["AUTH_GITHUB_API_ID"];
@@ -298,7 +333,7 @@ export const startGithubConnect = action({
             internal.githubOAuth.createOAuthState,
             {
                 state,
-                email: identity.email,
+                email: resolved.email,
                 tenantSlug: args.tenantSlug,
                 returnTo,
             },
