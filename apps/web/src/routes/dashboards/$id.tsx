@@ -110,20 +110,6 @@ function DashboardBuilderPage() {
 						))}
 					</div>
 				</div>
-
-				{/* Sample Widget Grid Preview */}
-				<div className="mt-8">
-					<div className="section-header mb-3">
-						<h2 className="section-title">Layout Preview</h2>
-					</div>
-					<div className="grid grid-cols-4 gap-3 min-h-[400px]">
-						<WidgetPlaceholder title="KPI Tiles" area="span 2 / span 2" />
-						<WidgetPlaceholder title="Severity Chart" area="span 2 / span 1" />
-						<WidgetPlaceholder title="Findings Feed" area="span 2 / span 1" />
-						<WidgetPlaceholder title="Trend Sparkline" area="span 2 / span 2" />
-						<WidgetPlaceholder title="Compliance" area="span 2 / span 2" />
-					</div>
-				</div>
 			</div>
 		</main>
 	);
@@ -132,20 +118,6 @@ function DashboardBuilderPage() {
 // ---------------------------------------------------------------------------
 // Sub-components
 // ---------------------------------------------------------------------------
-
-function WidgetPlaceholder({ title, area }: { title: string; area: string }) {
-	return (
-		<div
-			className="card card-sm border-2 border-dashed border-[var(--line)] flex items-center justify-center"
-			style={{ gridArea: area }}
-		>
-			<div className="text-center">
-				<LayoutDashboard size={18} className="mx-auto mb-1 opacity-30" />
-				<p className="text-xs text-[var(--sea-ink-soft)]">{title}</p>
-			</div>
-		</div>
-	);
-}
 
 function DashboardCard({
 	dashboard,

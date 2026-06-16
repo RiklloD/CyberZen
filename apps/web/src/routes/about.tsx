@@ -5,7 +5,6 @@ import {
 	CheckCircle2,
 	FlaskConical,
 	GitBranch,
-	Quote,
 	Radar,
 	ScanLine,
 	ShieldCheck,
@@ -58,42 +57,12 @@ const features: Array<{
 	},
 ];
 
-const testimonials = [
-	{
-		quote:
-			"CyberZen replaced four tools and gave our auditors a one-click evidence pack. The first quarter cut our triage backlog by 60 percent.",
-		name: "Priya Anand",
-		role: "Head of Security, Fintech (Series C)",
-	},
-	{
-		quote:
-			"The exploit validation layer is the only reason we trust the severity rankings. We finally stopped paging on theoretical vulns.",
-		name: "Marcus Lee",
-		role: "Principal Engineer, Healthcare SaaS",
-	},
-	{
-		quote:
-			"Drift posture across forty surfaces — IAM, K8s admission, secret mgmt, web servers — is what our previous SIEM promised and never delivered.",
-		name: "Elena Costa",
-		role: "VP Platform, Manufacturing IoT",
-	},
-];
-
-const socialProof = [
-	{ value: "8,600+", label: "Backend tests passing" },
-	{ value: "40+", label: "Drift detectors" },
-	{ value: "150+", label: "Convex intelligence modules" },
-	{ value: "5", label: "Compliance frameworks mapped" },
-];
-
 function AboutPage() {
 	return (
 		<main className="page-body-padded">
 			<HeroSection />
 			<FeatureGrid />
 			<ArchitectureDiagram />
-			<SocialProofSection />
-			<TestimonialsSection />
 			<FooterLinks />
 		</main>
 	);
@@ -345,58 +314,7 @@ function FlowSubsystem({
 	);
 }
 
-function SocialProofSection() {
-	return (
-		<section className="mt-10">
-			<article className="panel rounded-[1.75rem] p-6 sm:p-8">
-				<div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-					{socialProof.map((item) => (
-						<div key={item.label}>
-							<p className="text-3xl font-semibold text-[var(--sea-ink)] sm:text-4xl">
-								{item.value}
-							</p>
-							<p className="mt-1 text-sm text-[var(--sea-ink-soft)]">
-								{item.label}
-							</p>
-						</div>
-					))}
-				</div>
-			</article>
-		</section>
-	);
-}
 
-function TestimonialsSection() {
-	return (
-		<section className="mt-10">
-			<div className="mb-6">
-				<p className="island-kicker mb-2">Why teams choose CyberZen</p>
-				<h2 className="text-2xl font-semibold text-[var(--sea-ink)] sm:text-3xl">
-					Built for the security teams shipping fastest.
-				</h2>
-			</div>
-			<div className="grid gap-4 md:grid-cols-3">
-				{testimonials.map((t) => (
-					<article key={t.name} className="panel rounded-[1.5rem] p-6">
-						<Quote
-							size={20}
-							className="text-[var(--teal)] opacity-70 mb-3"
-						/>
-						<p className="text-sm text-[var(--sea-ink)] leading-relaxed">
-							{t.quote}
-						</p>
-						<div className="mt-5">
-							<p className="text-sm font-semibold text-[var(--sea-ink)]">
-								{t.name}
-							</p>
-							<p className="text-xs text-[var(--sea-ink-soft)]">{t.role}</p>
-						</div>
-					</article>
-				))}
-			</div>
-		</section>
-	);
-}
 
 function FooterLinks() {
 	return (
