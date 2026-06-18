@@ -5872,4 +5872,210 @@ export default defineSchema({
   })
     .index('by_state', ['state'])
     .index('by_expires_at', ['expiresAt']),
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // LLM AGENT SYSTEM — Autonomous AI-powered security agents
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // ── Agent Tasks: lifecycle tracking for every LLM agent invocation ──────────
+  agentTasks: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    workflowRunId: v.optional(v.id('workflowRuns')),
+    findingId: v.optional(v.id('findings')),
+    agentType: v.string(),          // 'remediation' | 'pr_generation' | 'red_team' | etc.
+    trigger: v.string(),            // what caused this task
+    status: lifecycleStatus,        // queued | running | completed | failed
+    priority: workflowPriority,     // critical | high | medium | low
+    inputSummary: v.string(),       // human-readable summary of what the agent received
+    outputSummary: v.optional(v.string()),
+    reasoningLogId: v.optional(v.id('agentReasoningLogs')),
+    llmProvider: v.optional(v.string()),
+    llmModel: v.optional(v.string()),
+    tokenUsage: v.optional(v.object({
+      prompt: v.number(),
+      completion: v.number(),
+      total: v.number(),
+      costUsd: v.number(),
+    })),
+    startedAt: v.optional(v.number()),
+    completedAt: v.optional(v.number()),
+    error: v.optional(v.string()),
+    retryCount: v.number(),
+    maxRetries: v.number(),
+  })
+    .index('by_tenant', ['tenantId'])
+    .index('by_repository', ['repositoryId'])
+    .index('by_status', ['status'])
+    .index('by_workflow_run', ['workflowRunId'])
+    .index('by_finding', ['findingId'])
+    .index('by_agent_type', ['agentType'])
+    .index('by_tenant_and_status', ['tenantId', 'status']),
+
+  // ── Agent Reasoning Logs: full audit trail for every LLM call ───────────────
+  agentReasoningLogs: defineTable({
+    tenantId: v.id('tenants'),
+    agentTaskId: v.id('agentTasks'),
+    agentType: v.string(),
+    messages: v.array(v.object({
+      role: v.union(v.literal('system'), v.literal('user'), v.literal('assistant'), v.literal('tool')),
+      content: v.string(),
+      timestamp: v.number(),
+    })),
+    toolCalls: v.array(v.object({
+      name: v.string(),
+      arguments: v.string(),
+      result: v.string(),
+      timestamp: v.number(),
+    })),
+    output: v.any(),
+    llmProvider: v.string(),
+    llmModel: v.string(),
+    totalTokens: v.number(),
+    totalCostUsd: v.number(),
+    latencyMs: v.number(),
+    createdAt: v.number(),
+  })
+    .index('by_agent_task', ['agentTaskId'])
+    .index('by_tenant', ['tenantId'])
+    .index('by_agent_type', ['agentType'])
+    .index('by_created_at', ['createdAt']),
+
+  // ── LLM Usage Records: per-tenant cost tracking ─────────────────────────────
+  llmUsageRecords: defineTable({
+    tenantId: v.id('tenants'),
+    agentType: v.string(),
+    provider: v.string(),
+    model: v.string(),
+    promptTokens: v.number(),
+    completionTokens: v.number(),
+    estimatedCostUsd: v.number(),
+    taskId: v.string(),
+    timestamp: v.number(),
+  })
+    .index('by_tenant', ['tenantId'])
+    .index('by_tenant_and_timestamp', ['tenantId', 'timestamp'])
+    .index('by_provider', ['provider']),
+
+  // ── Remediation Proposals: LLM-generated fix analysis ───────────────────────
+  remediationProposals: defineTable({
+    findingId: v.id('findings'),
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    agentTaskId: v.id('agentTasks'),
+    status: v.union(
+      v.literal('proposed'),
+      v.literal('validated'),
+      v.literal('pr_opened'),
+      v.literal('rejected'),
+      v.literal('superseded'),
+    ),
+    vulnerabilityExplanation: v.string(),
+    exploitPath: v.string(),
+    businessImpact: v.string(),
+    fixDescription: v.string(),
+    fixDiff: v.string(),
+    fixRationale: v.string(),
+    postFixTest: v.string(),
+    requiresArchitecturalChange: v.boolean(),
+    confidence: v.number(),
+    validationResults: v.optional(v.object({
+      lintPassed: v.boolean(),
+      typecheckPassed: v.boolean(),
+      testsPassed: v.boolean(),
+      exploitFailedOnPatch: v.boolean(),
+    })),
+    prUrl: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index('by_finding', ['findingId'])
+    .index('by_tenant', ['tenantId'])
+    .index('by_status', ['status'])
+    .index('by_repository', ['repositoryId'])
+    .index('by_tenant_and_created_at', ['tenantId', 'createdAt']),
+
+  // ── Exploit Validation Results: PoC artifacts from validation agent ─────────
+  exploitValidationResults: defineTable({
+    findingId: v.id('findings'),
+    tenantId: v.id('tenants'),
+    agentTaskId: v.id('agentTasks'),
+    outcome: v.union(
+      v.literal('exploited'),
+      v.literal('partial'),
+      v.literal('not_exploitable'),
+    ),
+    pocCode: v.string(),
+    pocExpectedOutput: v.string(),
+    pocType: v.union(v.literal('curl'), v.literal('python'), v.literal('javascript')),
+    executionLog: v.string(),
+    confidence: v.number(),
+    createdAt: v.number(),
+  })
+    .index('by_finding', ['findingId'])
+    .index('by_tenant', ['tenantId'])
+    .index('by_outcome', ['outcome'])
+    .index('by_tenant_and_created_at', ['tenantId', 'createdAt']),
+
+  // ── Red Team Attack History: adversarial probe records ──────────────────────
+  redTeamAttacks: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    roundNumber: v.number(),
+    strategy: v.string(),
+    attackVector: v.string(),
+    targetEndpoint: v.optional(v.string()),
+    payload: v.string(),
+    outcome: v.union(v.literal('success'), v.literal('partial'), v.literal('failure')),
+    evidence: v.optional(v.string()),
+    newFindingId: v.optional(v.id('findings')),
+    agentTaskId: v.id('agentTasks'),
+    createdAt: v.number(),
+  })
+    .index('by_tenant', ['tenantId'])
+    .index('by_repository', ['repositoryId'])
+    .index('by_round', ['roundNumber'])
+    .index('by_outcome', ['outcome'])
+    .index('by_tenant_and_created_at', ['tenantId', 'createdAt']),
+
+  // ── Blue Team Detection Rules: generated from Red Team findings ─────────────
+  blueTeamDetectionRules: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    ruleType: v.union(v.literal('waf'), v.literal('siem'), v.literal('log_query'), v.literal('rate_limit')),
+    ruleName: v.string(),
+    ruleContent: v.string(),
+    basedOnAttackId: v.optional(v.id('redTeamAttacks')),
+    effectiveness: v.optional(v.number()),
+    falsePositiveRisk: v.number(),
+    agentTaskId: v.id('agentTasks'),
+    createdAt: v.number(),
+  })
+    .index('by_tenant', ['tenantId'])
+    .index('by_repository', ['repositoryId'])
+    .index('by_rule_type', ['ruleType'])
+    .index('by_tenant_and_created_at', ['tenantId', 'createdAt']),
+
+  // ── Prompt Injection Scan Results ───────────────────────────────────────────
+  promptInjectionFindings: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    agentTaskId: v.id('agentTasks'),
+    llmCallChain: v.string(),        // description of the LLM call chain found
+    inputSource: v.string(),         // where user input enters
+    vulnerabilityType: v.string(),   // 'role_override' | 'context_exfil' | etc.
+    payload: v.string(),             // the adversarial payload tested
+    outcome: v.union(
+      v.literal('critical'),
+      v.literal('high'),
+      v.literal('medium'),
+      v.literal('low'),
+    ),
+    mitigationCode: v.string(),      // suggested fix
+    createdAt: v.number(),
+  })
+    .index('by_tenant', ['tenantId'])
+    .index('by_repository', ['repositoryId'])
+    .index('by_outcome', ['outcome'])
+    .index('by_tenant_and_created_at', ['tenantId', 'createdAt']),
 })

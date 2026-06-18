@@ -13,6 +13,7 @@ import {
 	CalendarClock,
 	ClipboardCheck,
 	Clock,
+	Cpu,
 	CreditCard,
 	Database,
 	Eye,
@@ -107,6 +108,7 @@ const navGroups: NavGroup[] = [
 		label: "Intelligence",
 		items: [
 			{ to: "/agents", label: "Agents & Learning", icon: Bot },
+			{ to: "/agent-activity", label: "AI Agent System", icon: Cpu },
 			{ to: "/neural-memory", label: "Neural Memory", icon: Brain },
 		],
 	},

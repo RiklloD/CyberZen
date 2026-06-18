@@ -337,4 +337,35 @@ crons.interval(
   {},
 )
 
+// ─── LLM Agent System crons ─────────────────────────────────────────────────
+
+// Auto-remediate new critical/high findings — every 5 minutes.
+// Scans for open critical/high findings without a remediation proposal and
+// triggers the LLM remediation agent automatically.
+crons.interval(
+  'auto-remediate new findings',
+  { minutes: 5 },
+  internal.agentCrons.autoRemediateNewFindings,
+  {},
+)
+
+// Red-Blue adversarial rounds — every 6 hours.
+// Runs the Red Team agent against active repositories to discover new
+// vulnerabilities through adversarial analysis.
+crons.interval(
+  'red-blue adversarial rounds',
+  { hours: 6 },
+  internal.agentCrons.runRedBlueRounds,
+  {},
+)
+
+// Blue Team rule generation — every 6 hours (offset).
+// Generates detection rules based on successful Red Team attacks.
+crons.interval(
+  'blue team rule generation',
+  { hours: 6 },
+  internal.agentCrons.generateBlueTeamRulesForRepos,
+  {},
+)
+
 export default crons
