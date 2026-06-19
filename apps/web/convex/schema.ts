@@ -5640,6 +5640,13 @@ export default defineSchema({
     .index('by_job_name_and_started_at', ['jobName', 'startedAt'])
     .index('by_status_and_started_at', ['status', 'startedAt']),
 
+  // ── Cron Settings (pause/resume) ─────────────────────────────────────────
+
+  cronSettings: defineTable({
+    jobName: v.string(),
+    paused: v.boolean(),
+  }).index('by_job_name', ['jobName']),
+
   // ── Sprint 4B: Remediation Playbooks (D3) ────────────────────────────────
   // One playbook per finding — generated on demand, template-based.
   // Steps stored as JSON string (array of PlaybookStep) to stay under 1 MB.

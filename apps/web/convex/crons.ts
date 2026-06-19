@@ -72,6 +72,91 @@ export const monitoredWebhookRetries = internalAction({
   },
 })
 
+// ─── LLM Agent monitored wrappers ──────────────────────────────────────────
+// These wrap the LLM agent crons so they appear on the /settings/jobs
+// monitoring dashboard and support pause/resume.
+
+export const monitoredAutoRemediate = internalAction({
+  args: {},
+  handler: async (ctx) => {
+    const paused = await ctx.runQuery(internal.jobMonitoring.isJobPaused, {
+      jobName: 'auto-remediate new findings',
+    })
+    if (paused) return
+
+    const runId = await ctx.runMutation(internal.jobMonitoring.recordJobStart, {
+      jobName: 'auto-remediate new findings',
+    })
+    try {
+      await ctx.runAction(internal.agentCrons.autoRemediateNewFindings, {})
+      await ctx.runMutation(internal.jobMonitoring.recordJobEnd, {
+        runId,
+        status: 'success',
+      })
+    } catch (err) {
+      await ctx.runMutation(internal.jobMonitoring.recordJobEnd, {
+        runId,
+        status: 'failed',
+        error: err instanceof Error ? err.message : String(err),
+      })
+    }
+  },
+})
+
+export const monitoredRedBlueRounds = internalAction({
+  args: {},
+  handler: async (ctx) => {
+    const paused = await ctx.runQuery(internal.jobMonitoring.isJobPaused, {
+      jobName: 'red-blue adversarial rounds',
+    })
+    if (paused) return
+
+    const runId = await ctx.runMutation(internal.jobMonitoring.recordJobStart, {
+      jobName: 'red-blue adversarial rounds',
+    })
+    try {
+      await ctx.runAction(internal.agentCrons.runRedBlueRounds, {})
+      await ctx.runMutation(internal.jobMonitoring.recordJobEnd, {
+        runId,
+        status: 'success',
+      })
+    } catch (err) {
+      await ctx.runMutation(internal.jobMonitoring.recordJobEnd, {
+        runId,
+        status: 'failed',
+        error: err instanceof Error ? err.message : String(err),
+      })
+    }
+  },
+})
+
+export const monitoredBlueTeamRules = internalAction({
+  args: {},
+  handler: async (ctx) => {
+    const paused = await ctx.runQuery(internal.jobMonitoring.isJobPaused, {
+      jobName: 'blue team rule generation',
+    })
+    if (paused) return
+
+    const runId = await ctx.runMutation(internal.jobMonitoring.recordJobStart, {
+      jobName: 'blue team rule generation',
+    })
+    try {
+      await ctx.runAction(internal.agentCrons.generateBlueTeamRulesForRepos, {})
+      await ctx.runMutation(internal.jobMonitoring.recordJobEnd, {
+        runId,
+        status: 'success',
+      })
+    } catch (err) {
+      await ctx.runMutation(internal.jobMonitoring.recordJobEnd, {
+        runId,
+        status: 'failed',
+        error: err instanceof Error ? err.message : String(err),
+      })
+    }
+  },
+})
+
 const crons = cronJobs()
 
 // GitHub Advisory + OSV sync — every 6 hours
@@ -345,7 +430,7 @@ crons.interval(
 crons.interval(
   'auto-remediate new findings',
   { minutes: 5 },
-  internal.agentCrons.autoRemediateNewFindings,
+  internal.crons.monitoredAutoRemediate,
   {},
 )
 
@@ -355,7 +440,7 @@ crons.interval(
 crons.interval(
   'red-blue adversarial rounds',
   { hours: 6 },
-  internal.agentCrons.runRedBlueRounds,
+  internal.crons.monitoredRedBlueRounds,
   {},
 )
 
@@ -364,7 +449,7 @@ crons.interval(
 crons.interval(
   'blue team rule generation',
   { hours: 6 },
-  internal.agentCrons.generateBlueTeamRulesForRepos,
+  internal.crons.monitoredBlueTeamRules,
   {},
 )
 

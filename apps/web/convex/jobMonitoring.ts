@@ -1,5 +1,5 @@
 import { v } from 'convex/values'
-import { internalMutation, query } from './_generated/server'
+import { internalMutation, mutation, query } from './_generated/server'
 import type { Id } from './_generated/dataModel'
 
 // ─── Internal Mutations ───────────────────────────────────────────────────────
@@ -70,6 +70,17 @@ async function checkConsecutiveFailures(
 }
 
 // ─── Public Queries ───────────────────────────────────────────────────────────
+
+export const isJobPaused = query({
+  args: { jobName: v.string() },
+  handler: async (ctx, args) => {
+    const setting = await ctx.db
+      .query('cronSettings')
+      .withIndex('by_job_name', (q) => q.eq('jobName', args.jobName))
+      .first()
+    return setting?.paused ?? false
+  },
+})
 
 export const getJobHealth = query({
   args: { tenantSlug: v.string() },
@@ -190,5 +201,40 @@ export const listJobNames = query({
     const runs = await ctx.db.query('cronJobRuns').take(200)
     const names = [...new Set(runs.map((r) => r.jobName))]
     return names.sort()
+  },
+})
+
+export const getPausedJobs = query({
+  args: {},
+  handler: async (ctx) => {
+    const settings = await ctx.db.query('cronSettings').collect()
+    const paused = new Set<string>()
+    for (const s of settings) {
+      if (s.paused) paused.add(s.jobName)
+    }
+    return Object.fromEntries([...paused].map((n) => [n, true]))
+  },
+})
+
+// ─── Public Mutations (pause/resume) ────────────────────────────────────────
+
+export const toggleJobPause = mutation({
+  args: { jobName: v.string() },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query('cronSettings')
+      .withIndex('by_job_name', (q) => q.eq('jobName', args.jobName))
+      .first()
+
+    if (existing) {
+      await ctx.db.patch(existing._id, { paused: !existing.paused })
+      return { paused: !existing.paused }
+    }
+
+    await ctx.db.insert('cronSettings', {
+      jobName: args.jobName,
+      paused: true,
+    })
+    return { paused: true }
   },
 })

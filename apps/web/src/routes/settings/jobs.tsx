@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import {
 	Activity,
@@ -9,6 +9,8 @@ import {
 	ChevronUp,
 	Clock,
 	Loader2,
+	Pause,
+	Play,
 	XCircle } from "lucide-react";
 import { useState } from "react";
 import StatusPill from "../../components/StatusPill";
@@ -105,7 +107,7 @@ function JobHistory({ jobName }: { jobName: string }) {
 	);
 }
 
-function JobRow({ job }: { job: JobHealth }) {
+function JobRow({ job, paused, onTogglePause }: { job: JobHealth; paused: boolean; onTogglePause: () => void }) {
 	const [expanded, setExpanded] = useState(false);
 
 	const alertCount = job.alertCount ?? 0;
@@ -143,10 +145,25 @@ function JobRow({ job }: { job: JobHealth }) {
 				</div>
 
 				<div className="flex items-center gap-2 shrink-0">
-					<StatusPill
-						label={job.lastStatus ?? "never run"}
-						tone={statusTone(job.lastStatus)}
-					/>
+						{paused && (
+							<StatusPill label="paused" tone="neutral" />
+						)}
+						<button
+							type="button"
+							onClick={onTogglePause}
+							className={`p-1.5 rounded-lg transition-colors ${
+								paused
+									? "text-green-400 hover:bg-green-500/15"
+									: "text-[var(--sea-ink-soft)] hover:bg-[var(--surface-soft)] hover:text-[var(--signal)]"
+							}`}
+							title={paused ? "Resume job" : "Pause job"}
+						>
+							{paused ? <Play size={13} /> : <Pause size={13} />}
+						</button>
+						<StatusPill
+							label={job.lastStatus ?? "never run"}
+							tone={statusTone(job.lastStatus)}
+						/>
 					{consecutiveFails >= 3 && (
 						<StatusPill label="alert" tone="danger" />
 					)}
@@ -185,10 +202,13 @@ function JobMonitoringPage() {
 	const TENANT = useTenantSlug();
 	const health = useQuery(api.jobMonitoring.getJobHealth, {
 		tenantSlug: TENANT });
+	const pausedJobs = useQuery(api.jobMonitoring.getPausedJobs, {});
+	const togglePause = useMutation(api.jobMonitoring.toggleJobPause);
 
 	const totalAlerts = health?.reduce((sum: number, j: JobHealth) => sum + (j.alertCount ?? 0), 0) ?? 0;
 	const failedJobs = health?.filter((j: JobHealth) => j.lastStatus === "failed").length ?? 0;
 	const healthyJobs = health?.filter((j: JobHealth) => j.lastStatus === "success").length ?? 0;
+	const pausedCount = pausedJobs ? Object.keys(pausedJobs).length : 0;
 
 	return (
 		<main>
@@ -235,6 +255,12 @@ function JobMonitoringPage() {
 							Alerts
 						</p>
 					</div>
+					<div className="card card-sm text-center">
+						<p className="text-2xl font-bold text-[var(--sea-ink-soft)]">{pausedCount}</p>
+						<p className="text-xs text-[var(--sea-ink-soft)] mt-0.5">
+							Paused
+						</p>
+					</div>
 				</div>
 
 				{/* Alert banner */}
@@ -275,14 +301,19 @@ function JobMonitoringPage() {
 						<div className="space-y-2">
 							{/* Sort: alerts first, then by name */}
 							{[...health]
-								.sort(
-									(a, b) =>
-										(b.alertCount ?? 0) - (a.alertCount ?? 0) ||
-										a.jobName.localeCompare(b.jobName),
-								)
-								.map((job) => (
-									<JobRow key={job.jobName} job={job} />
-								))}
+							.sort(
+								(a, b) =>
+									(b.alertCount ?? 0) - (a.alertCount ?? 0) ||
+									a.jobName.localeCompare(b.jobName),
+							)
+							.map((job) => (
+								<JobRow
+									key={job.jobName}
+									job={job}
+									paused={pausedJobs?.[job.jobName] ?? false}
+									onTogglePause={() => togglePause({ jobName: job.jobName })}
+								/>
+							))}
 						</div>
 					)}
 				</div>
