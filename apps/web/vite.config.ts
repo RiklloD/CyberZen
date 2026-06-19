@@ -16,9 +16,10 @@ const config = defineConfig({
 	],
 	resolve: {
 		alias: {
-			// Stub out Node-only modules pulled in by @clerk/tanstack-react-start
-			// via @tanstack/start-storage-context. Not needed in client-only SPA mode.
+			// Stub out Node-only modules pulled in by @clerk/tanstack-react-start.
+			// In client-only SPA mode (defaultSsr: false) there is no server runtime.
 			"node:async_hooks": path.resolve(__dirname, "src/lib/async-hooks-shim.ts"),
+			"@tanstack/start-storage-context": path.resolve(__dirname, "src/lib/start-storage-shim.ts"),
 		},
 	},
 	test: {
