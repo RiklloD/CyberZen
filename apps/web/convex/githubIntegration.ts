@@ -14,12 +14,16 @@ import type { Doc, Id } from "./_generated/dataModel";
 const GITHUB_API = "https://api.github.com";
 
 /**
- * Extract the `users` table document ID from `identity.subject`.
- * `@convex-dev/auth` encodes the subject as `"<userId>|<sessionId>"`,
- * but the first segment is the actual `Id<"users">` we need for queries.
+ * Resolve the Convex user ID from the Clerk identity's email claim.
+ * Clerk's identity.subject is a Clerk user ID, NOT a Convex row ID.
  */
-function userIdFromSubject(subject: string): Id<"users"> {
-    return subject.split("|")[0] as Id<"users">;
+async function resolveUserId(ctx: any, identity: any): Promise<Id<"users"> | null> {
+    if (!identity.email) return null;
+    const user = await ctx.db
+        .query("users")
+        .withIndex("email", (q: any) => q.eq("email", identity.email))
+        .first();
+    return user?._id ?? null;
 }
 
 type GithubRepo = {
@@ -56,10 +60,12 @@ export const getGithubAccessToken = internalQuery({
 
         // `userGithubTokens.by_user` is non-unique (the row is
         // re-minted on re-link) so we use `.first()`.
+        const userId = await resolveUserId(ctx, identity);
+        if (!userId) return null;
         const row = (await ctx.db
             .query("userGithubTokens")
             .withIndex("by_user", (q) =>
-                q.eq("userId", userIdFromSubject(identity.subject)),
+                q.eq("userId", userId),
             )
             .first()) as Doc<"userGithubTokens"> | null;
 
@@ -83,7 +89,8 @@ export const getGithubConnectionStatus = query({
         const identity = await ctx.auth.getUserIdentity();
         if (!identity) return { connected: false, login: null };
 
-        const userId = userIdFromSubject(identity.subject);
+        const userId = await resolveUserId(ctx, identity);
+        if (!userId) return { connected: false, login: null };
         const tokenRow = await ctx.db
             .query("userGithubTokens")
             .withIndex("by_user", (q) => q.eq("userId", userId))
@@ -246,7 +253,8 @@ export const listLinkedProviders = query({
         void args.tenantSlug;
 
         // Source 1: `@convex-dev/auth` GitHub sign-in row.
-        const userId = userIdFromSubject(identity.subject);
+        const userId = await resolveUserId(ctx, identity);
+        if (!userId) return [];
         const authAccount = (await ctx.db
             .query("authAccounts")
             .withIndex("userIdAndProvider", (q) =>

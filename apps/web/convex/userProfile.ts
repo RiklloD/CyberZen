@@ -23,9 +23,9 @@ export const getProfile = query({
     const identity = await ctx.auth.getUserIdentity()
     if (!identity) return null
 
-    const userId = identity.subject.split('|')[0] as Id<'users'>
-    let user = await ctx.db.get(userId)
-    if (!user && identity.email) {
+    // Resolve user by email (Clerk identity.subject is a Clerk user ID, not a Convex ID)
+    let user = null
+    if (identity.email) {
       user = await ctx.db
         .query('users')
         .withIndex('email', (q: any) => q.eq('email', identity.email!))

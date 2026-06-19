@@ -41,16 +41,16 @@ const STATE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 // ── User resolution helper ──────────────────────────────────────────────
 
 /**
- * Extract the `users` table document ID from `identity.subject`.
- * `@convex-dev/auth` encodes the subject as `"<userId>|<sessionId>"`.
+ * Resolve the Convex user ID from the Clerk identity's email claim.
+ * Clerk's identity.subject is a Clerk user ID, NOT a Convex row ID.
  */
-function userIdFromSubject(subject: string): Id<"users"> {
-    const id = subject.split("|")[0];
-    // A25 — validate extracted ID format before use (Convex IDs are 20+ char alphanumeric)
-    if (!id || !/^[a-z0-9]{20,}$/i.test(id)) {
-        throw new Error("Invalid user ID format in authentication subject");
-    }
-    return id as Id<"users">;
+async function resolveUserId(ctx: any, identity: any): Promise<Id<"users"> | null> {
+    if (!identity.email) return null;
+    const user = await ctx.db
+        .query("users")
+        .withIndex("email", (q: any) => q.eq("email", identity.email))
+        .first();
+    return user?._id ?? null;
 }
 
 /**
@@ -62,7 +62,6 @@ async function resolveCurrentUser(ctx: any) {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
     
-    // Path 1: resolve by email (fast)
     if (identity.email) {
         const user = await ctx.db
             .query("users")
@@ -71,11 +70,7 @@ async function resolveCurrentUser(ctx: any) {
         if (user) return { user, identity };
     }
 
-    // Path 2: resolve by subject ("userId|sessionId")
-    const userId = userIdFromSubject(identity.subject);
-    const user = await ctx.db.get(userId);
-    if (!user) throw new Error("No user found for identity");
-    return { user, identity };
+    throw new Error("No user found for identity. Please sign in again.");
 }
 
 /** Internal query so the action can resolve the user.
@@ -97,24 +92,13 @@ export const _resolveUser = query({
         const identity = await ctx.auth.getUserIdentity();
         if (!identity) return null;
 
-        // Path 1: email present in JWT claims
-        if (identity.email) {
-            const user = await ctx.db
-                .query("users")
-                .withIndex("email", (q) => q.eq("email", identity.email!))
-                .first();
-            if (user) return { userId: user._id, email: identity.email! };
-        }
+        if (!identity.email) return null;
 
-        // Path 2: extract userId from subject ("userId|sessionId")
-        const userIdRaw = identity.subject.split("|")[0];
-        if (userIdRaw) {
-            const user = await ctx.db.get(userIdRaw as Id<"users">);
-            if (user && user.email) {
-                return { userId: user._id, email: user.email };
-            }
-        }
-
+        const user = await ctx.db
+            .query("users")
+            .withIndex("email", (q) => q.eq("email", identity.email!))
+            .first();
+        if (user) return { userId: user._id, email: identity.email! };
         return null;
     },
 });
@@ -258,12 +242,7 @@ export const getGithubConnectionStatus = query({
                 .first();
             if (user) userId = user._id;
         }
-        if (!userId) {
-            userId = userIdFromSubject(identity.subject);
-            // Verify the user actually exists
-            const user = await ctx.db.get(userId);
-            if (!user) return { connected: false as const };
-        }
+        if (!userId) return { connected: false as const };
 
         const row = (await ctx.db
             .query("userGithubTokens")
