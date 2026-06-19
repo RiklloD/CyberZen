@@ -52,7 +52,7 @@ function generateBackupCodes(): string[] {
 
 export const getTwoFactorStatus = query({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
   },
   handler: async (ctx, { authToken }) => {
     const { userId } = await requireSessionAuth(ctx as any, authToken)
@@ -82,7 +82,7 @@ export const getTwoFactorStatus = query({
 
 export const startEnrollment = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
   },
   handler: async (ctx, { authToken, tenantSlug }) => {
@@ -148,7 +148,7 @@ export const startEnrollment = mutation({
 
 export const verifyEnrollment = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     code: v.string(),
   },
   handler: async (ctx, { authToken, code }) => {
@@ -192,7 +192,7 @@ export const verifyEnrollment = mutation({
 
 export const verifyTwoFactor = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     code: v.string(),
   },
   handler: async (ctx, { authToken, code }) => {
@@ -225,7 +225,7 @@ export const verifyTwoFactor = mutation({
 
 export const disableTwoFactor = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     code: v.string(),
   },
   handler: async (ctx, { authToken, code }) => {
@@ -263,7 +263,7 @@ export const disableTwoFactor = mutation({
 
 export const getTenantTwoFactorPolicy = query({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
   },
   handler: async (ctx, { authToken, tenantSlug }) => {

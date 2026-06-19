@@ -44,7 +44,7 @@ const CLOSED_FINDING_STATUSES = new Set([
 
 export const getRetentionPolicies = query({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
   },
   handler: async (ctx, args) => {
@@ -85,7 +85,7 @@ export const getRetentionPolicies = query({
 
 export const updateRetentionPolicies = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
     findingsDays: v.number(),
     auditLogsDays: v.number(),

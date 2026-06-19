@@ -25,7 +25,7 @@ export const getTenantBySlug = internalQuery({
 
 // FIX: C3 — internal query that verifies the caller is a member of the given tenant
 export const verifyExportAccess = internalQuery({
-  args: { authToken: v.string(), tenantSlug: v.string() },
+  args: { authToken: v.optional(v.string()), tenantSlug: v.string() },
   returns: v.boolean(),
   handler: async (ctx, { authToken, tenantSlug }) => {
     const { userId } = await requireSessionAuth(ctx as any, authToken)
@@ -46,7 +46,7 @@ export const verifyExportAccess = internalQuery({
 
 // Internal query: returns whether the caller is an owner/admin of the tenant
 export const isAdminCaller = internalQuery({
-  args: { authToken: v.string(), tenantSlug: v.string() },
+  args: { authToken: v.optional(v.string()), tenantSlug: v.string() },
   returns: v.boolean(),
   handler: async (ctx, { authToken, tenantSlug }) => {
     const { userId } = await requireSessionAuth(ctx as any, authToken)
@@ -72,7 +72,7 @@ export const isAdminCaller = internalQuery({
 export const exportFindingsCsv = action({
   args: {
     tenantSlug: v.string(),
-    authToken: v.string(), // FIX: C3 — required for authorization
+    authToken: v.optional(v.string()), // FIX: C3 — required for authorization
     severity: v.optional(
       v.union(
         v.literal('critical'),
@@ -162,7 +162,7 @@ export const exportFindingsCsv = action({
 export const exportExecReportPdf = action({
   args: {
     tenantSlug: v.string(),
-    authToken: v.string(), // A1 — required for authorization
+    authToken: v.optional(v.string()), // A1 — required for authorization
   },
   returns: v.object({
     html: v.string(),
@@ -242,7 +242,7 @@ ${worstRows ? `<h2>Top At-Risk Repositories</h2><table><tr><th>Repository</th><t
 export const exportComplianceEvidencePdf = action({
   args: {
     tenantSlug: v.string(),
-    authToken: v.string(), // A2 — required for authorization
+    authToken: v.optional(v.string()), // A2 — required for authorization
     framework: v.optional(v.string()),
   },
   returns: v.object({

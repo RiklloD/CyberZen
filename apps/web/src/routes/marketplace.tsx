@@ -30,7 +30,7 @@ function MarketplacePage() {
 		limit: 50,
 	});
 
-	const stats = useQuery(api.communityMarketplace.getMarketplaceStats, {});
+	const stats = useQuery(api.communityMarketplace.getMarketplaceStats);
 	const topContributors = useQuery(api.communityMarketplace.getTopContributors, { limit: 5 });
 
 	return (

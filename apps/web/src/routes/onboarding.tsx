@@ -1,4 +1,4 @@
-import { useAuthToken } from "@convex-dev/auth/react";
+import { useAuthToken } from "../lib/clerk-compat";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { Building2, Github, Plus, Rocket, Trash2 } from "lucide-react";
@@ -353,7 +353,6 @@ function OnboardingPage() {
 			];
 
 			const response = (await provisionWorkspace({
-				authToken: authToken ?? "",
 				tenantSlug: TENANT,
 				companyName: companyName.trim(),
 				deploymentMode,
@@ -388,7 +387,6 @@ function OnboardingPage() {
 			}
 
 			const created = (await createWorkspaceInvite({
-				authToken: authToken ?? "",
 				tenantSlug: result.tenantSlug,
 				email: normalizedEmail,
 				role: inviteRole,

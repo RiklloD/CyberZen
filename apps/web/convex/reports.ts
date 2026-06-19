@@ -12,7 +12,7 @@ import type { TenantExecutiveReport } from './lib/executiveReport'
 
 // Inernal query wrapper so actions can verify session auth via ctx.runQuery
 export const verifyAuth = internalQuery({
-  args: { authToken: v.string() },
+  args: { authToken: v.optional(v.string()) },
   returns: v.null(),
   handler: async (ctx, { authToken }): Promise<null> => {
     await requireSessionAuth(ctx, authToken)
@@ -49,7 +49,7 @@ async function requireAdminMembership(
 
 export const generateExecutiveReport = action({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
     period: v.optional(v.string()),
     type: v.optional(
@@ -314,7 +314,7 @@ export const markReportFailed = internalMutation({
 
 export const listReports = query({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
   },
   handler: async (ctx, { authToken, tenantSlug }) => {
@@ -334,7 +334,7 @@ export const listReports = query({
 
 export const getReport = query({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
     reportId: v.id('executiveReports'),
   },
@@ -354,7 +354,7 @@ export const getReport = query({
 
 export const scheduleReportDelivery = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
     frequency: v.union(v.literal('monthly'), v.literal('quarterly')),
     recipients: v.array(v.string()),
@@ -397,7 +397,7 @@ export const scheduleReportDelivery = mutation({
 
 export const getDeliveryConfig = query({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
   },
   handler: async (ctx, { authToken, tenantSlug }) => {

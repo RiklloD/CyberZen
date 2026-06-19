@@ -1,4 +1,4 @@
-import { useAuthToken } from "@convex-dev/auth/react";
+import { useAuthToken } from "../lib/clerk-compat";
 import { useMutation, useQuery } from "convex/react";
 import { BarChart2, X } from "lucide-react";
 import { api } from "../lib/convex";

@@ -34,7 +34,7 @@ async function getTenantAndVerifyMember(
 
 export const getIntegrationHealth = query({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
   },
   handler: async (ctx, { authToken, tenantSlug }) => {
@@ -51,7 +51,7 @@ export const getIntegrationHealth = query({
 
 export const triggerHealthCheck = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
     integrationType: v.union(
       v.literal('github'),

@@ -2,13 +2,12 @@ import { httpRouter } from 'convex/server'
 import { api, internal } from './_generated/api'
 import { httpAction } from './_generated/server'
 import type { Id } from './_generated/dataModel'
-import { auth } from './auth'
+
 import { buildMetricsPage, sentinelMetricsToSamples } from './lib/prometheusMetrics'
 import { handleStripeWebhook } from './stripeWebhook'
 
 const http = httpRouter()
 
-auth.addHttpRoutes(http)
 
 // ─── §5.4 Application-managed GitHub OAuth callback ──────────────────
 //

@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useAuthToken } from "@convex-dev/auth/react";
+import { useAuthToken } from "../lib/clerk-compat";
 import { useAction, useMutation, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { CheckCircle, Loader2, MessageSquare, Plug, XCircle } from "lucide-react";

@@ -1,4 +1,4 @@
-import { useAuthToken } from "@convex-dev/auth/react";
+import { ClerkProvider, useAuth, SignInButton, UserButton, SignedIn, SignedOut } from "@clerk/tanstack-react-start";
 import { TanStackDevtools } from "@tanstack/react-devtools";
 import {
 	createRootRoute,
@@ -11,7 +11,6 @@ import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { useMutation, useQuery } from "convex/react";
 import { useEffect, useState } from "react";
 import AnalyticsConsentBanner from "../components/AnalyticsConsentBanner";
-import AuthScreen from "../components/AuthScreen";
 import CommandPalette from "../components/CommandPalette";
 import RouteErrorBoundary from "../components/RouteErrorBoundary";
 import ShortcutsModal from "../components/ShortcutsModal";
@@ -58,40 +57,74 @@ export const Route = createRootRoute({
 	}),
 });
 
-const PUBLIC_ROUTES = new Set<string>(["/about"]);
+const PUBLIC_ROUTES = new Set<string>(["/about", "/sign-in", "/sign-up"]);
 
 function RootDocument() {
 	return (
-		<ConvexProvider>
-			<AuthBoundary />
-		</ConvexProvider>
+		<ClerkProvider>
+			<ConvexProvider>
+				<AuthBoundary />
+			</ConvexProvider>
+		</ClerkProvider>
 	);
 }
 
 function AuthBoundary() {
-	const authToken = useAuthToken();
+	const { isSignedIn, isLoaded } = useAuth();
 	const location = useLocation();
-	const [isHydrated, setIsHydrated] = useState(false);
 
-	useEffect(() => {
-		setIsHydrated(true);
-	}, []);
-
-	const isPublicRoute = PUBLIC_ROUTES.has(location.pathname);
+	const isPublicRoute = PUBLIC_ROUTES.has(location.pathname) || location.pathname.startsWith("/sign-in") || location.pathname.startsWith("/sign-up");
 
 	if (isPublicRoute) {
 		return <PublicShell />;
 	}
 
-	if (!isHydrated) {
+	if (!isLoaded) {
 		return <LoadingShell />;
 	}
 
-	if (!authToken) {
-		return <AuthScreen />;
+	if (!isSignedIn) {
+		return <UnauthenticatedShell />;
 	}
 
-	return <RootGate authToken={authToken} />;
+	return <RootGate />;
+}
+
+function UnauthenticatedShell() {
+	return (
+		<div className="auth-screen">
+			<div className="auth-card">
+				<div className="auth-card-header">
+					<div className="auth-card-badge" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "3rem", height: "3rem", borderRadius: "50%", background: "rgba(59,130,246,0.15)", marginBottom: "1rem" }}>
+						<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+							<rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+							<path d="M7 11V7a5 5 0 0110 0v4" />
+						</svg>
+					</div>
+					<p className="auth-card-eyebrow">CyberZen</p>
+					<h1 className="auth-card-title">Sign in to your workspace</h1>
+				</div>
+
+				<p className="auth-card-copy">
+					Create or join a company workspace, invite teammates, and manage
+					red-team automation from one place.
+				</p>
+
+				<div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", marginTop: "1.5rem" }}>
+					<SignInButton mode="modal">
+						<button type="button" className="auth-submit">
+							Sign in
+						</button>
+					</SignInButton>
+					<SignUpButton mode="modal">
+						<button type="button" className="auth-submit" style={{ background: "transparent", border: "1px solid var(--border, #30363d)", color: "var(--sea-ink, #e6edf3)" }}>
+							Create account
+						</button>
+					</SignUpButton>
+				</div>
+			</div>
+		</div>
+	);
 }
 
 function PublicShell() {
@@ -106,12 +139,10 @@ function PublicShell() {
 	);
 }
 
-function RootGate({ authToken }: { authToken: string }) {
+function RootGate() {
 	const navigate = useNavigate();
 	const location = useLocation();
-	const workspace = useQuery(api.workspaceAuth.currentWorkspace, {
-		authToken,
-	});
+	const workspace = useQuery(api.workspaceAuth.currentWorkspace);
 	const [processedInviteToken, setProcessedInviteToken] = useState<
 		string | null
 	>(null);
@@ -148,8 +179,8 @@ function RootGate({ authToken }: { authToken: string }) {
 			}
 		};
 		document.addEventListener("keydown", handleQuestionMark);
-		const unsub = registerNavigationShortcuts((to) =>
-			void navigate({ to: to as "/" }),
+		const unsub = registerNavigationShortcuts(
+			(to) => void navigate({ to: to as "/" }),
 		);
 		return () => {
 			document.removeEventListener("keydown", handleQuestionMark);
@@ -168,7 +199,6 @@ function RootGate({ authToken }: { authToken: string }) {
 
 		return (
 			<InviteBootstrap
-				authToken={authToken}
 				inviteToken={inviteToken}
 				onComplete={() => {
 					setProcessedInviteToken(inviteToken);
@@ -188,7 +218,6 @@ function RootGate({ authToken }: { authToken: string }) {
 		>
 			<PostHogProvider>
 				<InviteBootstrap
-					authToken={authToken}
 					inviteToken={inviteToken}
 					isProcessed={processedInviteToken === inviteToken}
 					onComplete={() => {
@@ -199,11 +228,11 @@ function RootGate({ authToken }: { authToken: string }) {
 				/>
 				<div className="app-shell">
 					<Sidebar />
-				<div className="app-content">
-					<RouteErrorBoundary>
-						<Outlet />
-					</RouteErrorBoundary>
-				</div>
+					<div className="app-content">
+						<RouteErrorBoundary>
+							<Outlet />
+						</RouteErrorBoundary>
+					</div>
 				</div>
 				<TanStackDevtools
 					config={{ position: "bottom-right" }}
@@ -214,10 +243,10 @@ function RootGate({ authToken }: { authToken: string }) {
 						},
 					]}
 				/>
-			<AnalyticsConsentBanner />
-			<CommandPalette />
-			<Toaster />
-			<ShortcutsModal
+				<AnalyticsConsentBanner />
+				<CommandPalette />
+				<Toaster />
+				<ShortcutsModal
 					open={shortcutsOpen}
 					onClose={() => setShortcutsOpen(false)}
 				/>
@@ -241,12 +270,10 @@ function LoadingShell() {
 }
 
 function InviteBootstrap({
-	authToken,
 	inviteToken,
 	isProcessed,
 	onComplete,
 }: {
-	authToken: string;
 	inviteToken: string | null;
 	isProcessed: boolean;
 	onComplete: () => void;
@@ -264,7 +291,7 @@ function InviteBootstrap({
 
 		setStatus("joining");
 		setError(null);
-		void acceptInvite({ authToken, token: inviteToken })
+		void acceptInvite({ token: inviteToken })
 			.then(() => {
 				onComplete();
 				setStatus("done");
@@ -277,7 +304,7 @@ function InviteBootstrap({
 						: "Could not accept the workspace invite.",
 				);
 			});
-	}, [acceptInvite, authToken, inviteToken, isProcessed, onComplete, status]);
+	}, [acceptInvite, inviteToken, isProcessed, onComplete, status]);
 
 	if (!inviteToken || status === "done" || isProcessed) {
 		return null;

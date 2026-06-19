@@ -16,7 +16,7 @@ import StatusPill from "../StatusPill";
 import type { Id } from "../../lib/convex";
 import { api } from "../../lib/convex";
 import { formatTimestamp, priorityTierTone } from "../../lib/utils";
-import { useAuthToken } from "@convex-dev/auth/react";
+import { useAuthToken } from "../../lib/clerk-compat";
 import { useTenantSlug } from "../../lib/workspace";
 import BlastRadiusPanel from "./BlastRadiusPanel";
 import FindingTriageActionBar from "./FindingTriageActionBar";

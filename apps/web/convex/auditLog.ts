@@ -19,7 +19,7 @@ const auditLogEntry = v.object({
 
 export const listForTenant = query({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
     actionFilter: v.optional(v.string()),
     resourceTypeFilter: v.optional(v.string()),
@@ -186,7 +186,7 @@ export const insertWithHash = internalMutation({
 
 export const verifyAuditIntegrity = query({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
   },
   returns: v.object({

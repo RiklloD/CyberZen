@@ -1,4 +1,3 @@
-import { useAuthActions } from "@convex-dev/auth/react";
 import { useRouterState } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
 import { Shield, Sparkles } from "lucide-react";

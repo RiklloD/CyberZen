@@ -76,7 +76,7 @@ function validateSamlFields(args: {
 
 export const listSsoConfigs = query({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
   },
   handler: async (ctx, { authToken, tenantSlug }) => {
@@ -113,7 +113,7 @@ export const listSsoConfigs = query({
 
 export const createSsoConfig = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
     protocol: v.union(v.literal('saml'), v.literal('oidc')),
     displayName: v.string(),
@@ -196,7 +196,7 @@ export const createSsoConfig = mutation({
 
 export const updateSsoConfig = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
     configId: v.id('ssoConfigs'),
     displayName: v.optional(v.string()),
@@ -274,7 +274,7 @@ export const updateSsoConfig = mutation({
 
 export const deleteSsoConfig = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
     configId: v.id('ssoConfigs'),
   },
@@ -316,7 +316,7 @@ export const deleteSsoConfig = mutation({
 
 export const getAcsUrl = query({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
   },
   handler: async (ctx, { authToken, tenantSlug }) => {

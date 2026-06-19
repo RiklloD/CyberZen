@@ -532,7 +532,7 @@ const API_ENDPOINTS: ApiEndpoint[] = [
 function ApiDocsPage() {
 	const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
 	const [filter, setFilter] = useState("");
-	const openApiSpec = useQuery(api.apiDocs.getOpenApiSpec, {});
+	const openApiSpec = useQuery(api.apiDocs.getOpenApiSpec);
 
 	const filtered = filter
 		? API_ENDPOINTS.filter(

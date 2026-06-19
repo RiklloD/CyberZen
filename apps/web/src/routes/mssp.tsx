@@ -72,7 +72,7 @@ function MsspPortalPage() {
 // ─── Managed Tenants ─────────────────────────────────────────────────────
 
 function MsspTenantList() {
-	const tenants = useQuery(api.mssp.listManagedTenants, {});
+	const tenants = useQuery(api.mssp.listManagedTenants);
 	const setStatus = useMutation(api.mssp.setManagedTenantStatus);
 	const [pendingSlug, setPendingSlug] = useState<string | null>(null);
 
@@ -201,7 +201,7 @@ function MsspTenantList() {
 // ─── Billing Rollup ───────────────────────────────────────────────────────
 
 function MsspBillingRollup() {
-	const rollup = useQuery(api.mssp.getBillingRollup, {});
+	const rollup = useQuery(api.mssp.getBillingRollup);
 
 	if (!rollup) {
 		return (
@@ -319,7 +319,7 @@ function StatCard({ label, value }: { label: string; value: string }) {
 // ─── White Label Settings ─────────────────────────────────────────────────
 
 function MsspWhiteLabelSettings() {
-	const settings = useQuery(api.mssp.getWhiteLabelSettings, {});
+	const settings = useQuery(api.mssp.getWhiteLabelSettings);
 	const [brandName, setBrandName] = useState<string | null>(null);
 	const [portalUrl, setPortalUrl] = useState<string | null>(null);
 	const [supportEmail, setSupportEmail] = useState<string | null>(null);

@@ -66,7 +66,7 @@ async function getTenantAndVerifyAdmin(
 
 export const createMsspApiKey = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
     partnerName: v.string(),
     scopes: v.array(v.string()),
@@ -109,7 +109,7 @@ export const createMsspApiKey = mutation({
 
 export const rotateMsspApiKey = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
     keyId: v.id('msspApiKeys'),
   },
@@ -145,7 +145,7 @@ export const rotateMsspApiKey = mutation({
 
 export const revokeMsspApiKey = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
     keyId: v.id('msspApiKeys'),
   },
@@ -169,7 +169,7 @@ export const revokeMsspApiKey = mutation({
 
 export const listMsspApiKeys = query({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
   },
   handler: async (ctx, { authToken, tenantSlug }) => {

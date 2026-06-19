@@ -19,9 +19,9 @@ export const Route = createFileRoute("/status")({
 });
 
 function StatusPage() {
-	const health = useQuery(api.health.getServiceHealth, {});
+	const health = useQuery(api.health.getServiceHealth);
 	const incidents = useQuery(api.health.getIncidentHistory, { limit: 20 });
-	const overall = useQuery(api.health.getOverallStatus, {});
+	const overall = useQuery(api.health.getOverallStatus);
 
 	return (
 		<main style={{ maxWidth: "900px", margin: "0 auto", padding: "2rem 1rem" }}>

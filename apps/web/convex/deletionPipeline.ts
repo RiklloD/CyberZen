@@ -27,7 +27,7 @@ const deletionQueueSummary = v.object({
 
 export const scheduleDeletion = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
     entityType: v.union(
       v.literal('user'),
@@ -99,7 +99,7 @@ export const scheduleDeletion = mutation({
 
 export const cancelDeletion = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
     queueId: v.id('deletionQueue'),
   },
@@ -147,7 +147,7 @@ export const cancelDeletion = mutation({
 
 export const listDeletionQueue = query({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
   },
   returns: v.array(deletionQueueSummary),

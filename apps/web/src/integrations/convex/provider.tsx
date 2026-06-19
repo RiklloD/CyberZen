@@ -1,4 +1,5 @@
-import { ConvexAuthProvider } from "@convex-dev/auth/react";
+import { useAuth } from "@clerk/tanstack-react-start";
+import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { ConvexReactClient } from "convex/react";
 import { type ReactNode, useEffect } from "react";
 import { env } from "#/env";
@@ -119,5 +120,9 @@ export default function AppConvexProvider({
 		return <ConvexMissingPage />;
 	}
 
-	return <ConvexAuthProvider client={convexClient}>{children}</ConvexAuthProvider>;
+	return (
+		<ConvexProviderWithClerk client={convexClient} useAuth={useAuth}>
+			{children}
+		</ConvexProviderWithClerk>
+	);
 }

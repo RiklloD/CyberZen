@@ -1,4 +1,4 @@
-import { useAuthToken } from "@convex-dev/auth/react";
+import { useAuthToken } from "../lib/clerk-compat";
 import { useQuery } from "convex/react";
 import { useEffect, useRef, useState } from "react";
 import { X, AlertTriangle, CheckCircle, Info, AlertOctagon } from "lucide-react";
@@ -72,7 +72,6 @@ export default function Toaster() {
 
 	const notifications = useQuery(api.notifications.listForUser, {
 		tenantSlug: TENANT,
-		authToken: authToken ?? "",
 	});
 
 	const [toasts, setToasts] = useState<Toast[]>([]);

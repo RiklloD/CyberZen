@@ -54,7 +54,7 @@ const triageActionValidator = v.union(
 export const applyTriageAction = mutation({
   args: {
     findingId: v.id('findings'),
-    authToken: v.string(), // FIX: C1 — required for tenant ownership verification
+    authToken: v.optional(v.string()), // FIX: C1 — required for tenant ownership verification
     action: triageActionValidator,
     note: v.optional(v.string()),
     analyst: v.optional(v.string()),
@@ -140,7 +140,7 @@ export const applyTriageAction = mutation({
 export const markFalsePositive = mutation({
   args: {
     findingId: v.id('findings'),
-    authToken: v.string(), // FIX: C1 — required for tenant ownership verification
+    authToken: v.optional(v.string()), // FIX: C1 — required for tenant ownership verification
     note: v.optional(v.string()),
     analyst: v.optional(v.string()),
   },
@@ -168,7 +168,7 @@ export const markFalsePositive = mutation({
 export const reopenFinding = mutation({
   args: {
     findingId: v.id('findings'),
-    authToken: v.string(), // FIX: C1 — required for tenant ownership verification
+    authToken: v.optional(v.string()), // FIX: C1 — required for tenant ownership verification
     note: v.optional(v.string()),
     analyst: v.optional(v.string()),
   },
@@ -195,7 +195,7 @@ export const reopenFinding = mutation({
 export const addTriageNote = mutation({
   args: {
     findingId: v.id('findings'),
-    authToken: v.string(), // FIX: C1 — required for tenant ownership verification
+    authToken: v.optional(v.string()), // FIX: C1 — required for tenant ownership verification
     note: v.string(),
     analyst: v.optional(v.string()),
   },
@@ -226,7 +226,7 @@ export const addTriageNote = mutation({
 export const snoozeFinding = mutation({
   args: {
     findingId: v.id('findings'),
-    authToken: v.string(), // FIX: C1 — required for tenant ownership verification
+    authToken: v.optional(v.string()), // FIX: C1 — required for tenant ownership verification
     /** Duration in days (1, 7, or 30). */
     durationDays: v.union(v.literal(1), v.literal(7), v.literal(30)),
     /** Optional free-text reason for snoozing. */

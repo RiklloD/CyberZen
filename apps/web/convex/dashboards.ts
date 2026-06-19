@@ -14,7 +14,7 @@ import { requireSessionAuth } from './lib/sessionAuth'
 
 export const listDashboards = query({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
   },
   handler: async (ctx, { authToken, tenantSlug }) => {
@@ -62,7 +62,7 @@ export const listDashboards = query({
 
 export const getDashboard = query({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
     dashboardId: v.id('dashboards'),
   },
@@ -101,7 +101,7 @@ export const getDashboard = query({
 
 export const createDashboard = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
     name: v.string(),
     description: v.optional(v.string()),
@@ -139,7 +139,7 @@ export const createDashboard = mutation({
 
 export const updateDashboard = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
     dashboardId: v.id('dashboards'),
     name: v.optional(v.string()),
@@ -190,7 +190,7 @@ export const updateDashboard = mutation({
 
 export const deleteDashboard = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
     dashboardId: v.id('dashboards'),
   },

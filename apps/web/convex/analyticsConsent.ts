@@ -9,7 +9,7 @@ import { requireSessionAuth } from './lib/sessionAuth'
 
 export const getMyConsent = query({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     // A14 — let requireSessionAuth throw on missing token like every other authed function
@@ -31,7 +31,7 @@ export const getMyConsent = query({
 
 export const updateMyConsent = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     consent: v.boolean(),
   },
   handler: async (ctx, args) => {

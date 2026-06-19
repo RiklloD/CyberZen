@@ -1,5 +1,5 @@
 import { useState, useTransition } from "react";
-import { useAuthToken } from "@convex-dev/auth/react";
+import { useAuthToken } from "../../lib/clerk-compat";
 import { useMutation } from "convex/react";
 import type { Id } from "../../lib/convex";
 import { api } from "../../lib/convex";

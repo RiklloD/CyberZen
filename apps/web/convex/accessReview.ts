@@ -35,7 +35,7 @@ async function getTenantAndVerifyAdmin(
 
 export const scheduleAccessReview = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
     period: v.string(),
     dueDate: v.number(),
@@ -75,7 +75,7 @@ export const scheduleAccessReview = mutation({
 
 export const listPendingReviews = query({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
     cycleId: v.optional(v.id('accessReviewCycles')),
   },
@@ -116,7 +116,7 @@ export const listPendingReviews = query({
 
 export const approveAccess = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
     reviewItemId: v.id('accessReviewItems'),
     justification: v.string(),
@@ -141,7 +141,7 @@ export const approveAccess = mutation({
 
 export const flagForRemoval = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
     reviewItemId: v.id('accessReviewItems'),
     reason: v.string(),
@@ -166,7 +166,7 @@ export const flagForRemoval = mutation({
 
 export const completeAccessReview = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
     cycleId: v.id('accessReviewCycles'),
   },
@@ -188,7 +188,7 @@ export const completeAccessReview = mutation({
 
 export const listReviewCycles = query({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
   },
   handler: async (ctx, { authToken, tenantSlug }) => {

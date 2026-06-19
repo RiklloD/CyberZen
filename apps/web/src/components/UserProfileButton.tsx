@@ -1,3 +1,4 @@
+import { useClerk } from "@clerk/tanstack-react-start";
 import { Link } from "@tanstack/react-router";
 import {
 	ChevronUp,
@@ -10,12 +11,11 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "convex/react";
-import { useAuthActions } from "@convex-dev/auth/react";
 import { api } from "../lib/convex";
 
 export default function UserProfileButton() {
 	const profile = useQuery(api.userProfile.getProfile);
-	const { signOut } = useAuthActions();
+	const { signOut } = useClerk();
 	const [open, setOpen] = useState(false);
 	const ref = useRef<HTMLDivElement>(null);
 

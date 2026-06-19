@@ -75,7 +75,7 @@ function timingSafeEqual(a: string, b: string): boolean {
 
 export const listApiKeys = query({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
   },
   returns: v.array(apiKeySummary),
@@ -101,7 +101,7 @@ export const listApiKeys = query({
 
 export const createApiKey = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
     name: v.string(),
     scopes: v.array(v.string()),
@@ -155,7 +155,7 @@ export const createApiKey = mutation({
 
 export const rotateApiKey = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
     keyId: v.id('apiKeys'),
   },
@@ -211,7 +211,7 @@ export const rotateApiKey = mutation({
 
 export const revokeApiKey = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
     keyId: v.id('apiKeys'),
   },
@@ -359,7 +359,7 @@ export const checkAndRecordTenantKeyUsage = internalMutation({
 
 export const getApiKeyUsage = query({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
   },
   handler: async (ctx, { authToken, tenantSlug }) => {

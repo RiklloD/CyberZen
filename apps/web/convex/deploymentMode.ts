@@ -120,7 +120,7 @@ export const getDeploymentMode = query({
 
 export const switchDeploymentMode = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantId: v.id('tenants'),
     mode: deploymentModeInput,
   },

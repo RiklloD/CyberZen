@@ -1,4 +1,4 @@
-import { useAuthToken } from "@convex-dev/auth/react";
+import { useAuthToken } from "../lib/clerk-compat";
 import { Bell } from "lucide-react";
 import { useMutation, useQuery } from "convex/react";
 import { useState } from "react";
@@ -13,12 +13,10 @@ export default function NotificationBell() {
 
 	const unreadCount = useQuery(api.notifications.unreadCount, {
 		tenantSlug: TENANT,
-		authToken: authToken ?? "",
 	});
 
 	const notifications = useQuery(api.notifications.listForUser, {
 		tenantSlug: TENANT,
-		authToken: authToken ?? "",
 	});
 
 	const markRead = useMutation(api.notifications.markRead);

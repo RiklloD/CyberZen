@@ -24,7 +24,7 @@ const notificationType = v.union(
 export const listForUser = query({
   args: {
     tenantSlug: v.string(),
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
   },
   returns: v.array(
     v.object({
@@ -74,7 +74,7 @@ export const listForUser = query({
 export const unreadCount = query({
   args: {
     tenantSlug: v.string(),
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
   },
   returns: v.number(),
   handler: async (ctx, args) => {
@@ -110,7 +110,7 @@ export const unreadCount = query({
 export const markRead = mutation({
   args: {
     notificationId: v.id('notifications'),
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -129,7 +129,7 @@ export const markRead = mutation({
 export const markAllRead = mutation({
   args: {
     tenantSlug: v.string(),
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -170,7 +170,7 @@ export const markAllRead = mutation({
 export const getPreferences = query({
   args: {
     tenantSlug: v.string(),
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
   },
   returns: v.array(
     v.object({
@@ -220,7 +220,7 @@ export const getPreferences = query({
 export const upsertPreference = mutation({
   args: {
     tenantSlug: v.string(),
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     channel: v.union(
       v.literal('in_app'),
       v.literal('email'),

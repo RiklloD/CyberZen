@@ -63,7 +63,7 @@ async function getTenantAndVerifyAdmin(
 
 export const listRoles = query({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
   },
   returns: v.array(roleSummary),
@@ -117,7 +117,7 @@ export const listRoles = query({
 
 export const createRole = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
     name: v.string(),
     description: v.optional(v.string()),
@@ -163,7 +163,7 @@ export const createRole = mutation({
 
 export const updateRole = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
     roleId: v.id('roles'),
     name: v.optional(v.string()),
@@ -206,7 +206,7 @@ export const updateRole = mutation({
 
 export const deleteRole = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
     roleId: v.id('roles'),
   },
@@ -249,7 +249,7 @@ export const deleteRole = mutation({
 
 export const assignRoleToUser = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
     targetUserId: v.id('users'),
     roleId: v.id('roles'),
@@ -308,7 +308,7 @@ export const assignRoleToUser = mutation({
 
 export const removeRoleFromUser = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
     targetUserId: v.id('users'),
     roleId: v.id('roles'),
@@ -358,7 +358,7 @@ const DELEGATED_ADMIN_BLOCKED = new Set([
 
 export const listMembersWithDelegations = query({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
   },
   returns: v.array(
@@ -413,7 +413,7 @@ export const listMembersWithDelegations = query({
 
 export const setDelegatedPermissions = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
     targetUserId: v.id('users'),
     permissions: v.array(v.string()),

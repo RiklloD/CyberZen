@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { useAuthToken } from "@convex-dev/auth/react";
+import { useAuthToken } from "../lib/clerk-compat";
 import { useAction } from "convex/react";
 import { Download, ChevronDown, FileText, FileSpreadsheet, Loader2 } from "lucide-react";
 import { api } from "../lib/convex";

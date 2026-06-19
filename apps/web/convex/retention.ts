@@ -26,7 +26,7 @@ const DATA_TYPES = v.union(
 
 export const listPolicies = query({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
   },
   handler: async (ctx, args) => {
@@ -47,7 +47,7 @@ export const listPolicies = query({
 
 export const createPolicy = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
     name: v.string(),
     dataType: DATA_TYPES,
@@ -74,7 +74,7 @@ export const createPolicy = mutation({
 
 export const updatePolicy = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
     policyId: v.id('retentionPolicies'),
     name: v.optional(v.string()),
@@ -103,7 +103,7 @@ export const updatePolicy = mutation({
 
 export const deletePolicy = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
     policyId: v.id('retentionPolicies'),
   },

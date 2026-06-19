@@ -93,7 +93,7 @@ function baselineFilesForLanguage(language: string) {
 
 export const provisionWorkspace = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
     companyName: v.string(),
     deploymentMode,

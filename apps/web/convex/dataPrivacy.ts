@@ -6,7 +6,7 @@ const GRACE_PERIOD_MS = 30 * 24 * 60 * 60 * 1000 // 30 days
 
 export const listDataRequests = query({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
   },
   returns: v.array(
@@ -60,7 +60,7 @@ export const listDataRequests = query({
 
 export const requestDataAccess = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
   },
   returns: v.id('dataRequests'),
@@ -87,7 +87,7 @@ export const requestDataAccess = mutation({
 
 export const requestDataDeletion = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
   },
   returns: v.id('dataRequests'),
@@ -117,7 +117,7 @@ export const requestDataDeletion = mutation({
 
 export const requestDataExport = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
   },
   returns: v.id('dataRequests'),
@@ -144,7 +144,7 @@ export const requestDataExport = mutation({
 
 export const cancelDataRequest = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     requestId: v.id('dataRequests'),
   },
   returns: v.null(),

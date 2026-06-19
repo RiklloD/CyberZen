@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "#/lib/convex";
 import { useTenantSlug } from "../../lib/workspace";
-import { useAuthToken } from "@convex-dev/auth/react";
+import { useAuthToken } from "../../lib/clerk-compat";
 import RouteErrorBoundary from "../../components/RouteErrorBoundary";
 
 export const Route = createFileRoute("/settings/retention")({

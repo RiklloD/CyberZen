@@ -39,7 +39,7 @@ const CHANNEL = v.union(
 
 export const listSchedules = query({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
   },
   handler: async (ctx, args) => {
@@ -77,7 +77,7 @@ export const listSchedules = query({
 
 export const createSchedule = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
     name: v.string(),
     description: v.optional(v.string()),
@@ -112,7 +112,7 @@ export const createSchedule = mutation({
 
 export const updateSchedule = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
     scheduleId: v.id('onCallSchedules'),
     name: v.optional(v.string()),
@@ -146,7 +146,7 @@ export const updateSchedule = mutation({
 
 export const deleteSchedule = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
     scheduleId: v.id('onCallSchedules'),
   },
@@ -179,7 +179,7 @@ export const deleteSchedule = mutation({
 
 export const listEscalationPolicies = query({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
   },
   handler: async (ctx, args) => {
@@ -211,7 +211,7 @@ export const listEscalationPolicies = query({
 
 export const createEscalationPolicy = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
     name: v.string(),
     description: v.optional(v.string()),
@@ -257,7 +257,7 @@ export const createEscalationPolicy = mutation({
 
 export const updateEscalationPolicy = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
     policyId: v.id('escalationPolicies'),
     name: v.optional(v.string()),
@@ -306,7 +306,7 @@ export const updateEscalationPolicy = mutation({
 
 export const deleteEscalationPolicy = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
     policyId: v.id('escalationPolicies'),
   },

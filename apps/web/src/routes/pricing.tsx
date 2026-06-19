@@ -10,7 +10,7 @@ export const Route = createFileRoute("/pricing")({
 });
 
 function PricingPage() {
-	const plans = useQuery(api.plans.listPlans, {});
+	const plans = useQuery(api.plans.listPlans);
 
 	return (
 		<main>

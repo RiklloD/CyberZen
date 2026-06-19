@@ -131,7 +131,7 @@ async function loadCurrentWorkspace(
 
 export const currentWorkspace = query({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
   },
   returns: currentWorkspaceResult,
   handler: async (ctx, { authToken }) => {
@@ -143,7 +143,7 @@ export const currentWorkspace = query({
 
 export const listWorkspaces = query({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
   },
   returns: v.array(workspaceSummary),
   handler: async (ctx, { authToken }) => {
@@ -155,7 +155,7 @@ export const listWorkspaces = query({
 
 export const switchWorkspace = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
   },
   returns: currentWorkspaceResult,
@@ -192,7 +192,7 @@ export const switchWorkspace = mutation({
 
 export const createWorkspaceInvite = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
     email: v.string(),
     role: workspaceRole,
@@ -273,7 +273,7 @@ const memberSummary = v.object({
 
 export const listMembers = query({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
   },
   returns: v.array(memberSummary),
@@ -321,7 +321,7 @@ export const listMembers = query({
 
 export const inviteMember = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
     email: v.string(),
     role: workspaceRole,
@@ -337,7 +337,7 @@ export const inviteMember = mutation({
 
 export const removeMember = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
     memberUserId: v.id('users'),
   },
@@ -387,7 +387,7 @@ export const removeMember = mutation({
 
 export const changeRole = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
     memberUserId: v.id('users'),
     newRole: workspaceRole,
@@ -438,7 +438,7 @@ export const changeRole = mutation({
 
 export const acceptWorkspaceInvite = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     token: v.string(),
   },
   returns: currentWorkspaceResult,

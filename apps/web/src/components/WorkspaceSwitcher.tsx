@@ -1,4 +1,4 @@
-import { useAuthActions, useAuthToken } from "@convex-dev/auth/react";
+import { useClerk } from "@clerk/tanstack-react-start";
 import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
 import { Building2, ChevronsUpDown, LogOut } from "lucide-react";
@@ -14,12 +14,9 @@ type WorkspaceMembership = {
 };
 
 export default function WorkspaceSwitcher() {
-	const authToken = useAuthToken();
-	const workspace = useQuery(api.workspaceAuth.currentWorkspace, {
-		authToken: authToken ?? "",
-	});
+	const workspace = useQuery(api.workspaceAuth.currentWorkspace);
 	const switchWorkspace = useMutation(api.workspaceAuth.switchWorkspace);
-	const { signOut } = useAuthActions();
+	const { signOut } = useClerk();
 	const [isSwitching, setIsSwitching] = useState(false);
 
 	if (workspace === undefined) {
@@ -95,7 +92,6 @@ export default function WorkspaceSwitcher() {
 							setIsSwitching(true);
 							try {
 								await switchWorkspace({
-									authToken: authToken ?? "",
 									tenantSlug: event.currentTarget.value,
 								});
 							} finally {

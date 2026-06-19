@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Bell } from "lucide-react";
 import { useMutation, useQuery } from "convex/react";
-import { useAuthToken } from "@convex-dev/auth/react";
+import { useAuthToken } from "../../lib/clerk-compat";
 import { api } from "../../lib/convex";
 import { useTenantSlug } from "../../lib/workspace";
 import RouteErrorBoundary from "../../components/RouteErrorBoundary";
@@ -37,7 +37,6 @@ function NotificationSettingsPage() {
 
 	const preferences = useQuery(api.notifications.getPreferences, {
 		tenantSlug: TENANT,
-		authToken: authToken ?? "",
 	});
 
 	const upsertPreference = useMutation(api.notifications.upsertPreference);
@@ -53,7 +52,6 @@ function NotificationSettingsPage() {
 		const current = isEnabled(channel, type);
 		upsertPreference({
 			tenantSlug: TENANT,
-			authToken: authToken ?? "",
 			channel: channel as "in_app" | "email" | "slack",
 			type,
 			enabled: !current,

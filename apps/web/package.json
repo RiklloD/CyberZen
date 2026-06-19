@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@auth/core": "0.37.0",
+    "@clerk/tanstack-react-start": "^1.4.6",
     "@convex-dev/auth": "0.0.92",
     "@convex-dev/react-query": "0.1.0",
     "@posthog/react": "^1.7.0",

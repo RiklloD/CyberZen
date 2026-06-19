@@ -13,7 +13,7 @@ import { useMutation, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "#/lib/convex";
 import { useTenantSlug } from "../../lib/workspace";
-import { useAuthToken } from "@convex-dev/auth/react";
+import { useAuthToken } from "../../lib/clerk-compat";
 import RouteErrorBoundary from "../../components/RouteErrorBoundary";
 
 type OnCallSchedule = NonNullable<FunctionReturnType<typeof api.onCall.listSchedules>>[number];

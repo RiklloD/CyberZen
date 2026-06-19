@@ -272,7 +272,7 @@ async function requireMembership(
 
 export const generatePlaybook = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
     findingId: v.id('findings'),
   },
@@ -333,7 +333,7 @@ export const generatePlaybook = mutation({
 
 export const getPlaybookForFinding = query({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
     findingId: v.id('findings'),
   },
@@ -370,7 +370,7 @@ export const getPlaybookForFinding = query({
 
 export const markPlaybookUsed = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
     playbookId: v.id('remediationPlaybooks'),
     wasEffective: v.boolean(),
@@ -395,7 +395,7 @@ export const markPlaybookUsed = mutation({
 
 export const getPlaybookEffectivenessStats = query({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
   },
   handler: async (ctx, { authToken, tenantSlug }) => {

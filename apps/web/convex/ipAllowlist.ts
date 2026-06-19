@@ -76,7 +76,7 @@ async function getTenantAndVerifyAdmin(
 
 export const updateIpAllowlist = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
     cidrs: v.array(v.string()),
   },
@@ -103,7 +103,7 @@ export const updateIpAllowlist = mutation({
 
 export const getIpAllowlist = query({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
   },
   handler: async (ctx, { authToken, tenantSlug }) => {
@@ -147,7 +147,7 @@ export const checkIpAllowlist = internalQuery({
 
 export const testIpAccess = query({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
     testIp: v.string(),
   },

@@ -530,7 +530,7 @@ async function decryptToken(encrypted: string): Promise<string> {
 
 export const initiateSlackOAuth = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
   },
   returns: v.object({ oauthUrl: v.string(), state: v.string() }),
@@ -650,7 +650,7 @@ export const storeSlackToken = internalMutation({
 
 export const getSlackIntegration = query({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
   },
   handler: async (ctx, { authToken, tenantSlug }) => {
@@ -702,7 +702,7 @@ export const getSlackIntegration = query({
 
 export const configureSlackAlerts = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
     channel: v.string(),
     events: v.array(v.string()),
@@ -750,7 +750,7 @@ export const configureSlackAlerts = mutation({
 
 export const disconnectSlack = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
   },
   returns: v.null(),
@@ -845,7 +845,7 @@ export const getSlackIntegrationById = internalQuery({
 // ---------------------------------------------------------------------------
 
 export const verifyAuthSession = internalQuery({
-  args: { authToken: v.string() },
+  args: { authToken: v.optional(v.string()) },
   returns: v.null(),
   handler: async (ctx, { authToken }): Promise<null> => {
     await requireSessionAuth(ctx, authToken);
@@ -859,7 +859,7 @@ export const verifyAuthSession = internalQuery({
 
 export const sendTestSlackNotification = action({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
     channel: v.string(),
   },

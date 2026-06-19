@@ -1,58 +1,39 @@
-import { createLocalJWKSet, jwtVerify } from "jose";
 import type { Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 
-const jwksJson = process.env.JWKS;
-const jwks = jwksJson ? createLocalJWKSet(JSON.parse(jwksJson)) : null;
-
 type AuthCtx = QueryCtx | MutationCtx;
 
+/**
+ * Resolve the authenticated user from Convex's built-in identity
+ * (populated automatically by Clerk via ConvexProviderWithClerk).
+ */
 export async function requireSessionAuth(
 	ctx: AuthCtx,
-	authToken: string,
-): Promise<{ userId: Id<"users">; sessionId: Id<"authSessions"> }> {
-	if (!authToken) {
+	_authToken?: string,
+): Promise<{ userId: Id<"users">; sessionId: null }> {
+	const identity = await ctx.auth.getUserIdentity();
+	if (!identity) {
 		throw new Error("Not signed in");
 	}
 
-	// A21 — deferred (lazy) issuer check: only throw when actually needed,
-	// not at module-load time (which would take down the entire backend)
-	const issuer = process.env.CONVEX_SITE_URL;
-	if (!issuer) {
-		throw new Error("CONVEX_SITE_URL is not set");
+	// Clerk identity has `subject` = the Clerk user ID (e.g. "user_2abc...")
+	// and `email` from the Clerk session. Resolve the CyberZen user by email.
+	const email = (identity as Record<string, unknown>).email as string | undefined;
+	if (!email) {
+		throw new Error("Clerk session has no email — cannot resolve user");
 	}
 
-	if (!jwks) {
-		throw new Error("JWKS is not configured — set the JWKS env variable");
-	}
+	const user = await ctx.db
+		.query("users")
+		.withIndex("email", (q) => q.eq("email", email))
+		.first();
 
-	const { payload } = await jwtVerify(authToken, jwks, {
-		issuer,
-		audience: "convex",
-		clockTolerance: "30s", // A22 — tolerate minor clock skew between issuer and verifier
-	});
-
-	if (typeof payload.sub !== "string") {
-		throw new Error("Not signed in");
-	}
-
-	const [userIdRaw, sessionIdRaw] = payload.sub.split("|");
-	if (!userIdRaw || !sessionIdRaw) {
-		throw new Error("Not signed in");
-	}
-
-	const sessionId = sessionIdRaw as Id<"authSessions">;
-	const session = await ctx.db.get(sessionId);
-	if (
-		!session ||
-		session.userId !== (userIdRaw as Id<"users">) ||
-		session.expirationTime <= Date.now()
-	) {
-		throw new Error("Not signed in");
+	if (!user) {
+		throw new Error(`No CyberZen user found for ${email}`);
 	}
 
 	return {
-		userId: userIdRaw as Id<"users">,
-		sessionId,
+		userId: user._id,
+		sessionId: null,
 	};
 }

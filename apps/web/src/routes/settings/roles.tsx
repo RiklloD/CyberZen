@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useAuthToken } from "@convex-dev/auth/react";
+import { useAuthToken } from "../../lib/clerk-compat";
 import { useMutation, useQuery } from "convex/react";
 import { Plus, Shield, Trash2, X, Check, Pencil, UserCog } from "lucide-react";
 import { useState, useTransition } from "react";

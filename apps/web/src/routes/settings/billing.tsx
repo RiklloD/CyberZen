@@ -22,7 +22,7 @@ export const Route = createFileRoute("/settings/billing")({
 
 function BillingPage() {
 	const TENANT = useTenantSlug();
-	const plans = useQuery(api.billing.listPlans, {});
+	const plans = useQuery(api.billing.listPlans);
 	const current = useQuery(api.billing.currentPlanForTenant, {
 		tenantSlug: TENANT,
 	});
@@ -35,7 +35,7 @@ function BillingPage() {
 	const tieredPlan = useQuery(api.plans.currentPlanForTenant, {
 		tenantSlug: TENANT,
 	});
-	const tieredPlans = useQuery(api.plans.listPlans, {});
+	const tieredPlans = useQuery(api.plans.listPlans);
 
 	return (
 		<main>

@@ -1,4 +1,4 @@
-import { useAuthToken } from "@convex-dev/auth/react";
+import { useAuthToken } from "../lib/clerk-compat";
 import { useQuery } from "convex/react";
 import {
 	createContext,
@@ -27,9 +27,7 @@ export function WorkspaceSlugProvider({
 
 export function useWorkspaceState() {
 	const authToken = useAuthToken();
-	return useQuery(api.workspaceAuth.currentWorkspace, {
-		authToken: authToken ?? "",
-	});
+	return useQuery(api.workspaceAuth.currentWorkspace);
 }
 
 export function useTenantSlug() {

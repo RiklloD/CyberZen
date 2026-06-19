@@ -72,7 +72,7 @@ const findingListRow = v.object({
 export const list = query({
   args: {
     tenantSlug: v.string(),
-    authToken: v.string(), // FIX: C2 — required for membership verification
+    authToken: v.optional(v.string()), // FIX: C2 — required for membership verification
     status: v.optional(findingStatus),
     severity: v.optional(severity),
     repositoryId: v.optional(v.id('repositories')),

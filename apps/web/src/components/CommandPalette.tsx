@@ -1,4 +1,4 @@
-import { useAuthToken } from "@convex-dev/auth/react";
+import { useAuthToken } from "../lib/clerk-compat";
 import { useNavigate } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import {

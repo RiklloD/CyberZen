@@ -3,7 +3,7 @@ import posthog from "posthog-js";
 import type { ReactNode } from "react";
 import { useEffect } from "react";
 import { useQuery } from "convex/react";
-import { useAuthToken } from "@convex-dev/auth/react";
+import { useAuthToken } from "../../lib/clerk-compat";
 import { env } from "#/env";
 import { api } from "#/lib/convex";
 

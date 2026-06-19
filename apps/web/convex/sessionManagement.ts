@@ -31,7 +31,7 @@ function parseUserAgent(ua: string): { browser?: string; os?: string } {
 
 export const trackSession = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     tenantSlug: v.string(),
     userAgent: v.optional(v.string()),
     ipAddress: v.optional(v.string()),
@@ -86,7 +86,7 @@ export const trackSession = mutation({
 
 export const listSessions = query({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
   },
   returns: v.array(
     v.object({
@@ -140,7 +140,7 @@ export const listSessions = query({
 
 export const revokeSession = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
     userSessionId: v.id('userSessions'),
   },
   returns: v.null(),
@@ -175,7 +175,7 @@ export const revokeSession = mutation({
 
 export const revokeAllOtherSessions = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
   },
   returns: v.number(),
   handler: async (ctx, { authToken }) => {
@@ -210,7 +210,7 @@ export const revokeAllOtherSessions = mutation({
 
 export const heartbeat = mutation({
   args: {
-    authToken: v.string(),
+    authToken: v.optional(v.string()),
   },
   returns: v.null(),
   handler: async (ctx, { authToken }) => {
