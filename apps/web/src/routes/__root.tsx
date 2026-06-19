@@ -133,11 +133,18 @@ function PublicShell() {
 function RootGate() {
 	const navigate = useNavigate();
 	const location = useLocation();
-	const workspace = useQuery(api.workspaceAuth.currentWorkspace);
+	const ensureUser = useMutation(api.workspaceAuth.ensureUser);
+	const [userEnsured, setUserEnsured] = useState(false);
+	const workspace = useQuery(api.workspaceAuth.currentWorkspace, userEnsured ? {} : "skip");
 	const [processedInviteToken, setProcessedInviteToken] = useState<
 		string | null
 	>(null);
 	const [shortcutsOpen, setShortcutsOpen] = useState(false);
+
+	// Ensure the user exists in Convex before querying workspace
+	useEffect(() => {
+		void ensureUser({}).then(() => setUserEnsured(true));
+	}, [ensureUser]);
 
 	// Capture invite token once from URL, then immediately strip it so the
 	// token never appears in browser history or referrer headers.

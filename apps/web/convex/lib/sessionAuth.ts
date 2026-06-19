@@ -6,6 +6,8 @@ type AuthCtx = QueryCtx | MutationCtx;
 /**
  * Resolve the authenticated user from Convex's built-in identity
  * (populated automatically by Clerk via ConvexProviderWithClerk).
+ *
+ * If no CyberZen user exists for the Clerk email, one is created automatically.
  */
 export async function requireSessionAuth(
 	ctx: AuthCtx,
@@ -16,24 +18,55 @@ export async function requireSessionAuth(
 		throw new Error("Not signed in");
 	}
 
-	// Clerk identity has `subject` = the Clerk user ID (e.g. "user_2abc...")
-	// and `email` from the Clerk session. Resolve the CyberZen user by email.
+	// Clerk identity has `email` from the session.
 	const email = (identity as Record<string, unknown>).email as string | undefined;
 	if (!email) {
 		throw new Error("Clerk session has no email — cannot resolve user");
 	}
 
-	const user = await ctx.db
+	const normalizedEmail = email.trim().toLowerCase();
+
+	// Look up existing user by email
+	const existingUser = await ctx.db
 		.query("users")
-		.withIndex("email", (q) => q.eq("email", email))
+		.withIndex("email", (q) => q.eq("email", normalizedEmail))
 		.first();
 
-	if (!user) {
-		throw new Error(`No CyberZen user found for ${email}`);
+	if (existingUser) {
+		return {
+			userId: existingUser._id,
+			sessionId: null,
+		};
 	}
 
-	return {
-		userId: user._id,
-		sessionId: null,
-	};
+	// Auto-provision user on first sign-in (query context can't write, so we
+	// only return the identity info — the mutation path below handles creation).
+	// In query context, ctx.db.insert is not available, so we throw to signal
+	// that a mutation needs to create the user first.
+	// However, Convex queries CAN read but mutations CAN write.
+	// For the auto-provision to work, we need to handle this in the caller.
+	// The simplest approach: if this is a mutation context, create the user.
+	// If it's a query context, throw a specific error the frontend can handle.
+
+	// Check if we're in a mutation context (has db.insert capability)
+	if ("insert" in ctx.db) {
+		const name =
+			(identity as Record<string, unknown>).name as string | undefined ??
+			(identity as Record<string, unknown>).givenName as string | undefined ??
+			normalizedEmail.split("@")[0];
+
+		const userId = await (ctx.db as MutationCtx["db"]).insert("users", {
+			email: normalizedEmail,
+			name,
+		});
+
+		return {
+			userId,
+			sessionId: null,
+		};
+	}
+
+	// Query context — user doesn't exist yet. The frontend should call
+	// a mutation to create the user, then re-query.
+	throw new Error(`No CyberZen user found for ${normalizedEmail}. Please sign in again to create your account.`);
 }

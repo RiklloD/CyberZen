@@ -129,6 +129,34 @@ async function loadCurrentWorkspace(
   }
 }
 
+export const ensureUser = mutation({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error('Not signed in');
+
+    const email = (identity as Record<string, unknown>).email as string | undefined;
+    if (!email) throw new Error('Clerk session has no email');
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const existing = await ctx.db
+      .query('users')
+      .withIndex('email', (q) => q.eq('email', normalizedEmail))
+      .first();
+
+    if (!existing) {
+      const name =
+        (identity as Record<string, unknown>).name as string | undefined ??
+        (identity as Record<string, unknown>).givenName as string | undefined ??
+        normalizedEmail.split('@')[0];
+      await ctx.db.insert('users', { email: normalizedEmail, name });
+    }
+
+    return null;
+  },
+})
+
 export const currentWorkspace = query({
   args: {
     authToken: v.optional(v.string()),
