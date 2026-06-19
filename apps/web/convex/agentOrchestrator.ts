@@ -7,35 +7,23 @@
 //
 
 import { v } from 'convex/values'
-import { mutation, query, internalAction, internalMutation } from './_generated/server'
-import { internal, api } from './_generated/api'
-import type { Id } from './_generated/dataModel'
+import { mutation, query } from './_generated/server'
+import { internal } from './_generated/api'
 
 // ─── Auth Helper ─────────────────────────────────────────────────────────────
 
-async function resolveTenantAndRepo(
-  ctx: Parameters<Parameters<typeof mutation>[0]['handler']>[0],
+// ctx typed as any to avoid TS2589 cascades from the 195-table schema (matches
+// the same resolveTenant helper in dashboard.ts).
+async function resolveTenant(
+  ctx: any,
   tenantSlug: string,
-  repositoryFullName?: string,
 ) {
   const tenant = await ctx.db
     .query('tenants')
     .withIndex('by_slug', (q) => q.eq('slug', tenantSlug))
     .unique()
   if (!tenant) throw new Error(`Tenant not found: ${tenantSlug}`)
-
-  let repository = null
-  if (repositoryFullName) {
-    repository = await ctx.db
-      .query('repositories')
-      .filter((q) =>
-        q.eq(q.field('tenantId'), tenant._id) &&
-        q.eq(q.field('fullName'), repositoryFullName),
-      )
-      .first()
-  }
-
-  return { tenant, repository }
+  return tenant
 }
 
 // ─── Public: Trigger a remediation agent for a finding ──────────────────────
@@ -47,7 +35,7 @@ export const triggerRemediation = mutation({
     repositoryId: v.id('repositories'),
   },
   handler: async (ctx, args) => {
-    const { tenant } = await resolveTenantAndRepo(ctx, args.tenantSlug)
+    const tenant = await resolveTenant(ctx, args.tenantSlug)
 
     const finding = await ctx.db.get(args.findingId)
     if (!finding) throw new Error('Finding not found')
@@ -83,7 +71,7 @@ export const triggerExploitValidation = mutation({
     repositoryId: v.id('repositories'),
   },
   handler: async (ctx, args) => {
-    const { tenant } = await resolveTenantAndRepo(ctx, args.tenantSlug)
+    const tenant = await resolveTenant(ctx, args.tenantSlug)
 
     const taskId = await ctx.runMutation(internal.agentData.createAgentTask, {
       tenantId: tenant._id,
@@ -114,7 +102,7 @@ export const triggerRedTeamRound = mutation({
     repositoryId: v.id('repositories'),
   },
   handler: async (ctx, args) => {
-    const { tenant } = await resolveTenantAndRepo(ctx, args.tenantSlug)
+    const tenant = await resolveTenant(ctx, args.tenantSlug)
 
     // Get current round number
     const lastAttack = await ctx.db
@@ -152,7 +140,7 @@ export const triggerPromptInjectionScan = mutation({
     repositoryId: v.id('repositories'),
   },
   handler: async (ctx, args) => {
-    const { tenant } = await resolveTenantAndRepo(ctx, args.tenantSlug)
+    const tenant = await resolveTenant(ctx, args.tenantSlug)
 
     const taskId = await ctx.runMutation(internal.agentData.createAgentTask, {
       tenantId: tenant._id,
@@ -181,7 +169,7 @@ export const triggerSurfaceReductionScan = mutation({
     repositoryId: v.id('repositories'),
   },
   handler: async (ctx, args) => {
-    const { tenant } = await resolveTenantAndRepo(ctx, args.tenantSlug)
+    const tenant = await resolveTenant(ctx, args.tenantSlug)
 
     const taskId = await ctx.runMutation(internal.agentData.createAgentTask, {
       tenantId: tenant._id,
@@ -218,21 +206,13 @@ export const getAgentTasksForTenant = query({
       .unique()
     if (!tenant) return []
 
-    let q = ctx.db
-      .query('agentTasks')
-      .withIndex('by_tenant_and_status', (q) =>
-        q.eq('tenantId', tenant._id),
-      )
-
-    // We can't filter on status in the index query since we need all statuses
-    // and filter client-side. Use by_tenant index for general listing.
-    const allTasks = await ctx.db
+    const tasks = await ctx.db
       .query('agentTasks')
       .withIndex('by_tenant', (q) => q.eq('tenantId', tenant._id))
       .order('desc')
       .take(args.limit ?? 50)
 
-    return allTasks
+    return tasks
       .filter((t) => !args.status || t.status === args.status)
       .filter((t) => !args.agentType || t.agentType === args.agentType)
   },

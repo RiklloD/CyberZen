@@ -24,7 +24,7 @@
 //      and the repo dropdown populates.
 //
 import { v } from "convex/values";
-import { action, internalMutation, mutation, query } from "./_generated/server";
+import { action, internalAction, internalMutation, mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 
@@ -32,10 +32,9 @@ const GITHUB_AUTHORIZE_URL = "https://github.com/login/oauth/authorize";
 const GITHUB_TOKEN_URL = "https://github.com/login/oauth/access_token";
 const GITHUB_API = "https://api.github.com";
 
-/** Scopes the connection grants. `public_repo` is what unlocks
- *  `GET /user/repos`. `repo` is requested too so private repos show
- *  up for users on a Pro/Team plan. */
-const GITHUB_SCOPES = ["read:user", "user:email", "public_repo", "repo"];
+/** Scopes the connection grants. `repo` subsumes `public_repo` so the
+ *  latter is omitted (A24 — redundant scope removed). */
+const GITHUB_SCOPES = ["read:user", "user:email", "repo"];
 
 const STATE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
@@ -46,7 +45,12 @@ const STATE_TTL_MS = 10 * 60 * 1000; // 10 minutes
  * `@convex-dev/auth` encodes the subject as `"<userId>|<sessionId>"`.
  */
 function userIdFromSubject(subject: string): Id<"users"> {
-    return subject.split("|")[0] as Id<"users">;
+    const id = subject.split("|")[0];
+    // A25 — validate extracted ID format before use (Convex IDs are 20+ char alphanumeric)
+    if (!id || !/^[a-z0-9]{20,}$/i.test(id)) {
+        throw new Error("Invalid user ID format in authentication subject");
+    }
+    return id as Id<"users">;
 }
 
 /**
@@ -353,6 +357,11 @@ export const startGithubConnect = action({
         const state = crypto.randomUUID();
         const returnTo = args.returnTo ?? `/onboarding?github=connected`;
 
+        // A20 — prevent open redirect: only allow safe relative paths
+        if (!returnTo.startsWith('/') || returnTo.includes('//') || returnTo.includes('\\')) {
+            throw new Error("Invalid returnTo: must be a relative path starting with /");
+        }
+
         const persisted = await ctx.runMutation(
             internal.githubOAuth.createOAuthState,
             {
@@ -380,7 +389,7 @@ export const startGithubConnect = action({
 });
 
 /** Internal: exchange a GitHub OAuth `code` for an access token. */
-export const exchangeCodeForToken = action({
+export const exchangeCodeForToken = internalAction({
     args: { code: v.string() },
     returns: v.object({
         accessToken: v.string(),
@@ -457,7 +466,7 @@ export const exchangeCodeForToken = action({
 
 /** Internal: fetch the GitHub login of the user the access token
  *  belongs to, so we can show "connected as <login>" in the UI. */
-export const fetchGithubLogin = action({
+export const fetchGithubLogin = internalAction({
     args: { accessToken: v.string() },
     returns: v.object({ login: v.string() }),
     handler: async (

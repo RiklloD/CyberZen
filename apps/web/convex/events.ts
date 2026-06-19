@@ -51,6 +51,13 @@ const validationOutcome = v.union(
   v.literal('unexploitable'),
 )
 
+/**
+ * Confidence score assigned to findings created from matched breach disclosures.
+ * High because the finding was triggered by a real advisory matched against the
+ * SBOM inventory, but not 1.0 because version-range matching has edge cases.
+ */
+const BREACH_DISCLOSURE_CONFIDENCE = 0.92
+
 type RepositoryContext = {
   tenant: Doc<'tenants'>
   repository: Doc<'repositories'>
@@ -1872,15 +1879,19 @@ async function runSemanticFingerprintForWorkflowInternal(
 
   // Fire-and-forget: real embedding-based semantic analysis (upgrades path-aware results).
   // If OPENAI_API_KEY is not set the action falls back to path-aware matching silently.
-  ctx.scheduler.runAfter(0, internal.semanticFingerprintIntel.analyzeCodeChange, {
-    tenantId: workflowRun.tenantId,
-    repositoryId: repository._id,
-    repositoryName: repository.name,
-    commitSha: event.commitSha ?? 'unknown',
-    branch: event.branch ?? repository.defaultBranch,
-    changedFiles,
-    packageDependencies: snapshotInventory.latestComponents.map((c) => c.name),
-  })
+  try {
+    await ctx.scheduler.runAfter(0, internal.semanticFingerprintIntel.analyzeCodeChange, {
+      tenantId: workflowRun.tenantId,
+      repositoryId: repository._id,
+      repositoryName: repository.name,
+      commitSha: event.commitSha ?? 'unknown',
+      branch: event.branch ?? repository.defaultBranch,
+      changedFiles,
+      packageDependencies: snapshotInventory.latestComponents.map((c) => c.name),
+    })
+  } catch (e) {
+    console.error('[semantic-fingerprint] scheduling failed', e)
+  }
 
   const syncedState = await syncWorkflowState(ctx, workflowRunId)
 
@@ -1980,11 +1991,15 @@ async function runExploitValidationForFindingInternal(
   // Fire-and-forget real sandbox validation.
   // The sandbox-manager will OVERRIDE the local-first result below when it
   // completes. If SANDBOX_MANAGER_URL is not set the action safely no-ops.
-  ctx.scheduler.runAfter(0, internal.sandboxValidation.triggerSandboxValidation, {
-    findingId: finding._id,
-    exploitValidationRunId: validationRunId,
-    targetBaseUrl: undefined, // populated from env in the action if SANDBOX_TARGET_URL is set
-  })
+  try {
+    await ctx.scheduler.runAfter(0, internal.sandboxValidation.triggerSandboxValidation, {
+      findingId: finding._id,
+      exploitValidationRunId: validationRunId,
+      targetBaseUrl: undefined,
+    })
+  } catch (e) {
+    console.error('[sandbox-validation] scheduling failed', e)
+  }
 
   const completedAt = Date.now()
 
@@ -2033,44 +2048,56 @@ async function runExploitValidationForFindingInternal(
         )
 
         // Slack alert (critical / high findings only, per SLACK_MIN_SEVERITY env)
-        ctx.scheduler.runAfter(0, internal.slack.sendSlackAlert, {
-          kind: 'finding_validated',
-          tenantSlug: tenant.slug,
-          repositoryFullName: repository.fullName,
-          severity: finding.severity,
-          title: finding.title,
-          summary: finding.summary,
-          vulnClass: finding.vulnClass,
-          blastRadiusSummary: finding.blastRadiusSummary,
-          prUrl: finding.prUrl ?? undefined,
-          findingId: finding._id as string,
-        })
+        try {
+          await ctx.scheduler.runAfter(0, internal.slack.sendSlackAlert, {
+            kind: 'finding_validated',
+            tenantSlug: tenant.slug,
+            repositoryFullName: repository.fullName,
+            severity: finding.severity,
+            title: finding.title,
+            summary: finding.summary,
+            vulnClass: finding.vulnClass,
+            blastRadiusSummary: finding.blastRadiusSummary,
+            prUrl: finding.prUrl ?? undefined,
+            findingId: finding._id as string,
+          })
+        } catch (e) {
+          console.error('[slack-alert] scheduling failed', e)
+        }
 
         // Teams alert (parallel to Slack, per TEAMS_MIN_SEVERITY env)
-        ctx.scheduler.runAfter(0, internal.teams.sendTeamsAlert, {
-          kind: 'finding_validated',
-          tenantSlug: tenant.slug,
-          repositoryFullName: repository.fullName,
-          severity: finding.severity,
-          title: finding.title,
-          summary: finding.summary,
-          vulnClass: finding.vulnClass,
-          blastRadiusSummary: finding.blastRadiusSummary,
-          prUrl: finding.prUrl ?? undefined,
-          findingId: finding._id as string,
-        })
+        try {
+          await ctx.scheduler.runAfter(0, internal.teams.sendTeamsAlert, {
+            kind: 'finding_validated',
+            tenantSlug: tenant.slug,
+            repositoryFullName: repository.fullName,
+            severity: finding.severity,
+            title: finding.title,
+            summary: finding.summary,
+            vulnClass: finding.vulnClass,
+            blastRadiusSummary: finding.blastRadiusSummary,
+            prUrl: finding.prUrl ?? undefined,
+            findingId: finding._id as string,
+          })
+        } catch (e) {
+          console.error('[teams-alert] scheduling failed', e)
+        }
 
         // Opsgenie page (critical findings only, per OPSGENIE_SEVERITY_THRESHOLD env)
-        ctx.scheduler.runAfter(0, internal.opsgenie.sendOpsgenieAlert, {
-          kind: 'critical_finding',
-          tenantSlug: tenant.slug,
-          repositoryFullName: repository.fullName,
-          severity: finding.severity,
-          title: finding.title,
-          summary: finding.summary,
-          vulnClass: finding.vulnClass,
-          findingId: finding._id as string,
-        })
+        try {
+          await ctx.scheduler.runAfter(0, internal.opsgenie.sendOpsgenieAlert, {
+            kind: 'critical_finding',
+            tenantSlug: tenant.slug,
+            repositoryFullName: repository.fullName,
+            severity: finding.severity,
+            title: finding.title,
+            summary: finding.summary,
+            vulnClass: finding.vulnClass,
+            findingId: finding._id as string,
+          })
+        } catch (e) {
+          console.error('[opsgenie-alert] scheduling failed', e)
+        }
       }
     } catch (e) {
       console.error('[webhooks] finding.validated dispatch failed', e)
@@ -2235,6 +2262,7 @@ async function ingestCanonicalDisclosure(
 
   const now = Date.now()
   const disclosureId = await ctx.db.insert('breachDisclosures', {
+    tenantId: tenant._id,
     repositoryId: repository._id,
     workflowRunId: undefined,
     packageName: disclosure.packageName,
@@ -2346,7 +2374,7 @@ async function ingestCanonicalDisclosure(
         matchedVersions: nameAndVersionMatch.affectedMatchedVersions,
         matchedSourceFiles: nameAndVersionMatch.matchedSourceFiles,
       }),
-      confidence: 0.92,
+      confidence: BREACH_DISCLOSURE_CONFIDENCE,
       severity: disclosure.severity,
       validationStatus: 'pending',
       status: 'open',
@@ -2523,7 +2551,7 @@ async function ingestCanonicalDisclosure(
     // protection configuration whenever a disclosure finding is created so the
     // dashboard always reflects the current gate posture.
     try {
-      const defaultBranch = (repository as { defaultBranch?: string }).defaultBranch ?? 'main'
+      const defaultBranch = repository.defaultBranch
       await ctx.scheduler.runAfter(
         0,
         internal.branchProtectionIntel.checkAndStoreBranchProtection,
@@ -2895,7 +2923,7 @@ export const advanceWorkflowTasks = internalMutation({
       const events = await ctx.db
         .query('ingestionEvents')
         .withIndex('by_status', (q) => q.eq('status', status))
-        .take(50)
+        .take(200)
 
       for (const event of events) {
         const workflowRun = await ctx.db
@@ -3012,7 +3040,7 @@ export const dispatchScannerForRepository = mutation({
     ]
 
     return ingestGithubPushForRepository(ctx, repoContext, {
-      branch: repository.defaultBranch ?? 'main',
+      branch: repository.defaultBranch,
       commitSha: repository.latestCommitSha ?? `rescan-${Date.now()}`,
       changedFiles: syntheticFiles,
       commitMessages: [`[rescan] ${args.scannerType}`],

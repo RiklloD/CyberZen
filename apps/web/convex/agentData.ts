@@ -411,3 +411,16 @@ export const getPendingAgentTasks = internalQuery({
       : tasks
   },
 })
+
+// ─── Red Team Memory (used by scheduled crons — actions cannot use ctx.db) ───
+
+export const getLatestAttackForRepo = internalQuery({
+  args: { repositoryId: v.id('repositories') },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query('redTeamAttacks')
+      .withIndex('by_repository', (q) => q.eq('repositoryId', args.repositoryId))
+      .order('desc')
+      .first()
+  },
+})

@@ -9,9 +9,8 @@
 //
 
 import { v } from 'convex/values'
-import { internalAction, internalQuery, internalMutation } from './_generated/server'
+import { internalAction, internalQuery } from './_generated/server'
 import { internal } from './_generated/api'
-import type { Id } from './_generated/dataModel'
 
 // ─── Query: Get open findings that haven't been analyzed yet ─────────────────
 
@@ -112,12 +111,10 @@ export const runRedBlueRounds = internalAction({
 
     for (const repo of repos.slice(0, 3)) { // cap at 3 per run
       try {
-        // Get current round number
-        const lastAttack = await ctx.db
-          .query('redTeamAttacks')
-          .withIndex('by_repository', (q) => q.eq('repositoryId', repo._id))
-          .order('desc')
-          .first()
+        // Get current round number (must go through a query — actions have no ctx.db)
+        const lastAttack = await ctx.runQuery(internal.agentData.getLatestAttackForRepo, {
+          repositoryId: repo._id,
+        })
 
         const roundNumber = (lastAttack?.roundNumber ?? 0) + 1
 

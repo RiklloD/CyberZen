@@ -117,6 +117,29 @@ function getBaseUrl(provider: LLMProvider): string {
 
 // ─── Provider Implementations ────────────────────────────────────────────────
 
+// A16 — Sanitize API-key patterns from error responses before they enter logs
+function sanitizeErrorBody(text: string): string {
+  return text
+    .replace(/sk-[a-zA-Z0-9-]+/g, 'sk-****')
+    .replace(/ghp_[a-zA-Z0-9]+/g, 'ghp_****')
+    .replace(/czk_[a-zA-Z0-9-]+/g, 'czk_****')
+    .replace(/xox[baprs]-[a-zA-Z0-9-]+/g, 'xox****-****')
+    .replace(/Bearer\s+[a-zA-Z0-9._-]+/gi, 'Bearer ****')
+}
+
+// A15 — 60-second timeout for all LLM fetch calls
+const LLM_FETCH_TIMEOUT_MS = 60_000
+
+// A27 — Maximum request body size (256 KB)
+const LLM_MAX_BODY_BYTES = 256_000
+
+/** A15+A27 — AbortController helper with timeout and size cap. */
+function withTimeout(): { signal: AbortSignal; cleanup: () => void } {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), LLM_FETCH_TIMEOUT_MS)
+  return { signal: controller.signal, cleanup: () => clearTimeout(timer) }
+}
+
 /**
  * Call OpenAI-compatible API (also works for Ollama, vLLM, LM Studio, etc.)
  */
@@ -142,28 +165,44 @@ async function callOpenAICompatible(
     body.stop = req.stopSequences
   }
 
-  const response = await fetch(`${baseUrl}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify(body),
-  })
-
-  if (!response.ok) {
-    const errorBody = await response.text().catch(() => 'No response body')
+  // A27 — reject oversized request bodies
+  const bodyStr = JSON.stringify(body)
+  if (bodyStr.length > LLM_MAX_BODY_BYTES) {
     throw new Error(
-      `LLM API error (${response.status}) from ${req.provider}: ${errorBody.slice(0, 500)}`,
+      `LLM request body too large (${bodyStr.length} bytes, max ${LLM_MAX_BODY_BYTES})`,
     )
   }
 
-  const data = await response.json()
-  const content = data.choices?.[0]?.message?.content ?? ''
-  const promptTokens = data.usage?.prompt_tokens ?? 0
-  const completionTokens = data.usage?.completion_tokens ?? 0
+  // A15 — 60-second timeout via AbortController
+  const { signal, cleanup } = withTimeout()
+  try {
+    const response = await fetch(`${baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: bodyStr,
+      signal,
+    })
 
-  return { content, promptTokens, completionTokens }
+    if (!response.ok) {
+      // A16 — sanitize secrets from error body before they enter logs
+      const errorBody = await response.text().catch(() => 'No response body')
+      throw new Error(
+        `LLM API error (${response.status}) from ${req.provider}: ${sanitizeErrorBody(errorBody.slice(0, 500))}`,
+      )
+    }
+
+    const data = await response.json()
+    const content = data.choices?.[0]?.message?.content ?? ''
+    const promptTokens = data.usage?.prompt_tokens ?? 0
+    const completionTokens = data.usage?.completion_tokens ?? 0
+
+    return { content, promptTokens, completionTokens }
+  } finally {
+    cleanup()
+  }
 }
 
 /**
@@ -196,29 +235,45 @@ async function callAnthropic(
     body.stop_sequences = req.stopSequences
   }
 
-  const response = await fetch(`${baseUrl}/messages`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify(body),
-  })
-
-  if (!response.ok) {
-    const errorBody = await response.text().catch(() => 'No response body')
+  // A27 — reject oversized request bodies
+  const bodyStr = JSON.stringify(body)
+  if (bodyStr.length > LLM_MAX_BODY_BYTES) {
     throw new Error(
-      `Anthropic API error (${response.status}): ${errorBody.slice(0, 500)}`,
+      `LLM request body too large (${bodyStr.length} bytes, max ${LLM_MAX_BODY_BYTES})`,
     )
   }
 
-  const data = await response.json()
-  const content = data.content?.map((c: { text?: string }) => c.text ?? '').join('') ?? ''
-  const promptTokens = data.usage?.input_tokens ?? 0
-  const completionTokens = data.usage?.output_tokens ?? 0
+  // A15 — 60-second timeout via AbortController
+  const { signal, cleanup } = withTimeout()
+  try {
+    const response = await fetch(`${baseUrl}/messages`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+      },
+      body: bodyStr,
+      signal,
+    })
 
-  return { content, promptTokens, completionTokens }
+    if (!response.ok) {
+      // A16 — sanitize secrets from error body before they enter logs
+      const errorBody = await response.text().catch(() => 'No response body')
+      throw new Error(
+        `Anthropic API error (${response.status}): ${sanitizeErrorBody(errorBody.slice(0, 500))}`,
+      )
+    }
+
+    const data = await response.json()
+    const content = data.content?.map((c: { text?: string }) => c.text ?? '').join('') ?? ''
+    const promptTokens = data.usage?.input_tokens ?? 0
+    const completionTokens = data.usage?.output_tokens ?? 0
+
+    return { content, promptTokens, completionTokens }
+  } finally {
+    cleanup()
+  }
 }
 
 // ─── Retry Logic ─────────────────────────────────────────────────────────────

@@ -2,9 +2,18 @@ import { v } from 'convex/values'
 import { internalQuery, mutation, query } from './_generated/server'
 import { requireSessionAuth } from './lib/sessionAuth'
 
+// A17 — validate each octet is in range 0-255 before bitwise ops
 function ipToUint32(ip: string): number {
-  const parts = ip.split('.').map(Number)
-  return (((parts[0] ?? 0) << 24) | ((parts[1] ?? 0) << 16) | ((parts[2] ?? 0) << 8) | (parts[3] ?? 0)) >>> 0
+  const parts = ip.split('.')
+  if (parts.length !== 4) throw new Error(`Invalid IPv4 address: ${ip}`)
+  const octets = parts.map((p) => {
+    const n = Number(p)
+    if (isNaN(n) || n < 0 || n > 255 || String(n) !== p.trim()) {
+      throw new Error(`Invalid IPv4 octet "${p}" in: ${ip}`)
+    }
+    return n
+  })
+  return (((octets[0] ?? 0) << 24) | ((octets[1] ?? 0) << 16) | ((octets[2] ?? 0) << 8) | (octets[3] ?? 0)) >>> 0
 }
 
 function isValidCidr(cidr: string): boolean {
@@ -22,7 +31,9 @@ function isValidCidr(cidr: string): boolean {
 }
 
 function isIpInCidr(ip: string, cidr: string): boolean {
-  if (!ip.includes('.')) return true // pass through IPv6 (not yet implemented)
+  // A5 — IPv6 not supported by CIDR matching: fail closed (reject) rather than
+  // silently bypassing the entire allowlist
+  if (!ip.includes('.')) return false
   const parts = cidr.split('/')
   const network = parts[0] ?? ''
   const prefix = parseInt(parts[1] ?? '32', 10)
@@ -73,13 +84,18 @@ export const updateIpAllowlist = mutation({
   handler: async (ctx, { authToken, tenantSlug, cidrs }) => {
     const { tenant } = await getTenantAndVerifyAdmin(ctx as any, authToken, tenantSlug)
 
+    // A18 — cap CIDR count to prevent unbounded per-request O(N) cost
+    if (cidrs.length > 100) {
+      throw new Error('Maximum of 100 CIDR rules allowed')
+    }
+
     for (const cidr of cidrs) {
       if (!isValidCidr(cidr)) {
         throw new Error(`Invalid CIDR notation: ${cidr}`)
       }
     }
 
-    await ctx.db.patch(tenant._id, { ipAllowlist: cidrs.length > 0 ? cidrs : undefined })
+    await ctx.db.patch(tenant._id, { ipAllowlist: cidrs })
 
     return null
   },
@@ -103,11 +119,13 @@ export const checkIpAllowlist = internalQuery({
   },
   returns: v.object({
     allowed: v.boolean(),
-    reason: v.optional(v.string()),
   }),
   handler: async (ctx, { tenantId, clientIp }) => {
     const tenant = await ctx.db.get(tenantId)
-    if (!tenant) return { allowed: false, reason: 'Tenant not found' }
+    if (!tenant) {
+      // A26 — do not echo client IP in response; log server-side only
+      return { allowed: false }
+    }
 
     const allowlist = tenant.ipAllowlist
     if (!allowlist || allowlist.length === 0) {
@@ -121,7 +139,9 @@ export const checkIpAllowlist = internalQuery({
       }
     }
 
-    return { allowed: false, reason: `IP ${cleanIp} is not in the allowlist` }
+    // A26 — log reason server-side, return only boolean to caller
+    console.log(`[ipAllowlist] IP ${cleanIp} rejected for tenant ${tenantId}`)
+    return { allowed: false }
   },
 })
 

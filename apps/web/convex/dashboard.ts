@@ -230,8 +230,6 @@ export const recentFindings = query({
       .query('repositories')
       .withIndex('by_tenant', (q) => q.eq('tenantId', tenant._id))
       .collect()
-    const repositoryIds = new Set(repositories.map((r: any) => r._id))
-
     const allFindings = await ctx.db
       .query('findings')
       .withIndex('by_tenant_and_created_at', (q) => q.eq('tenantId', tenant._id))
@@ -445,7 +443,7 @@ export const repoSummaries = query({
                   updatedPreview: comparison.updated.slice(0, 3),
                 }
               : null,
-            previewComponents: latestComponents.slice(0, 4).map((c: any) => ({
+            previewComponents: latestComponents.slice(0, 6).map((c: any) => ({
               name: c.name,
               version: c.version,
               ecosystem: c.ecosystem,
@@ -453,7 +451,7 @@ export const repoSummaries = query({
               sourceFile: c.sourceFile,
               hasKnownVulnerabilities: c.hasKnownVulnerabilities,
             })),
-            vulnerablePreview: vulnerableComponents.slice(0, 3).map((c: any) => ({
+            vulnerablePreview: vulnerableComponents.slice(0, 6).map((c: any) => ({
               name: c.name,
               version: c.version,
               ecosystem: c.ecosystem,
@@ -609,7 +607,7 @@ export const gateDecisions = query({
       .query('gateDecisions')
       .withIndex('by_tenant_and_created_at', (q) => q.eq('tenantId', tenant._id))
       .order('desc')
-      .take(20)
+      .take(6)
 
     const enrichedGateDecisions = await Promise.all(
       allGateDecisions.slice(0, 6).map(async (decision: any) => {

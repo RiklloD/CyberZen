@@ -1,5 +1,6 @@
 import { query } from './_generated/server'
 import { v } from 'convex/values'
+import type { Id } from './_generated/dataModel'
 
 /**
  * Returns the current user's profile, workspace role, and GitHub
@@ -22,13 +23,14 @@ export const getProfile = query({
     const identity = await ctx.auth.getUserIdentity()
     if (!identity) return null
 
-    const email = identity.email ?? undefined
-    if (!email) return null
-
-    const user = await ctx.db
-      .query('users')
-      .withIndex('email', (q) => q.eq('email', email))
-      .first()
+    const userId = identity.subject.split('|')[0] as Id<'users'>
+    let user = await ctx.db.get(userId)
+    if (!user && identity.email) {
+      user = await ctx.db
+        .query('users')
+        .withIndex('email', (q: any) => q.eq('email', identity.email!))
+        .first()
+    }
 
     if (!user) return null
 
@@ -40,7 +42,7 @@ export const getProfile = query({
 
     return {
       userId: user._id,
-      email,
+      email: identity.email ?? undefined,
       name: identity.name ?? undefined,
       image: identity.pictureUrl ?? undefined,
       githubConnected: !!githubToken,

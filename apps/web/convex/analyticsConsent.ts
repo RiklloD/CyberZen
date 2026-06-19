@@ -12,7 +12,7 @@ export const getMyConsent = query({
     authToken: v.string(),
   },
   handler: async (ctx, args) => {
-    if (!args.authToken) return null
+    // A14 — let requireSessionAuth throw on missing token like every other authed function
     const { userId } = await requireSessionAuth(ctx, args.authToken)
 
     const record = await ctx.db
@@ -55,6 +55,21 @@ export const updateMyConsent = mutation({
         consent: args.consent,
         consentedAt: args.consent ? now : undefined,
         updatedAt: now,
+      })
+    }
+
+    // A13 — GDPR Art 7(1): record demonstrable consent change in audit log
+    const membership = await ctx.db
+      .query('tenantMembers')
+      .withIndex('by_user_and_selected_at', (q) => q.eq('userId', userId))
+      .first()
+    if (membership) {
+      await ctx.db.insert('auditLog', {
+        tenantId: membership.tenantId,
+        actorUserId: userId,
+        action: args.consent ? 'analytics.consent_granted' : 'analytics.consent_revoked',
+        resourceType: 'analytics_consent',
+        at: now,
       })
     }
   },

@@ -111,6 +111,21 @@ export const updateRetentionPolicies = mutation({
       throw new Error('Only owners and admins can update retention policies')
     }
 
+    // A6 — enforce retention minimums to prevent destruction of forensic trail
+    const mins = RETENTION_MINIMUMS
+    if (args.findingsDays < mins.findingsDays) {
+      throw new Error(`findingsDays must be at least ${mins.findingsDays} days`)
+    }
+    if (args.auditLogsDays < mins.auditLogsDays) {
+      throw new Error(`auditLogsDays must be at least ${mins.auditLogsDays} days`)
+    }
+    if (args.apiUsageRecordsDays < mins.apiUsageRecordsDays) {
+      throw new Error(`apiUsageRecordsDays must be at least ${mins.apiUsageRecordsDays} days`)
+    }
+    if (args.webhookDeliveriesDays < mins.webhookDeliveriesDays) {
+      throw new Error(`webhookDeliveriesDays must be at least ${mins.webhookDeliveriesDays} days`)
+    }
+
     const now = Date.now()
     const existing = await ctx.db
       .query('tenantRetentionConfig')
@@ -212,12 +227,14 @@ export const _enforceFindings = internalMutation({
   args: {
     tenantId: v.id('tenants'),
     cutoff: v.number(),
+    cursorCreatedAt: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    const before = args.cursorCreatedAt ?? args.cutoff
     const batch = await ctx.db
       .query('findings')
       .withIndex('by_tenant_and_created_at', (q) =>
-        q.eq('tenantId', args.tenantId).lt('createdAt', args.cutoff),
+        q.eq('tenantId', args.tenantId).lt('createdAt', before),
       )
       .order('asc')
       .take(BATCH_SIZE)
@@ -241,7 +258,11 @@ export const _enforceFindings = internalMutation({
     }
 
     if (batch.length === BATCH_SIZE) {
-      await ctx.scheduler.runAfter(0, internal.dataRetention._enforceFindings, args)
+      const lastCreatedAt = batch[batch.length - 1].createdAt
+      await ctx.scheduler.runAfter(0, internal.dataRetention._enforceFindings, {
+        ...args,
+        cursorCreatedAt: lastCreatedAt,
+      })
     }
   },
 })

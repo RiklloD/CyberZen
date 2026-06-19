@@ -188,7 +188,7 @@ export const upsertHealthRecord = internalMutation({
       .unique()
 
     const now = Date.now()
-    const isFailure = status !== 'healthy'
+    const isFailure = status === 'down'
 
     if (existing) {
       const consecutiveFailures = isFailure ? existing.consecutiveFailures + 1 : 0

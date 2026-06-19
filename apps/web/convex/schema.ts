@@ -350,6 +350,8 @@ export default defineSchema({
     .index('by_tenant_and_name', ['tenantId', 'name']),
 
   breachDisclosures: defineTable({
+    /** Tenant scope — optional for backward compatibility with pre-migration rows. */
+    tenantId: v.optional(v.id('tenants')),
     repositoryId: v.optional(v.id('repositories')),
     workflowRunId: v.optional(v.id('workflowRuns')),
     packageName: v.string(),
@@ -414,7 +416,8 @@ export default defineSchema({
   })
     .index('by_package_and_published_at', ['packageName', 'publishedAt'])
     .index('by_repository_and_source_ref', ['repositoryId', 'sourceRef'])
-    .index('by_published_at', ['publishedAt']),
+    .index('by_published_at', ['publishedAt'])
+    .index('by_tenant_and_published_at', ['tenantId', 'publishedAt']),
 
   findings: defineTable({
     tenantId: v.id('tenants'),
@@ -450,6 +453,7 @@ export default defineSchema({
     .index('by_tenant_and_created_at', ['tenantId', 'createdAt'])
     .index('by_tenant_and_status', ['tenantId', 'status'])
     .index('by_repository_and_status', ['repositoryId', 'status'])
+    .index('by_status', ['status'])
     .index('by_workflow_run_and_source', ['workflowRunId', 'source'])
     .index('by_snoozed_until', ['snoozedUntil']),
 
@@ -1184,10 +1188,6 @@ export default defineSchema({
   })
     .index('by_repository_and_pushed_at', ['repositoryId', 'pushedAt'])
     .index('by_tenant_and_pushed_at', ['tenantId', 'pushedAt']),
-
-  // ── Multi-Cloud Blast Radius snapshots (spec §3.12) ───────────────────────
-  // One row per repository per computation run — stores inferred cloud resource
-  // exposure derived from SBOM package names alone. No cloud API calls needed.
 
   // ── CISA KEV catalog cache (global singleton — no tenantId) ──────────────
   // One row per sync run.  We do NOT store all 1 000+ individual KEV entries;
@@ -5378,7 +5378,7 @@ export default defineSchema({
     episodeType,
     timestamp: v.number(),
     payload: v.any(), // json blob with event data
-    embedding: v.array(v.string()), // structured attributes
+    embedding: v.array(v.number()), // numeric vector for cosine similarity
     sourceRef: v.string(), // reference back to source
     processed: v.boolean(), // has learning engine ingested this
   })
@@ -5572,7 +5572,7 @@ export default defineSchema({
     cves: v.array(v.string()),
     threatActors: v.array(v.string()),
     iocs: v.string(), // JSON-encoded IOCs { ips, domains, hashes }
-    severity: v.string(),
+    severity,
     publishedAt: v.number(),
     fetchedAt: v.number(),
   })
@@ -5649,7 +5649,7 @@ export default defineSchema({
     repositoryId: v.id('repositories'),
     findingId: v.id('findings'),
     title: v.string(),
-    severity: v.string(),
+    severity,
     findingType: v.string(),
     /** JSON-encoded PlaybookStep[] */
     steps: v.string(),

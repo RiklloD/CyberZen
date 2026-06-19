@@ -2,13 +2,7 @@ import { createLocalJWKSet, jwtVerify } from "jose";
 import type { Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 
-const issuer = process.env.CONVEX_SITE_URL;
 const jwksJson = process.env.JWKS;
-
-if (!issuer) {
-	throw new Error("CONVEX_SITE_URL is not set");
-}
-
 const jwks = jwksJson ? createLocalJWKSet(JSON.parse(jwksJson)) : null;
 
 type AuthCtx = QueryCtx | MutationCtx;
@@ -21,6 +15,13 @@ export async function requireSessionAuth(
 		throw new Error("Not signed in");
 	}
 
+	// A21 — deferred (lazy) issuer check: only throw when actually needed,
+	// not at module-load time (which would take down the entire backend)
+	const issuer = process.env.CONVEX_SITE_URL;
+	if (!issuer) {
+		throw new Error("CONVEX_SITE_URL is not set");
+	}
+
 	if (!jwks) {
 		throw new Error("JWKS is not configured — set the JWKS env variable");
 	}
@@ -28,6 +29,7 @@ export async function requireSessionAuth(
 	const { payload } = await jwtVerify(authToken, jwks, {
 		issuer,
 		audience: "convex",
+		clockTolerance: "30s", // A22 — tolerate minor clock skew between issuer and verifier
 	});
 
 	if (typeof payload.sub !== "string") {

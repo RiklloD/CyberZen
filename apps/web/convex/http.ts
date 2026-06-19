@@ -117,6 +117,14 @@ function securityHeaders(): Record<string, string> {
   }
 }
 
+function escapeHtml(s: unknown): string {
+  return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+}
+
+function safeParse<T>(json: string | undefined, fallback: T): T {
+  try { return json ? JSON.parse(json) as T : fallback } catch { return fallback }
+}
+
 function jsonResponse(body: unknown, status: number) {
   return new Response(JSON.stringify(body), {
     status,
@@ -282,7 +290,10 @@ async function authenticateApiRequest(
   const sentinelKey = process.env.SENTINEL_API_KEY
 
   if (!sentinelKey) {
-    if (!rawKey?.startsWith('czk_')) return null // fail-open in local dev
+    // A7 — fail closed: reject unauthenticated requests when no operator key configured
+    if (!rawKey?.startsWith('czk_')) {
+      return jsonResponse({ error: 'Authentication required. Set SENTINEL_API_KEY or provide a valid tenant API key.' }, 401)
+    }
   } else if (rawKey && timingSafeEqualUint8(await hashKey(rawKey), await hashKey(sentinelKey))) {
     return null // valid SENTINEL key — bypass rate limiting
   }
@@ -2010,7 +2021,7 @@ http.route({
       })
       return jsonResponse({ ...result, provisioned: true }, 201)
     } catch (err) {
-      return jsonResponse({ error: String(err) }, 400)
+      return jsonResponse({ error: err instanceof Error ? err.message : 'Operation failed' }, 400)
     }
   }),
 })
@@ -2065,7 +2076,7 @@ http.route({
       const result = await ctx.runMutation(internal.mssp.deprovisionTenant, { slug })
       return jsonResponse(result, 200)
     } catch (err) {
-      return jsonResponse({ error: String(err) }, 400)
+      return jsonResponse({ error: err instanceof Error ? err.message : 'Operation failed' }, 400)
     }
   }),
 })
@@ -2164,7 +2175,7 @@ http.route({
       })
       return jsonResponse({ scheduled: true }, 202)
     } catch (err) {
-      return jsonResponse({ error: String(err) }, 404)
+      return jsonResponse({ error: String(err) }, 500)
     }
   }),
 })
@@ -2201,7 +2212,8 @@ http.route({
     if (scrapeToken) {
       const authHeader = request.headers.get('authorization')
       const provided = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null
-      if (provided !== scrapeToken) {
+      // A19 — timing-safe comparison to prevent token leakage via timing attacks
+      if (!provided || !timingSafeEqualUint8(await hashKey(provided), await hashKey(scrapeToken))) {
         return new Response('# Unauthorized\n', {
           status: 401,
           headers: { 'Content-Type': 'text/plain' },
@@ -2394,11 +2406,14 @@ http.route({
   method: 'POST',
   handler: httpAction(async (ctx, request) => {
     const webhookSecret = process.env.TELEGRAM_WEBHOOK_SECRET
-    if (webhookSecret) {
-      const incoming = request.headers.get('x-telegram-bot-api-secret-token') ?? ''
-      if (incoming !== webhookSecret) {
-        return new Response('Forbidden', { status: 403 })
-      }
+    if (!webhookSecret) {
+      return new Response('Telegram webhook secret not configured', { status: 503 })
+    }
+    const incoming = request.headers.get('x-telegram-bot-api-secret-token') ?? ''
+    const providedHash = await hashKey(incoming)
+    const expectedHash = await hashKey(webhookSecret)
+    if (!timingSafeEqualUint8(providedHash, expectedHash)) {
+      return new Response('Forbidden', { status: 403 })
     }
 
     const body = await request.text()
@@ -2886,6 +2901,15 @@ http.route({
       }
     }
 
+    const VALID_TYPES = ['fingerprint', 'detection_rule']
+    const VALID_SEVERITIES = ['critical', 'high', 'medium', 'low', 'informational']
+    if (!VALID_TYPES.includes(body.type as string)) {
+      return jsonResponse({ error: `Invalid type. Must be one of: ${VALID_TYPES.join(', ')}` }, 400)
+    }
+    if (!VALID_SEVERITIES.includes(body.severity as string)) {
+      return jsonResponse({ error: `Invalid severity. Must be one of: ${VALID_SEVERITIES.join(', ')}` }, 400)
+    }
+
     try {
       const result = await ctx.runMutation(
         api.communityMarketplace.submitContribution,
@@ -2926,7 +2950,7 @@ http.route({
     const statusParam = url.searchParams.get('status')
     const vulnClass = url.searchParams.get('vulnClass') ?? undefined
     const limitParam = url.searchParams.get('limit')
-    const limit = limitParam ? Math.min(parseInt(limitParam, 10), 200) : 50
+    const limit = limitParam ? Math.min(parseInt(limitParam, 10) || 50, 200) : 50
 
     const contributions = await ctx.runQuery(
       api.communityMarketplace.listContributions,
@@ -4369,10 +4393,10 @@ http.route({
 http.route({
   path: '/api/repository/drift-posture',
   method: 'GET',
-  handler: httpAction(async (ctx, req) => {
-    const err = await requireApiKey(req)
-    if (err) return err
-    const { searchParams } = new URL(req.url)
+  handler: httpAction(async (ctx, request) => {
+    const authError = await authenticateApiRequest(ctx, request)
+    if (authError) return authError
+    const { searchParams } = new URL(request.url)
     const tenantSlug         = searchParams.get('tenantSlug') ?? ''
     const repositoryFullName = searchParams.get('repositoryFullName') ?? ''
     if (!tenantSlug || !repositoryFullName) {
@@ -4833,6 +4857,11 @@ http.route({
     const tenantSlug = url.searchParams.get('tenantSlug') ?? ''
     const repoName   = url.searchParams.get('repositoryFullName') ?? ''
 
+    if (!tenantSlug || !repoName) {
+      return new Response(JSON.stringify({ error: 'tenantSlug and repositoryFullName are required' }),
+        { status: 400, headers: { ...securityHeaders(), 'Content-Type': 'application/json' } })
+    }
+
     const result = await ctx.runQuery(
       api.vpnRemoteAccessDriftIntel.getLatestVpnRemoteAccessDriftBySlug,
       { tenantSlug, repositoryFullName: repoName },
@@ -4869,6 +4898,11 @@ http.route({
     const tenantSlug = url.searchParams.get('tenantSlug') ?? ''
     const repoName   = url.searchParams.get('repositoryFullName') ?? ''
 
+    if (!tenantSlug || !repoName) {
+      return new Response(JSON.stringify({ error: 'tenantSlug and repositoryFullName are required' }),
+        { status: 400, headers: { ...securityHeaders(), 'Content-Type': 'application/json' } })
+    }
+
     const result = await ctx.runQuery(
       api.cfgMgmtSecurityDriftIntel.getLatestCfgMgmtSecurityDriftBySlug,
       { tenantSlug, repositoryFullName: repoName },
@@ -4902,6 +4936,11 @@ http.route({
     const tenantSlug = url.searchParams.get('tenantSlug') ?? ''
     const repoName   = url.searchParams.get('repositoryFullName') ?? ''
 
+    if (!tenantSlug || !repoName) {
+      return new Response(JSON.stringify({ error: 'tenantSlug and repositoryFullName are required' }),
+        { status: 400, headers: { ...securityHeaders(), 'Content-Type': 'application/json' } })
+    }
+
     const result = await ctx.runQuery(
       api.artifactRegistryDriftIntel.getLatestArtifactRegistryDriftBySlug,
       { tenantSlug, repositoryFullName: repoName },
@@ -4909,7 +4948,7 @@ http.route({
 
     return new Response(JSON.stringify(result ?? null), {
       status: 200,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
     })
   }),
 })
@@ -4935,6 +4974,11 @@ http.route({
     const tenantSlug = url.searchParams.get('tenantSlug') ?? ''
     const repoName   = url.searchParams.get('repositoryFullName') ?? ''
 
+    if (!tenantSlug || !repoName) {
+      return new Response(JSON.stringify({ error: 'tenantSlug and repositoryFullName are required' }),
+        { status: 400, headers: { ...securityHeaders(), 'Content-Type': 'application/json' } })
+    }
+
     const result = await ctx.runQuery(
       api.mlAiPlatformDriftIntel.getLatestMlAiPlatformDriftBySlug,
       { tenantSlug, repositoryFullName: repoName },
@@ -4942,7 +4986,7 @@ http.route({
 
     return new Response(JSON.stringify(result ?? null), {
       status: 200,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
     })
   }),
 })
@@ -4967,6 +5011,11 @@ http.route({
     const tenantSlug = url.searchParams.get('tenantSlug') ?? ''
     const repoName   = url.searchParams.get('repositoryFullName') ?? ''
 
+    if (!tenantSlug || !repoName) {
+      return new Response(JSON.stringify({ error: 'tenantSlug and repositoryFullName are required' }),
+        { status: 400, headers: { ...securityHeaders(), 'Content-Type': 'application/json' } })
+    }
+
     const result = await ctx.runQuery(
       api.dataPipelineDriftIntel.getLatestDataPipelineDriftBySlug,
       { tenantSlug, repositoryFullName: repoName },
@@ -4974,7 +5023,7 @@ http.route({
 
     return new Response(JSON.stringify(result ?? null), {
       status: 200,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
     })
   }),
 })
@@ -4999,6 +5048,11 @@ http.route({
     const tenantSlug = url.searchParams.get('tenantSlug') ?? ''
     const repoName   = url.searchParams.get('repositoryFullName') ?? ''
 
+    if (!tenantSlug || !repoName) {
+      return new Response(JSON.stringify({ error: 'tenantSlug and repositoryFullName are required' }),
+        { status: 400, headers: { ...securityHeaders(), 'Content-Type': 'application/json' } })
+    }
+
     const result = await ctx.runQuery(
       api.ssoProviderDriftIntel.getLatestSsoProviderDriftBySlug,
       { tenantSlug, repositoryFullName: repoName },
@@ -5006,7 +5060,7 @@ http.route({
 
     return new Response(JSON.stringify(result ?? null), {
       status: 200,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
     })
   }),
 })
@@ -5031,6 +5085,11 @@ http.route({
     const tenantSlug = url.searchParams.get('tenantSlug') ?? ''
     const repoName   = url.searchParams.get('repositoryFullName') ?? ''
 
+    if (!tenantSlug || !repoName) {
+      return new Response(JSON.stringify({ error: 'tenantSlug and repositoryFullName are required' }),
+        { status: 400, headers: { ...securityHeaders(), 'Content-Type': 'application/json' } })
+    }
+
     const result = await ctx.runQuery(
       api.messagingSecurityDriftIntel.getLatestMessagingSecurityDriftBySlug,
       { tenantSlug, repositoryFullName: repoName },
@@ -5038,7 +5097,7 @@ http.route({
 
     return new Response(JSON.stringify(result ?? null), {
       status: 200,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
     })
   }),
 })
@@ -5063,6 +5122,11 @@ http.route({
     const tenantSlug = url.searchParams.get('tenantSlug') ?? ''
     const repoName   = url.searchParams.get('repositoryFullName') ?? ''
 
+    if (!tenantSlug || !repoName) {
+      return new Response(JSON.stringify({ error: 'tenantSlug and repositoryFullName are required' }),
+        { status: 400, headers: { ...securityHeaders(), 'Content-Type': 'application/json' } })
+    }
+
     const result = await ctx.runQuery(
       api.serverlessFaasDriftIntel.getLatestServerlessFaasDriftBySlug,
       { tenantSlug, repositoryFullName: repoName },
@@ -5070,7 +5134,7 @@ http.route({
 
     return new Response(JSON.stringify(result ?? null), {
       status: 200,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
     })
   }),
 })
@@ -5095,6 +5159,11 @@ http.route({
     const tenantSlug = url.searchParams.get('tenantSlug') ?? ''
     const repoName   = url.searchParams.get('repositoryFullName') ?? ''
 
+    if (!tenantSlug || !repoName) {
+      return new Response(JSON.stringify({ error: 'tenantSlug and repositoryFullName are required' }),
+        { status: 400, headers: { ...securityHeaders(), 'Content-Type': 'application/json' } })
+    }
+
     const result = await ctx.runQuery(
       api.emailSecurityDriftIntel.getLatestEmailSecurityDriftBySlug,
       { tenantSlug, repositoryFullName: repoName },
@@ -5102,7 +5171,7 @@ http.route({
 
     return new Response(JSON.stringify(result ?? null), {
       status: 200,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
     })
   }),
 })
@@ -5127,6 +5196,11 @@ http.route({
     const tenantSlug = url.searchParams.get('tenantSlug') ?? ''
     const repoName   = url.searchParams.get('repositoryFullName') ?? ''
 
+    if (!tenantSlug || !repoName) {
+      return new Response(JSON.stringify({ error: 'tenantSlug and repositoryFullName are required' }),
+        { status: 400, headers: { ...securityHeaders(), 'Content-Type': 'application/json' } })
+    }
+
     const result = await ctx.runQuery(
       api.webServerSecurityDriftIntel.getLatestWebServerSecurityDriftBySlug,
       { tenantSlug, repositoryFullName: repoName },
@@ -5134,7 +5208,7 @@ http.route({
 
     return new Response(JSON.stringify(result ?? null), {
       status: 200,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
     })
   }),
 })
@@ -5159,6 +5233,11 @@ http.route({
     const tenantSlug = url.searchParams.get('tenantSlug') ?? ''
     const repoName   = url.searchParams.get('repositoryFullName') ?? ''
 
+    if (!tenantSlug || !repoName) {
+      return new Response(JSON.stringify({ error: 'tenantSlug and repositoryFullName are required' }),
+        { status: 400, headers: { ...securityHeaders(), 'Content-Type': 'application/json' } })
+    }
+
     const result = await ctx.runQuery(
       api.mobileAppSecurityDriftIntel.getLatestMobileAppSecurityDriftBySlug,
       { tenantSlug, repositoryFullName: repoName },
@@ -5166,7 +5245,7 @@ http.route({
 
     return new Response(JSON.stringify(result ?? null), {
       status: 200,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
     })
   }),
 })
@@ -5910,6 +5989,11 @@ http.route({
   handler: httpAction(async (ctx, request) => {
     const signingSecret = process.env.SLACK_SIGNING_SECRET ?? ''
 
+    // A8 — fail closed: do not process Slack commands when signing secret is unset
+    if (!signingSecret) {
+      return new Response('Slack signing secret not configured', { status: 503 })
+    }
+
     // Verify Slack request signature
     const timestamp = request.headers.get('x-slack-request-timestamp') ?? ''
     const slackSig = request.headers.get('x-slack-signature') ?? ''
@@ -6003,36 +6087,34 @@ http.route({
       return jsonResponse({ error: `Report status is ${report.status}` }, 400)
     }
 
-    const scoreTrend: Array<{ label: string; score: number }> = report.scoreTrend
-      ? JSON.parse(report.scoreTrend)
-      : []
+    const scoreTrend: Array<{ label: string; score: number }> = safeParse(report.scoreTrend, [])
     const topRisks: Array<{ repositoryName: string; score: number; grade: string; recommendation: string }> =
-      report.topRisks ? JSON.parse(report.topRisks) : []
+      safeParse(report.topRisks, [])
     const remediationMetrics: { openCritical: number; mttr: string; gateBlockRate: string } =
-      report.remediationMetrics ? JSON.parse(report.remediationMetrics) : {}
+      safeParse(report.remediationMetrics, {})
     const complianceStatus: Array<{ framework: string; status: string; score: number }> =
-      report.complianceStatus ? JSON.parse(report.complianceStatus) : []
+      safeParse(report.complianceStatus, [])
     const talkingPoints: Array<{ section: string; point: string }> =
-      report.talkingPoints ? JSON.parse(report.talkingPoints) : []
+      safeParse(report.talkingPoints, [])
 
     const scoreRows = scoreTrend
-      .map((s) => `<tr><td>${s.label}</td><td>${s.score}/100</td></tr>`)
+      .map((s) => `<tr><td>${escapeHtml(s.label)}</td><td>${escapeHtml(s.score)}/100</td></tr>`)
       .join('')
     const riskRows = topRisks
-      .map((r) => `<tr><td>${r.repositoryName}</td><td>${r.grade}</td><td>${r.score}</td><td>${r.recommendation}</td></tr>`)
+      .map((r) => `<tr><td>${escapeHtml(r.repositoryName)}</td><td>${escapeHtml(r.grade)}</td><td>${escapeHtml(r.score)}</td><td>${escapeHtml(r.recommendation)}</td></tr>`)
       .join('')
     const complianceRows = complianceStatus
-      .map((c) => `<tr><td>${c.framework}</td><td>${c.status}</td><td>${c.score}</td></tr>`)
+      .map((c) => `<tr><td>${escapeHtml(c.framework)}</td><td>${escapeHtml(c.status)}</td><td>${escapeHtml(c.score)}</td></tr>`)
       .join('')
     const talkingPointsList = talkingPoints
-      .map((t) => `<li><strong>${t.section}:</strong> ${t.point}</li>`)
+      .map((t) => `<li><strong>${escapeHtml(t.section)}:</strong> ${escapeHtml(t.point)}</li>`)
       .join('')
 
     const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>CyberZen Executive Security Report — ${report.period}</title>
+<title>CyberZen Executive Security Report — ${escapeHtml(report.period)}</title>
 <style>
   body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; max-width: 900px; margin: 40px auto; color: #1a1a2e; }
   h1 { font-size: 1.8rem; border-bottom: 3px solid #4f46e5; padding-bottom: 8px; }
@@ -6051,7 +6133,7 @@ http.route({
 </head>
 <body>
 <h1>CyberZen Executive Security Report</h1>
-<p><strong>Period:</strong> ${report.period} &nbsp;|&nbsp; <strong>Type:</strong> ${report.type} &nbsp;|&nbsp; <strong>Generated:</strong> ${new Date(report.generatedAt).toUTCString()}</p>
+<p><strong>Period:</strong> ${escapeHtml(report.period)} &nbsp;|&nbsp; <strong>Type:</strong> ${escapeHtml(report.type)} &nbsp;|&nbsp; <strong>Generated:</strong> ${escapeHtml(new Date(report.generatedAt).toUTCString())}</p>
 
 <h2>Key Performance Indicators</h2>
 <div class="kpi">
