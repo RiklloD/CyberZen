@@ -1,18 +1,26 @@
 import tailwindcss from "@tailwindcss/vite";
 import { devtools } from "@tanstack/devtools-vite";
-import { TanStackRouterVite } from "@tanstack/router-plugin/vite"; // FIX: W1 — file-based routing codegen
+import { TanStackRouterVite } from "@tanstack/router-plugin/vite";
 import viteReact from "@vitejs/plugin-react";
+import path from "path";
 import tsconfigPaths from "vite-tsconfig-paths";
 import { defineConfig } from "vitest/config";
 
 const config = defineConfig({
 	plugins: [
-		TanStackRouterVite({ autoCodeSplitting: true }), // FIX: W1 — must come before viteReact
+		TanStackRouterVite({ autoCodeSplitting: true }),
 		devtools(),
 		tsconfigPaths({ projects: ["./tsconfig.json"] }),
 		tailwindcss(),
 		viteReact(),
 	],
+	resolve: {
+		alias: {
+			// Stub out Node-only modules pulled in by @clerk/tanstack-react-start
+			// via @tanstack/start-storage-context. Not needed in client-only SPA mode.
+			"node:async_hooks": path.resolve(__dirname, "src/lib/async-hooks-shim.ts"),
+		},
+	},
 	test: {
 		environment: "jsdom",
 		globals: true,
