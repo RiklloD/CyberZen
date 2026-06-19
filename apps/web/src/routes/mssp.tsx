@@ -325,6 +325,7 @@ function MsspWhiteLabelSettings() {
 	const [supportEmail, setSupportEmail] = useState<string | null>(null);
 	const [primaryColor, setPrimaryColor] = useState<string | null>(null);
 	const [logoUrl, setLogoUrl] = useState<string | null>(null);
+	const [generatedCommands, setGeneratedCommands] = useState<string | null>(null);
 
 	if (!settings) {
 		return <div className="loading-panel h-48 rounded-2xl" />;
@@ -345,17 +346,18 @@ function MsspWhiteLabelSettings() {
 				e.preventDefault();
 				// White-label settings are sourced from env vars (MSSP_BRAND_NAME,
 				// MSSP_DASHBOARD_URL, MSSP_SUPPORT_EMAIL, MSSP_PRIMARY_COLOR,
-				// MSSP_LOGO_URL) so they survive Convex restarts. Persisting from
-				// the UI prints the equivalent `npx convex env set` commands to the
-				// console for an operator to copy/paste.
-				console.info(
-					"Apply the following Convex env updates to make these white-label changes effective:",
-				);
-				console.info(`npx convex env set MSSP_BRAND_NAME "${values.brandName}"`);
-				console.info(`npx convex env set MSSP_DASHBOARD_URL "${values.portalUrl}"`);
-				console.info(`npx convex env set MSSP_SUPPORT_EMAIL "${values.supportEmail}"`);
-				console.info(`npx convex env set MSSP_PRIMARY_COLOR "${values.primaryColor}"`);
-				console.info(`npx convex env set MSSP_LOGO_URL "${values.logoUrl}"`);
+				// MSSP_LOGO_URL) so they survive Convex restarts. The frontend
+				// cannot set env vars directly (operator-only), so we generate the
+				// equivalent `npx convex env set` commands for an operator to run.
+				const cmds = [
+					`npx convex env set MSSP_BRAND_NAME "${values.brandName}"`,
+					`npx convex env set MSSP_DASHBOARD_URL "${values.portalUrl}"`,
+					`npx convex env set MSSP_SUPPORT_EMAIL "${values.supportEmail}"`,
+					`npx convex env set MSSP_PRIMARY_COLOR "${values.primaryColor}"`,
+					`npx convex env set MSSP_LOGO_URL "${values.logoUrl}"`,
+				].join("\n");
+				setGeneratedCommands(cmds);
+				console.info("Apply the following Convex env updates:\n" + cmds); // keep for operators
 			}}
 		>
 			<div>
@@ -412,9 +414,30 @@ function MsspWhiteLabelSettings() {
 					style={{ padding: "0.4rem 0.8rem", fontSize: "0.75rem" }}
 				>
 					<Save size={12} />
-					Save (prints env commands)
+					Generate env commands
 				</button>
 			</div>
+
+			{generatedCommands && (
+				<div className="card card-sm">
+					<div className="flex items-center justify-between mb-2">
+						<p className="text-xs font-semibold text-[var(--sea-ink)]">
+							Run these commands to apply branding (operator only)
+						</p>
+						<button
+							type="button"
+							className="secondary-button"
+							style={{ padding: "0.35rem 0.7rem", fontSize: "0.7rem" }}
+							onClick={() => navigator.clipboard.writeText(generatedCommands)}
+						>
+							Copy all
+						</button>
+					</div>
+					<pre className="overflow-x-auto text-[0.7rem] font-mono leading-relaxed whitespace-pre-wrap break-all text-[var(--sea-ink)] bg-[var(--sea-ink)]/5 rounded-lg p-3">
+						<code>{generatedCommands}</code>
+					</pre>
+				</div>
+			)}
 		</form>
 	);
 }

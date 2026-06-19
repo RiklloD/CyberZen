@@ -9,7 +9,7 @@ import { formatTimestamp } from "../lib/utils";
 import { useTenantSlug } from "../lib/workspace";
 import RouteErrorBoundary from "../components/RouteErrorBoundary";
 
-export const Route = createFileRoute("/agents")({
+export const Route = createFileRoute("/agent-activity")({
 	errorComponent: RouteErrorBoundary,
 	component: AgentsPage,
 });

@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useAuthToken } from "@convex-dev/auth/react";
 import { useMutation, useQuery } from "convex/react";
-import { ShieldCheck, Smartphone, Key, AlertTriangle, X } from "lucide-react";
+import { ShieldCheck, Smartphone, AlertTriangle, X, Loader2 } from "lucide-react";
 import { useState, useTransition } from "react";
+import { QRCodeSVG } from "qrcode.react";
 import StatusPill from "../../components/StatusPill";
 import { api } from "../../lib/convex";
 import { useTenantSlug } from "../../lib/workspace";
@@ -63,17 +64,14 @@ function TwoFactorPage() {
 							<PolicyCard
 								label="Enrolled"
 								value={tenantPolicy.enrolledMembers}
-								tone="success"
 							/>
 							<PolicyCard
 								label="Not Enrolled"
 								value={tenantPolicy.unenrolledMembers}
-								tone={tenantPolicy.unenrolledMembers > 0 ? "warning" : "success"}
 							/>
 							<PolicyCard
 								label="Enforcement"
 								value={tenantPolicy.enforcementEnabled ? "On" : "Off"}
-								tone={tenantPolicy.enforcementEnabled ? "success" : "neutral"}
 							/>
 						</div>
 
@@ -254,14 +252,17 @@ function EnrollmentFlow({
 				</div>
 			) : (
 				<div className="space-y-4">
-					{/* QR Code placeholder */}
+					{/* QR code — scan with an authenticator app (TOTP) */}
 					<div className="p-4 rounded-lg bg-[var(--surface)] border border-[var(--line)]">
-						<div className="w-48 h-48 mx-auto bg-white rounded-lg flex items-center justify-center mb-3">
-							<div className="text-center">
-								<Key size={32} className="mx-auto mb-1 text-[var(--signal)]" />
-								<p className="text-[0.6rem] text-gray-500">Scan with authenticator</p>
+						{enrollmentData?.otpauthUri ? (
+							<div className="w-48 h-48 mx-auto bg-white rounded-lg flex items-center justify-center mb-3 p-2">
+								<QRCodeSVG value={enrollmentData.otpauthUri} size={176} className="rounded" />
 							</div>
-						</div>
+						) : (
+							<div className="w-48 h-48 mx-auto bg-white rounded-lg flex items-center justify-center mb-3">
+								<Loader2 size={24} className="text-[var(--signal)] animate-spin" />
+							</div>
+						)}
 						<div className="text-center">
 							<p className="text-xs text-[var(--sea-ink-soft)] mb-1">Manual entry key:</p>
 							<code className="text-xs bg-[var(--surface)] px-2 py-1 rounded border border-[var(--line)] font-mono">
@@ -377,7 +378,7 @@ function DisableFlow({ authToken, onCancel }: { authToken: string; onCancel: () 
 	);
 }
 
-function PolicyCard({ label, value, tone: _tone = "neutral" }: { label: string; value: number | string; tone?: "success" | "warning" | "neutral" }) {
+function PolicyCard({ label, value }: { label: string; value: number | string }) {
 	return (
 		<div className="card card-sm p-3 text-center">
 			<p className="text-lg font-bold text-[var(--sea-ink)]">{value}</p>

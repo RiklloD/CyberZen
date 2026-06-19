@@ -3,7 +3,7 @@
  *
  * Full policy trace for a single gate decision: shows the decision chain,
  * override history with justifications, "Override" CTA (§3.2), and a
- * "Replay" CTA placeholder.
+ * "Replay" CTA for re-evaluating the gate.
  * Receives the full detail object fetched via getGateDecisionDetail.
  */
 

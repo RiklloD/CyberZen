@@ -258,9 +258,8 @@ function RepositoryDrillDown({
 					</div>
 				)}
 
-			{/* Honeypot */}
-			{(honeypot || true) && (
-				<div className="card card-sm">
+			{/* Honeypot — always rendered so deploy/teardown CTAs stay accessible */}
+			<div className="card card-sm">
 					<p className="panel-label">Honeypot Plan</p>
 
 					{/* §3.12 — Deploy / Teardown CTAs */}
@@ -309,10 +308,9 @@ function RepositoryDrillDown({
 						No honeypot plan computed yet. Deploy to generate one.
 					</p>
 					)}
-				</div>
-			)}
+					</div>
 
-				{/* Business Impact (full-width within grid) */}
+					{/* Business Impact (full-width within grid) */}
 				{businessImpact && (
 					<div className="lg:col-span-2 xl:col-span-3">
 						<RepositoryBusinessImpactPanel

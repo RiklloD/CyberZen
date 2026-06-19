@@ -65,6 +65,9 @@ function GitHubConnectWizard() {
 			.finally(() => setGithubReposLoading(false));
 	}, [fetchGithubRepos, TENANT, githubReposLoading, githubRepos]);
 
+	// Check if GitHub is already connected via the application-managed OAuth flow
+	const githubConnection = useQuery(api.githubIntegration.getGithubConnectionStatus, { tenantSlug: TENANT });
+
 	// Auto-fetch repos when GitHub connection is confirmed
 	useEffect(() => {
 		if (githubConnection?.connected) {
@@ -89,9 +92,6 @@ function GitHubConnectWizard() {
 			if (existing.size > 0) setSelectedRepos(existing);
 		}
 	}, [tenantRepos]);
-
-	// Check if GitHub is already connected via the application-managed OAuth flow
-	const githubConnection = useQuery(api.githubIntegration.getGithubConnectionStatus, { tenantSlug: TENANT });
 
 	// Auto-skip to repo selection if GitHub is already connected
 	useEffect(() => {

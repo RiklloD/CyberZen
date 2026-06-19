@@ -52,9 +52,9 @@ function MarketplacePage() {
 				{stats && (
 					<div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
 						<StatCard label="Total Contributions" value={stats.total} />
-						<StatCard label="Approved" value={stats.approved} tone="success" />
-						<StatCard label="Pending Review" value={stats.pending} tone="warning" />
-						<StatCard label="Contributors" value={topContributors?.length ?? 0} tone="neutral" />
+						<StatCard label="Approved" value={stats.approved} />
+						<StatCard label="Pending Review" value={stats.pending} />
+						<StatCard label="Contributors" value={topContributors?.length ?? 0} />
 					</div>
 				)}
 
@@ -172,11 +172,9 @@ function MarketplacePage() {
 function StatCard({
 	label,
 	value,
-	tone: _tone = "neutral",
 }: {
 	label: string;
 	value: number;
-	tone?: "success" | "warning" | "neutral";
 }) {
 	return (
 		<div className="card card-sm p-4">

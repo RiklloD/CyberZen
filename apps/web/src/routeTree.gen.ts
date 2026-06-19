@@ -36,6 +36,7 @@ import { Route as BreachIntelRouteImport } from './routes/breach-intel'
 import { Route as AuditLogRouteImport } from './routes/audit-log'
 import { Route as AttackPathsRouteImport } from './routes/attack-paths'
 import { Route as AgentsRouteImport } from './routes/agents'
+import { Route as AgentActivityRouteImport } from './routes/agent-activity'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SettingsIndexRouteImport } from './routes/settings/index'
@@ -202,6 +203,11 @@ const AgentsRoute = AgentsRouteImport.update({
   path: '/agents',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AgentActivityRoute = AgentActivityRouteImport.update({
+  id: '/agent-activity',
+  path: '/agent-activity',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AboutRoute = AboutRouteImport.update({
   id: '/about',
   path: '/about',
@@ -356,6 +362,7 @@ const ConnectGithubRoute = ConnectGithubRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/agent-activity': typeof AgentActivityRoute
   '/agents': typeof AgentsRoute
   '/attack-paths': typeof AttackPathsRoute
   '/audit-log': typeof AuditLogRoute
@@ -415,6 +422,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/agent-activity': typeof AgentActivityRoute
   '/agents': typeof AgentsRoute
   '/attack-paths': typeof AttackPathsRoute
   '/audit-log': typeof AuditLogRoute
@@ -475,6 +483,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/agent-activity': typeof AgentActivityRoute
   '/agents': typeof AgentsRoute
   '/attack-paths': typeof AttackPathsRoute
   '/audit-log': typeof AuditLogRoute
@@ -536,6 +545,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/about'
+    | '/agent-activity'
     | '/agents'
     | '/attack-paths'
     | '/audit-log'
@@ -595,6 +605,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/about'
+    | '/agent-activity'
     | '/agents'
     | '/attack-paths'
     | '/audit-log'
@@ -654,6 +665,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/about'
+    | '/agent-activity'
     | '/agents'
     | '/attack-paths'
     | '/audit-log'
@@ -714,6 +726,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
+  AgentActivityRoute: typeof AgentActivityRoute
   AgentsRoute: typeof AgentsRoute
   AttackPathsRoute: typeof AttackPathsRoute
   AuditLogRoute: typeof AuditLogRoute
@@ -962,6 +975,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AgentsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/agent-activity': {
+      id: '/agent-activity'
+      path: '/agent-activity'
+      fullPath: '/agent-activity'
+      preLoaderRoute: typeof AgentActivityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/about': {
       id: '/about'
       path: '/about'
@@ -1178,6 +1198,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
+  AgentActivityRoute: AgentActivityRoute,
   AgentsRoute: AgentsRoute,
   AttackPathsRoute: AttackPathsRoute,
   AuditLogRoute: AuditLogRoute,
