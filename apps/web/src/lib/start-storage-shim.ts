@@ -1,7 +1,7 @@
 // Browser shim for @tanstack/start-storage-context.
 // In client-only SPA mode (defaultSsr: false), there is no server runtime
 // to populate AsyncLocalStorage. This module provides the same interface
-// so that @clerk/tanstack-react-start doesn't crash at import time.
+// so that @clerk/react doesn't crash at import time.
 
 type StartContext = Record<string, unknown>;
 

@@ -1,4 +1,4 @@
-import { useAuth } from "@clerk/tanstack-react-start";
+import { useAuth } from "@clerk/react";
 
 /**
  * Compatibility hook — returns an empty string.

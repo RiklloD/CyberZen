@@ -8,7 +8,7 @@ vi.mock("convex/react", () => ({
 vi.mock("convex/react-clerk", () => ({
 	ConvexProviderWithClerk: vi.fn(({ children }: any) => children) }));
 
-vi.mock("@clerk/tanstack-react-start", () => ({
+vi.mock("@clerk/react", () => ({
 	ClerkProvider: vi.fn(({ children }: any) => children),
 	useAuth: vi.fn(() => ({ isSignedIn: true, isLoaded: true, getToken: vi.fn(() => "mock-token") })),
 	useClerk: vi.fn(() => ({ signOut: vi.fn() })),

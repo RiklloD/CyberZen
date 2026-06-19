@@ -1,4 +1,4 @@
-import { useAuth } from "@clerk/tanstack-react-start";
+import { useAuth } from "@clerk/react";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { ConvexReactClient } from "convex/react";
 import { type ReactNode, useEffect } from "react";

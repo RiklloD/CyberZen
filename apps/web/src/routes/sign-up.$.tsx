@@ -1,4 +1,4 @@
-import { SignUp } from "@clerk/tanstack-react-start";
+import { SignUp } from "@clerk/react";
 import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/sign-up/$")({

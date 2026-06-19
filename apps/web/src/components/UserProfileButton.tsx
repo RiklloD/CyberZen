@@ -1,4 +1,4 @@
-import { useClerk } from "@clerk/tanstack-react-start";
+import { useClerk } from "@clerk/react";
 import { Link } from "@tanstack/react-router";
 import {
 	ChevronUp,

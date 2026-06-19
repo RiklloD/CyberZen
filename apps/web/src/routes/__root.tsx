@@ -1,4 +1,4 @@
-import { ClerkProvider, useAuth, SignInButton } from "@clerk/tanstack-react-start";
+import { ClerkProvider, useAuth, SignInButton } from "@clerk/react";
 import { TanStackDevtools } from "@tanstack/react-devtools";
 import {
 	createRootRoute,

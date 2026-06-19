@@ -1,4 +1,4 @@
-import { SignInButton } from "@clerk/tanstack-react-start";
+import { SignInButton } from "@clerk/react";
 import { Shield } from "lucide-react";
 
 export default function AuthScreen() {
