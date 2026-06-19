@@ -10,8 +10,7 @@ import { useTenantSlug } from "../lib/workspace";
 
 export const Route = createFileRoute("/attack-paths")({
 	errorComponent: QueryErrorFallback,
-	component: AttackPathsPage,
-});
+	component: AttackPathsPage });
 
 type OverviewData = NonNullable<
 	FunctionReturnType<typeof api.dashboard.overview>
@@ -59,8 +58,7 @@ function useForceLayout(
 				x: width / 2 + r * Math.cos(angle),
 				y: height / 2 + r * Math.sin(angle),
 				vx: 0,
-				vy: 0,
-			};
+				vy: 0 };
 		});
 
 		const idxOf = (id: string) => sim.findIndex((n) => n.id === id);
@@ -159,8 +157,7 @@ function nodeRadius(node: GraphNode, edgeCount: number): number {
 function DependencyGraphSvg({
 	graphData,
 	highlighted,
-	onNodeClick,
-}: {
+	onNodeClick }: {
 	graphData: GraphData;
 	highlighted?: Set<string>;
 	onNodeClick?: (id: string) => void;
@@ -300,8 +297,7 @@ function GraphLegend() {
 							height: 10,
 							borderRadius: "50%",
 							background: color,
-							display: "inline-block",
-						}}
+							display: "inline-block" }}
 					/>
 					<span className="text-xs text-[var(--sea-ink-soft)]">{label}</span>
 				</div>
@@ -382,8 +378,7 @@ function AttackPathsPage() {
 	);
 
 	const criticalPaths = useQuery(api.attackPaths.getCriticalPaths, {
-		tenantSlug: TENANT,
-	});
+		tenantSlug: TENANT });
 
 	const findingAttackPath = useQuery(
 		api.attackPaths.getAttackPathForFinding,

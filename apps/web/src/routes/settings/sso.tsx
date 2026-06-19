@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useAuthToken } from "../../lib/clerk-compat";
 import { useMutation, useQuery } from "convex/react";
 import {
 	Shield,
@@ -7,8 +6,7 @@ import {
 	Trash2,
 	Upload,
 	X,
-	Copy,
-} from "lucide-react";
+	Copy } from "lucide-react";
 import { useState, useTransition } from "react";
 import StatusPill from "../../components/StatusPill";
 import { api } from "../../lib/convex";
@@ -17,22 +15,20 @@ import RouteErrorBoundary from "../../components/RouteErrorBoundary";
 
 export const Route = createFileRoute("/settings/sso")({
 	errorComponent: RouteErrorBoundary,
-	component: SsoPage,
-});
+	component: SsoPage });
 
 function SsoPage() {
 	const TENANT = useTenantSlug();
-	const authToken = useAuthToken() ?? "";
 	const [createOpen, setCreateOpen] = useState(false);
 
 	const configs = useQuery(
 		api.sso.listSsoConfigs,
-		authToken ? { authToken, tenantSlug: TENANT } : "skip",
+		{ tenantSlug: TENANT },
 	);
 
 	const acsInfo = useQuery(
 		api.sso.getAcsUrl,
-		authToken ? { authToken, tenantSlug: TENANT } : "skip",
+		{ tenantSlug: TENANT },
 	);
 
 	return (
@@ -100,7 +96,6 @@ function SsoPage() {
 							<SsoConfigCard
 								key={config._id}
 								config={config}
-								authToken={authToken}
 								tenantSlug={TENANT}
 							/>
 						))}
@@ -110,7 +105,6 @@ function SsoPage() {
 
 			{createOpen && (
 				<CreateSsoModal
-					authToken={authToken}
 					tenantSlug={TENANT}
 					onClose={() => setCreateOpen(false)}
 				/>
@@ -149,11 +143,8 @@ function AcsUrlRow({ label, value }: { label: string; value: string }) {
 
 function SsoConfigCard({
 	config,
-	authToken,
-	tenantSlug,
-}: {
+	tenantSlug }: {
 	config: any;
-	authToken: string;
 	tenantSlug: string;
 }) {
 	const [isPending, startTransition] = useTransition();
@@ -162,7 +153,7 @@ function SsoConfigCard({
 	function handleDelete() {
 		if (!confirm(`Delete SSO provider "${config.displayName}"?`)) return;
 		startTransition(async () => {
-			await deleteConfig({ authToken, tenantSlug, configId: config._id });
+			await deleteConfig({ tenantSlug, configId: config._id });
 		});
 	}
 
@@ -225,11 +216,8 @@ function validateMetadataXml(xml: string): string | null {
 }
 
 function CreateSsoModal({
-	authToken,
 	tenantSlug,
-	onClose,
-}: {
-	authToken: string;
+	onClose }: {
 	tenantSlug: string;
 	onClose: () => void;
 }) {
@@ -266,7 +254,6 @@ function CreateSsoModal({
 		startTransition(async () => {
 			try {
 				await createConfig({
-					authToken,
 					tenantSlug,
 					protocol,
 					displayName: displayName.trim(),
@@ -276,8 +263,7 @@ function CreateSsoModal({
 					samlEntityId: protocol === "saml" ? entityId : undefined,
 					samlSsoUrl: protocol === "saml" ? ssoUrl : undefined,
 					samlCertificate: protocol === "saml" ? certificate : undefined,
-					samlMetadataXml: protocol === "saml" ? metadataXml || undefined : undefined,
-				});
+					samlMetadataXml: protocol === "saml" ? metadataXml || undefined : undefined });
 				onClose();
 			} catch (err) {
 				setFieldError(err instanceof Error ? err.message : "Failed to create SSO provider.");

@@ -1,4 +1,3 @@
-import { useAuthToken } from "../lib/clerk-compat";
 import { Bell } from "lucide-react";
 import { useMutation, useQuery } from "convex/react";
 import { useState } from "react";
@@ -8,16 +7,13 @@ import NotificationDrawer from "./NotificationDrawer";
 
 export default function NotificationBell() {
 	const TENANT = useTenantSlug();
-	const authToken = useAuthToken();
 	const [drawerOpen, setDrawerOpen] = useState(false);
 
 	const unreadCount = useQuery(api.notifications.unreadCount, {
-		tenantSlug: TENANT,
-	});
+		tenantSlug: TENANT });
 
 	const notifications = useQuery(api.notifications.listForUser, {
-		tenantSlug: TENANT,
-	});
+		tenantSlug: TENANT });
 
 	const markRead = useMutation(api.notifications.markRead);
 	const markAllRead = useMutation(api.notifications.markAllRead);
@@ -45,10 +41,10 @@ export default function NotificationBell() {
 				onClose={() => setDrawerOpen(false)}
 				notifications={notifications ?? []}
 				onMarkRead={(id) =>
-					markRead({ notificationId: id, authToken: authToken ?? "" })
+					markRead({ notificationId: id })
 				}
 				onMarkAllRead={() =>
-					markAllRead({ tenantSlug: TENANT, authToken: authToken ?? "" })
+					markAllRead({ tenantSlug: TENANT })
 				}
 			/>
 		</>

@@ -10,8 +10,7 @@ type BlastRadius = NonNullable<
 >;
 
 export default function RepositoryBlastRadiusPanel({
-	blastRadius,
-}: {
+	blastRadius }: {
 	blastRadius: BlastRadius;
 }) {
 	return (

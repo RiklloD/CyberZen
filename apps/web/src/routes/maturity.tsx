@@ -13,8 +13,7 @@ import RouteErrorBoundary from "../components/RouteErrorBoundary";
 
 export const Route = createFileRoute("/maturity")({
 	errorComponent: RouteErrorBoundary,
-	component: MaturityPage,
-});
+	component: MaturityPage });
 
 type OverviewData = NonNullable<
 	FunctionReturnType<typeof api.dashboard.overview>
@@ -87,8 +86,7 @@ function MaturityPage() {
 }
 
 function TenantMaturitySummary({
-	tenantId,
-}: {
+	tenantId }: {
 	tenantId: Id<"tenants">;
 }) {
 	const summary = useQuery(
@@ -128,8 +126,7 @@ function TenantMaturitySummary({
 
 function RepositoryMaturityView({
 	tenantSlug,
-	repositoryFullName,
-}: {
+	repositoryFullName }: {
 	tenantSlug: string;
 	repositoryFullName: string;
 }) {

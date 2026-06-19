@@ -103,8 +103,7 @@ function TimelinePage() {
 function RepoTimeline({
   tenantSlug,
   repositoryFullName,
-  highlightId,
-}: {
+  highlightId }: {
   tenantSlug: string;
   repositoryFullName: string;
   highlightId: string | null;
@@ -146,8 +145,7 @@ function RepoTimeline({
 
 function TimelineSummary({
   tenantSlug,
-  repositoryFullName,
-}: {
+  repositoryFullName }: {
   tenantSlug: string;
   repositoryFullName: string;
 }) {
@@ -203,8 +201,7 @@ function TimelineSummary({
 function SummaryRow({
   label,
   count,
-  tone,
-}: {
+  tone }: {
   label: string;
   count: number;
   tone: "success" | "danger" | "warning" | "neutral" | "info";

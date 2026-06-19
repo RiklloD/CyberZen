@@ -22,7 +22,7 @@ export const verifyAuth = internalQuery({
 
 async function requireAdminMembership(
   ctx: QueryCtx | MutationCtx,
-  authToken: string,
+  authToken: string | undefined,
   tenantSlug: string,
 ) {
   const { userId } = await requireSessionAuth(ctx, authToken)

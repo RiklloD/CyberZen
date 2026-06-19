@@ -24,8 +24,7 @@ import {
   Unlock,
   LockOpen,
   Bug,
-  type LucideIcon,
-} from "lucide-react";
+  type LucideIcon } from "lucide-react";
 import { useState } from "react";
 import StatusPill from "../StatusPill";
 import type { api } from "../../lib/convex";
@@ -57,13 +56,11 @@ const FILTER_OPTIONS: {
   {
     key: "all",
     label: "All Events",
-    eventTypes: [],
-  },
+    eventTypes: [] },
   {
     key: "finding",
     label: "Findings",
-    eventTypes: ["finding_created", "finding_triaged", "secret_detected"],
-  },
+    eventTypes: ["finding_created", "finding_triaged", "secret_detected"] },
   {
     key: "gate",
     label: "Gates",
@@ -72,8 +69,7 @@ const FILTER_OPTIONS: {
       "gate_approved",
       "gate_overridden",
       "sla_breached",
-    ],
-  },
+    ] },
   {
     key: "fix",
     label: "Fixes",
@@ -81,8 +77,7 @@ const FILTER_OPTIONS: {
       "pr_opened",
       "pr_merged",
       "auto_remediation_dispatched",
-    ],
-  },
+    ] },
   {
     key: "escalation",
     label: "Escalations",
@@ -91,8 +86,7 @@ const FILTER_OPTIONS: {
       "risk_accepted",
       "risk_revoked",
       "red_agent_win",
-    ],
-  },
+    ] },
 ];
 
 // ── Icon + tone per event type ─────────────────────────────────────────────
@@ -176,8 +170,7 @@ export interface SecurityTimelinePanelProps {
 export default function SecurityTimelinePanel({
   events,
   counts,
-  highlightId,
-}: SecurityTimelinePanelProps) {
+  highlightId }: SecurityTimelinePanelProps) {
   const [activeFilter, setActiveFilter] = useState<FilterCategory>("all");
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 

@@ -22,8 +22,7 @@ function overallTone(
 }
 
 export default function LlmCertificationHistory({
-	history,
-}: {
+	history }: {
 	history: HistoryEntry[];
 }) {
 	if (history.length === 0) {

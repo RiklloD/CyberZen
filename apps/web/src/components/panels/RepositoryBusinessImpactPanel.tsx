@@ -5,8 +5,7 @@ import {
 	DollarSign,
 	GitBranch,
 	Scale,
-	Users,
-} from "lucide-react";
+	Users } from "lucide-react";
 import StatusPill from "../StatusPill";
 import type { api } from "../../lib/convex";
 
@@ -38,8 +37,7 @@ function dimTone(
 function RadialGauge({
 	score,
 	label,
-	icon,
-}: {
+	icon }: {
 	score: number;
 	label: string;
 	icon: React.ReactNode;
@@ -108,8 +106,7 @@ function formatCurrency(amount: number): string {
 
 export default function RepositoryBusinessImpactPanel({
 	impact,
-	repositoryFullName,
-}: {
+	repositoryFullName }: {
 	impact: Impact;
 	repositoryFullName: string;
 }) {

@@ -16,8 +16,7 @@ import {
   Clock,
   RotateCcw,
   User,
-  Bot,
-} from "lucide-react";
+  Bot } from "lucide-react";
 import { useState } from "react";
 import StatusPill from "../StatusPill";
 import type { api } from "../../lib/convex";
@@ -53,8 +52,7 @@ export interface GateDecisionDetailDrawerProps {
 export default function GateDecisionDetailDrawer({
   detail,
   onReplay,
-  onOverride,
-}: GateDecisionDetailDrawerProps) {
+  onOverride }: GateDecisionDetailDrawerProps) {
   const [showOverrideModal, setShowOverrideModal] = useState(false);
 
   if (!detail) {

@@ -27,8 +27,7 @@ let globalListenerAttached = false;
 export function registerShortcut(def: Omit<ShortcutDef, "category"> & { category?: ShortcutDef["category"] }): () => void {
 	const entry: ShortcutDef = {
 		...def,
-		category: def.category ?? "general",
-	};
+		category: def.category ?? "general" };
 	NAV_REGISTRY.push(entry);
 	return () => {
 		const idx = NAV_REGISTRY.indexOf(entry);
@@ -121,40 +120,35 @@ export function registerNavigationShortcuts(navigate: (to: string) => void) {
 			label: "Go to Repositories",
 			keys: "g r",
 			category: "navigation",
-			action: () => navigate("/repositories"),
-		}),
+			action: () => navigate("/repositories") }),
 	);
 	unsubs.push(
 		registerShortcut({
 			label: "Go to Findings",
 			keys: "g f",
 			category: "navigation",
-			action: () => navigate("/findings"),
-		}),
+			action: () => navigate("/findings") }),
 	);
 	unsubs.push(
 		registerShortcut({
 			label: "Go to Compliance",
 			keys: "g c",
 			category: "navigation",
-			action: () => navigate("/compliance"),
-		}),
+			action: () => navigate("/compliance") }),
 	);
 	unsubs.push(
 		registerShortcut({
 			label: "Go to Dashboard",
 			keys: "g d",
 			category: "navigation",
-			action: () => navigate("/"),
-		}),
+			action: () => navigate("/") }),
 	);
 	unsubs.push(
 		registerShortcut({
 			label: "Go to Settings",
 			keys: "g s",
 			category: "navigation",
-			action: () => navigate("/settings"),
-		}),
+			action: () => navigate("/settings") }),
 	);
 
 	return () => unsubs.forEach((u) => u());

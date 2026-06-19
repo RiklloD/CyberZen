@@ -24,8 +24,7 @@ export default function MemoryLogEpisodeModal({
   open,
   repositoryId,
   onClose,
-  onSuccess,
-}: MemoryLogEpisodeModalProps) {
+  onSuccess }: MemoryLogEpisodeModalProps) {
   const [episodeType, setEpisodeType] = useState<
     "finding" | "breach" | "fix" | "gate_block" | "false_positive" | "scan_result" | "deployment"
   >("finding");
@@ -51,10 +50,8 @@ export default function MemoryLogEpisodeModal({
           payload: {
             description: description.trim(),
             userGenerated: true,
-            timestamp: Date.now(),
-          },
-          sourceRef: sourceRef.trim() || `manual-${Date.now()}`,
-        });
+            timestamp: Date.now() },
+          sourceRef: sourceRef.trim() || `manual-${Date.now()}` });
         setResult("Episode logged successfully!");
         setDescription("");
         setSourceRef("");
@@ -90,16 +87,14 @@ export default function MemoryLogEpisodeModal({
         alignItems: "center",
         justifyContent: "center",
         background: "rgba(0, 0, 0, 0.44)",
-        backdropFilter: "blur(2px)",
-      }}
+        backdropFilter: "blur(2px)" }}
     >
       <div
         className="card"
         style={{
           width: "min(520px, 92vw)",
           maxHeight: "90vh",
-          overflowY: "auto",
-        }}
+          overflowY: "auto" }}
       >
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">

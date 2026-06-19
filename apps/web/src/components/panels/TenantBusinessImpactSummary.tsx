@@ -28,16 +28,14 @@ const LEVELS: {
 		key: "minimal",
 		label: "Minimal",
 		color: "var(--sea-ink-soft)",
-		tone: "neutral",
-	},
+		tone: "neutral" },
 ];
 
 export default function TenantBusinessImpactSummary({
 	totalRepositories,
 	assessedRepositories,
 	levelDistribution,
-	averageScore,
-}: TenantBusinessImpactSummaryProps) {
+	averageScore }: TenantBusinessImpactSummaryProps) {
 	const total = assessedRepositories || 1;
 
 	return (

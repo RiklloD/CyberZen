@@ -9,8 +9,7 @@ type GitIntegrity = NonNullable<
 >;
 
 export default function GitIntegrityPanel({
-	gitIntegrity,
-}: {
+	gitIntegrity }: {
 	gitIntegrity: GitIntegrity;
 }) {
 	return (

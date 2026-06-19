@@ -11,8 +11,7 @@ const DEFAULT_HOURS: Record<SeverityKey, number> = {
 	critical: 24,
 	high: 72,
 	medium: 168,
-	low: 720,
-};
+	low: 720 };
 
 interface SlaPolicyFormProps {
 	tenantSlug: string;
@@ -46,8 +45,7 @@ export default function SlaPolicyForm({ tenantSlug }: SlaPolicyFormProps) {
 				critical: serverHours.critical,
 				high: serverHours.high,
 				medium: serverHours.medium,
-				low: serverHours.low,
-			});
+				low: serverHours.low });
 			setApproachingThreshold(serverApproaching);
 		}
 	}
@@ -59,8 +57,7 @@ export default function SlaPolicyForm({ tenantSlug }: SlaPolicyFormProps) {
 			await upsert({
 				tenantSlug,
 				thresholdHours: hours,
-				approachingThreshold,
-			});
+				approachingThreshold });
 			setLastResult("success");
 		} catch {
 			setLastResult("error");
@@ -108,8 +105,7 @@ export default function SlaPolicyForm({ tenantSlug }: SlaPolicyFormProps) {
 								onChange={(e) =>
 									setHours((prev) => ({
 										...prev,
-										[sev]: Math.max(1, Number(e.target.value) || 1),
-									}))
+										[sev]: Math.max(1, Number(e.target.value) || 1) }))
 								}
 								className="w-24 rounded-md border border-[var(--line)] bg-transparent px-2 py-1 text-sm font-mono text-[var(--sea-ink)] focus:outline-none focus:ring-1 focus:ring-[var(--signal)]"
 							/>

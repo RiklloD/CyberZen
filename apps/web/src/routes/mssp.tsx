@@ -10,8 +10,7 @@ import { formatTimestamp } from "../lib/utils";
 
 export const Route = createFileRoute("/mssp")({
 	errorComponent: RouteErrorBoundary,
-	component: MsspPortalPage,
-});
+	component: MsspPortalPage });
 
 type Tab = "tenants" | "billing" | "white-label";
 type ManagedTenant = NonNullable<FunctionReturnType<typeof api.mssp.listManagedTenants>>[number];
@@ -102,8 +101,7 @@ function MsspTenantList() {
 		try {
 			await setStatus({
 				tenantSlug: slug,
-				status: status === "active" ? "paused" : "active",
-			});
+				status: status === "active" ? "paused" : "active" });
 		} finally {
 			setPendingSlug(null);
 		}
@@ -336,8 +334,7 @@ function MsspWhiteLabelSettings() {
 		portalUrl: portalUrl ?? settings.portalUrl,
 		supportEmail: supportEmail ?? settings.supportEmail,
 		primaryColor: primaryColor ?? settings.primaryColor,
-		logoUrl: logoUrl ?? settings.logoUrl,
-	};
+		logoUrl: logoUrl ?? settings.logoUrl };
 
 	return (
 		<form
@@ -447,8 +444,7 @@ function TextField({
 	value,
 	onChange,
 	placeholder,
-	type = "text",
-}: {
+	type = "text" }: {
 	label: string;
 	value: string;
 	onChange: (v: string) => void;

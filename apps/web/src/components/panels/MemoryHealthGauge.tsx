@@ -1,7 +1,6 @@
 export default function MemoryHealthGauge({
   score,
-  size = 100,
-}: {
+  size = 100 }: {
   score: number; // 0-100
   size?: number;
 }) {

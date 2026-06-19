@@ -7,8 +7,7 @@ type EpssSnapshot = NonNullable<
 >;
 
 export default function EpssThreatIntelPanel({
-	epss,
-}: {
+	epss }: {
 	epss: EpssSnapshot;
 }) {
 	return (

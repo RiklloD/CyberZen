@@ -10,15 +10,13 @@ import {
 	ShieldCheck,
 	Sparkles,
 	Wrench,
-	Zap,
-} from "lucide-react";
+	Zap } from "lucide-react";
 import StatusPill from "../components/StatusPill";
 import RouteErrorBoundary from "../components/RouteErrorBoundary";
 
 export const Route = createFileRoute("/about")({
 	errorComponent: RouteErrorBoundary,
-	component: AboutPage,
-});
+	component: AboutPage });
 
 const features: Array<{
 	icon: typeof ShieldCheck;
@@ -28,33 +26,27 @@ const features: Array<{
 	{
 		icon: ShieldCheck,
 		title: "Automated security posture",
-		body: "Forty plus drift detectors continuously analyze your repositories, cloud, CI, and runtime to surface real risk, not noise.",
-	},
+		body: "Forty plus drift detectors continuously analyze your repositories, cloud, CI, and runtime to surface real risk, not noise." },
 	{
 		icon: Activity,
 		title: "Real-time monitoring",
-		body: "Every commit, build, and deploy emits typed events. Findings, exploit attempts, and policy violations stream live to your team.",
-	},
+		body: "Every commit, build, and deploy emits typed events. Findings, exploit attempts, and policy violations stream live to your team." },
 	{
 		icon: FlaskConical,
 		title: "Exploit validation",
-		body: "Sandbox-backed proof of exploitability ranks vulnerabilities by reality, not theory. Stop chasing CVSS-only false positives.",
-	},
+		body: "Sandbox-backed proof of exploitability ranks vulnerabilities by reality, not theory. Stop chasing CVSS-only false positives." },
 	{
 		icon: CheckCircle2,
 		title: "Compliance evidence",
-		body: "SOC 2, PCI, HIPAA, GDPR, and NIS2 control mappings collect themselves. Audit packages export in one click.",
-	},
+		body: "SOC 2, PCI, HIPAA, GDPR, and NIS2 control mappings collect themselves. Audit packages export in one click." },
 	{
 		icon: Boxes,
 		title: "SBOM living registry",
-		body: "Track packages, transitive dependencies, and integrity hashes across every repository. Get notified when a breach touches you.",
-	},
+		body: "Track packages, transitive dependencies, and integrity hashes across every repository. Get notified when a breach touches you." },
 	{
 		icon: Sparkles,
 		title: "AI-powered remediation",
-		body: "Suggested fixes ship as draft pull requests with diff, blast radius, and rollback notes — not raw advisory dumps.",
-	},
+		body: "Suggested fixes ship as draft pull requests with diff, blast radius, and rollback notes — not raw advisory dumps." },
 ];
 
 function AboutPage() {
@@ -261,8 +253,7 @@ function FlowStage({
 	icon: Icon,
 	title,
 	subtitle,
-	bullets,
-}: {
+	bullets }: {
 	icon: typeof ShieldCheck;
 	title: string;
 	subtitle: string;
@@ -295,8 +286,7 @@ function FlowArrow() {
 function FlowSubsystem({
 	icon: Icon,
 	label,
-	body,
-}: {
+	body }: {
 	icon: typeof ShieldCheck;
 	label: string;
 	body: string;
@@ -313,8 +303,6 @@ function FlowSubsystem({
 		</div>
 	);
 }
-
-
 
 function FooterLinks() {
 	return (

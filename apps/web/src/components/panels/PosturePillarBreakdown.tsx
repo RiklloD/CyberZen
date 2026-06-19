@@ -44,8 +44,7 @@ function formatImpact(value: number | null, isBonus?: boolean): string {
 }
 
 export default function PosturePillarBreakdown({
-	report,
-}: PosturePillarBreakdownProps) {
+	report }: PosturePillarBreakdownProps) {
 	const pillars: Pillar[] = [
 		{
 			key: "findings",
@@ -53,40 +52,35 @@ export default function PosturePillarBreakdown({
 			maxImpact: 50,
 			value: report.findingPenalty,
 			description: "Deduction based on open critical/high/medium/low findings",
-			tone: pillarTone(report.findingPenalty),
-		},
+			tone: pillarTone(report.findingPenalty) },
 		{
 			key: "attack-surface",
 			label: "Attack Surface",
 			maxImpact: 25,
 			value: report.attackSurfacePenalty,
 			description: "Deduction based on attack surface score and trend",
-			tone: pillarTone(report.attackSurfacePenalty),
-		},
+			tone: pillarTone(report.attackSurfacePenalty) },
 		{
 			key: "regulatory",
 			label: "Regulatory Drift",
 			maxImpact: 20,
 			value: report.regulatoryPenalty,
 			description: "Deduction based on compliance drift level across frameworks",
-			tone: pillarTone(report.regulatoryPenalty),
-		},
+			tone: pillarTone(report.regulatoryPenalty) },
 		{
 			key: "red-blue",
 			label: "Red / Blue Adversarial",
 			maxImpact: 10,
 			value: report.redAgentPenalty,
 			description: "Deduction based on red agent win rate in adversarial rounds",
-			tone: pillarTone(report.redAgentPenalty),
-		},
+			tone: pillarTone(report.redAgentPenalty) },
 		{
 			key: "learning",
 			label: "Learning Maturity",
 			maxImpact: 5,
 			value: report.learningBonus,
 			description: "Bonus for adapted confidence score from learning profiles",
-			tone: pillarTone(report.learningBonus, true),
-		},
+			tone: pillarTone(report.learningBonus, true) },
 	];
 
 	// Sort: penalties (highest first), then bonuses, then no-data
@@ -140,8 +134,7 @@ export default function PosturePillarBreakdown({
 									className="h-full rounded-full transition-all duration-300"
 									style={{
 										width: `${barPercent}%`,
-										backgroundColor: barColor,
-									}}
+										backgroundColor: barColor }}
 								/>
 							</div>
 							<p className="mt-1 text-xs text-[var(--sea-ink-soft)]">

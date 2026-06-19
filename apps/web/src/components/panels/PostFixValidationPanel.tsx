@@ -62,8 +62,7 @@ export interface PostFixValidationPanelProps {
 
 export default function PostFixValidationPanel({
   runs,
-  onSelect,
-}: PostFixValidationPanelProps) {
+  onSelect }: PostFixValidationPanelProps) {
   if (!runs) {
     return (
       <div className="space-y-6">

@@ -8,16 +8,14 @@ import {
 	Copy,
 	Download,
 	Github,
-	Play,
-} from "lucide-react";
+	Play } from "lucide-react";
 import StatusPill from "../../components/StatusPill";
 import RouteErrorBoundary from "../../components/RouteErrorBoundary";
 import { api } from "../../lib/convex";
 
 export const Route = createFileRoute("/docs/api")({
 	errorComponent: RouteErrorBoundary,
-	component: ApiDocsPage,
-});
+	component: ApiDocsPage });
 
 // Minimal JSON-to-YAML serializer for OpenAPI spec download.
 function jsonToYaml(obj: unknown, indent = 0): string {
@@ -78,11 +76,9 @@ const API_ENDPOINTS: ApiEndpoint[] = [
 						status: "open",
 						title: "SQL Injection in auth middleware",
 						repository: "acme/api-server",
-						createdAt: "2026-05-15T10:30:00Z",
-					},
+						createdAt: "2026-05-15T10:30:00Z" },
 				],
-				pagination: { cursor: null, hasMore: false },
-			},
+				pagination: { cursor: null, hasMore: false } },
 			null,
 			2,
 		),
@@ -90,8 +86,7 @@ const API_ENDPOINTS: ApiEndpoint[] = [
 			{ code: 200, description: "OK — findings returned" },
 			{ code: 401, description: "Unauthorized — invalid or missing token" },
 			{ code: 403, description: "Forbidden — insufficient permissions" },
-		],
-	},
+		] },
 	{
 		method: "GET",
 		path: "/api/v1/findings/:id",
@@ -112,16 +107,14 @@ const API_ENDPOINTS: ApiEndpoint[] = [
 				affectedFiles: ["src/middleware/auth.ts"],
 				affectedPackages: ["pg@8.11.3"],
 				blastRadiusSummary: "Exposes entire user table; PII leak potential.",
-				createdAt: "2026-05-15T10:30:00Z",
-			},
+				createdAt: "2026-05-15T10:30:00Z" },
 			null,
 			2,
 		),
 		statusCodes: [
 			{ code: 200, description: "OK" },
 			{ code: 404, description: "Finding not found" },
-		],
-	},
+		] },
 	{
 		method: "POST",
 		path: "/api/v1/findings/:id/triage",
@@ -132,8 +125,7 @@ const API_ENDPOINTS: ApiEndpoint[] = [
 		requestBody: JSON.stringify(
 			{
 				action: "false_positive",
-				reason: "Verified as test fixture, not exploitable in production.",
-			},
+				reason: "Verified as test fixture, not exploitable in production." },
 			null,
 			2,
 		),
@@ -146,8 +138,7 @@ const API_ENDPOINTS: ApiEndpoint[] = [
 			{ code: 200, description: "Triage applied" },
 			{ code: 400, description: "Invalid action" },
 			{ code: 409, description: "Conflict — already triaged" },
-		],
-	},
+		] },
 	{
 		method: "GET",
 		path: "/api/v1/repositories",
@@ -163,18 +154,15 @@ const API_ENDPOINTS: ApiEndpoint[] = [
 						fullName: "acme/api-server",
 						healthScore: 78,
 						trustScore: 82,
-						lastScannedAt: "2026-05-15T08:00:00Z",
-					},
-				],
-			},
+						lastScannedAt: "2026-05-15T08:00:00Z" },
+				] },
 			null,
 			2,
 		),
 		statusCodes: [
 			{ code: 200, description: "OK" },
 			{ code: 401, description: "Unauthorized" },
-		],
-	},
+		] },
 	{
 		method: "POST",
 		path: "/api/v1/repositories/:id/scan",
@@ -195,8 +183,7 @@ const API_ENDPOINTS: ApiEndpoint[] = [
 		statusCodes: [
 			{ code: 202, description: "Scan queued" },
 			{ code: 429, description: "Rate limited — scan already running" },
-		],
-	},
+		] },
 	{
 		method: "GET",
 		path: "/api/v1/executive-report",
@@ -214,17 +201,14 @@ const API_ENDPOINTS: ApiEndpoint[] = [
 					healthAvg: 76,
 					driftPostureAvg: 82,
 					supplyChainAvg: 71,
-					complianceAvg: 88,
-				},
-			},
+					complianceAvg: 88 } },
 			null,
 			2,
 		),
 		statusCodes: [
 			{ code: 200, description: "OK" },
 			{ code: 404, description: "No report generated yet" },
-		],
-	},
+		] },
 	{
 		method: "GET",
 		path: "/api/v1/compliance/evidence",
@@ -239,18 +223,15 @@ const API_ENDPOINTS: ApiEndpoint[] = [
 						framework: "SOC2",
 						controlCount: 42,
 						collected: 38,
-						missing: 4,
-					},
-				],
-			},
+						missing: 4 },
+				] },
 			null,
 			2,
 		),
 		statusCodes: [
 			{ code: 200, description: "OK" },
 			{ code: 401, description: "Unauthorized" },
-		],
-	},
+		] },
 	{
 		method: "GET",
 		path: "/api/v1/exports/findings.csv",
@@ -262,8 +243,7 @@ const API_ENDPOINTS: ApiEndpoint[] = [
 		statusCodes: [
 			{ code: 200, description: "CSV file download" },
 			{ code: 401, description: "Unauthorized" },
-		],
-	},
+		] },
 	{
 		method: "POST",
 		path: "/api/v1/webhooks/outgoing",
@@ -275,8 +255,7 @@ const API_ENDPOINTS: ApiEndpoint[] = [
 			{
 				url: "https://hooks.slack.com/services/T00/B00/xxx",
 				eventTypes: ["finding.created", "gate.blocked"],
-				secret: "whsec_abc123",
-			},
+				secret: "whsec_abc123" },
 			null,
 			2,
 		),
@@ -288,8 +267,7 @@ const API_ENDPOINTS: ApiEndpoint[] = [
 		statusCodes: [
 			{ code: 201, description: "Webhook created" },
 			{ code: 400, description: "Invalid URL or event types" },
-		],
-	}, // FIX: C5 — missing closing `},` for previous object entry
+		] }, // FIX: C5 — missing closing `},` for previous object entry
 	{
 		method: "GET",
 		path: "/api/v1/status",
@@ -303,14 +281,11 @@ const API_ENDPOINTS: ApiEndpoint[] = [
 				services: {
 					api: "healthy",
 					scanner: "healthy",
-					ingestion: "degraded",
-				},
-			},
+					ingestion: "degraded" } },
 			null,
 			2,
 		),
-		statusCodes: [{ code: 200, description: "OK" }],
-	},
+		statusCodes: [{ code: 200, description: "OK" }] },
 	{
 		method: "GET",
 		path: "/api/sbom/export",
@@ -324,8 +299,7 @@ const API_ENDPOINTS: ApiEndpoint[] = [
 				specVersion: "1.5",
 				components: [
 					{ name: "fastapi", version: "0.117.1", purl: "pkg:pypi/fastapi@0.117.1" },
-				],
-			},
+				] },
 			null,
 			2,
 		),
@@ -333,8 +307,7 @@ const API_ENDPOINTS: ApiEndpoint[] = [
 			{ code: 200, description: "SBOM exported successfully" },
 			{ code: 400, description: "Missing snapshotId or invalid format" },
 			{ code: 404, description: "Snapshot not found" },
-		],
-	},
+		] },
 	{
 		method: "GET",
 		path: "/api/reports/security-posture",
@@ -352,10 +325,8 @@ const API_ENDPOINTS: ApiEndpoint[] = [
 					attackSurface: { score: 81 },
 					regulatory: { score: 85 },
 					redBlue: { score: 70 },
-					learning: { score: 88 },
-				},
-				priorityActions: ["Resolve 3 critical findings in payments-api"],
-			},
+					learning: { score: 88 } },
+				priorityActions: ["Resolve 3 critical findings in payments-api"] },
 			null,
 			2,
 		),
@@ -363,8 +334,7 @@ const API_ENDPOINTS: ApiEndpoint[] = [
 			{ code: 200, description: "OK" },
 			{ code: 400, description: "Missing tenantSlug or repositoryFullName" },
 			{ code: 404, description: "Repository not found" },
-		],
-	},
+		] },
 	{
 		method: "GET",
 		path: "/api/attack-surface/score/history",
@@ -379,16 +349,14 @@ const API_ENDPOINTS: ApiEndpoint[] = [
 				history: [
 					{ at: "2026-05-14T10:00:00Z", score: 62 },
 					{ at: "2026-05-15T10:00:00Z", score: 65 },
-				],
-			},
+				] },
 			null,
 			2,
 		),
 		statusCodes: [
 			{ code: 200, description: "OK" },
 			{ code: 404, description: "Repository not found" },
-		],
-	},
+		] },
 	{
 		method: "GET",
 		path: "/api/reports/compliance",
@@ -401,17 +369,14 @@ const API_ENDPOINTS: ApiEndpoint[] = [
 				repository: "acme/api-server",
 				frameworks: {
 					soc2: { score: 88, driftLevel: "low", gaps: 2 },
-					gdpr: { score: 91, driftLevel: "none", gaps: 0 },
-				},
-			},
+					gdpr: { score: 91, driftLevel: "none", gaps: 0 } } },
 			null,
 			2,
 		),
 		statusCodes: [
 			{ code: 200, description: "OK" },
 			{ code: 404, description: "No compliance data for repository" },
-		],
-	},
+		] },
 	{
 		method: "GET",
 		path: "/api/reports/adversarial",
@@ -425,16 +390,14 @@ const API_ENDPOINTS: ApiEndpoint[] = [
 				redWins: 4,
 				blueWins: 7,
 				draws: 2,
-				avgDetectionScore: 0.83,
-			},
+				avgDetectionScore: 0.83 },
 			null,
 			2,
 		),
 		statusCodes: [
 			{ code: 200, description: "OK" },
 			{ code: 404, description: "No adversarial data for repository" },
-		],
-	},
+		] },
 	{
 		method: "GET",
 		path: "/api/blast-radius",
@@ -448,16 +411,14 @@ const API_ENDPOINTS: ApiEndpoint[] = [
 				reachableServices: ["payments-api", "auth-gateway"],
 				exposedDataLayers: ["user_pii", "transaction_history"],
 				attackPathDepth: 3,
-				businessImpactScore: 84,
-			},
+				businessImpactScore: 84 },
 			null,
 			2,
 		),
 		statusCodes: [
 			{ code: 200, description: "OK" },
 			{ code: 404, description: "No blast radius data for finding" },
-		],
-	},
+		] },
 	{
 		method: "GET",
 		path: "/api/sbom",
@@ -470,16 +431,14 @@ const API_ENDPOINTS: ApiEndpoint[] = [
 				repository: "acme/api-server",
 				totalComponents: 112,
 				layers: { direct: 14, transitive: 61, container: 21 },
-				vulnerableCount: 1,
-			},
+				vulnerableCount: 1 },
 			null,
 			2,
 		),
 		statusCodes: [
 			{ code: 200, description: "OK" },
 			{ code: 404, description: "No SBOM snapshot found" },
-		],
-	},
+		] },
 	{
 		method: "PATCH",
 		path: "/api/findings/status",
@@ -491,8 +450,7 @@ const API_ENDPOINTS: ApiEndpoint[] = [
 			{
 				findingId: "fnd_abc123",
 				newStatus: "resolved",
-				reason: "Patched in v2.10.2",
-			},
+				reason: "Patched in v2.10.2" },
 			null,
 			2,
 		),
@@ -505,8 +463,7 @@ const API_ENDPOINTS: ApiEndpoint[] = [
 			{ code: 200, description: "Status updated" },
 			{ code: 400, description: "Invalid newStatus or missing findingId" },
 			{ code: 404, description: "Finding not found" },
-		],
-	},
+		] },
 	{
 		method: "POST",
 		path: "/webhooks/github",
@@ -523,8 +480,7 @@ const API_ENDPOINTS: ApiEndpoint[] = [
 			{ status: "accepted", eventId: "evt_123", deduped: false },
 			null,
 			2,
-		),
-	},
+		) },
 ];
 
 // ─── Page ────────────────────────────────────────────────────────────────────
@@ -658,8 +614,7 @@ function ApiDocsPage() {
 function ApiEndpointList({
 	endpoints,
 	expandedIndex,
-	onToggle,
-}: {
+	onToggle }: {
 	endpoints: ApiEndpoint[];
 	expandedIndex: number | null;
 	onToggle: (index: number) => void;
@@ -690,8 +645,7 @@ function ApiEndpointList({
 function ApiEndpointDetail({
 	endpoint,
 	isExpanded,
-	onToggle,
-}: {
+	onToggle }: {
 	endpoint: ApiEndpoint;
 	isExpanded: boolean;
 	onToggle: () => void;
@@ -701,16 +655,14 @@ function ApiEndpointDetail({
 		POST: "text-blue-500",
 		PUT: "text-amber-500",
 		PATCH: "text-amber-500",
-		DELETE: "text-[var(--danger)]",
-	};
+		DELETE: "text-[var(--danger)]" };
 
 	const methodBg: Record<string, string> = {
 		GET: "bg-emerald-50",
 		POST: "bg-blue-50",
 		PUT: "bg-amber-50",
 		PATCH: "bg-amber-50",
-		DELETE: "bg-red-50",
-	};
+		DELETE: "bg-red-50" };
 
 	return (
 		<div className="card">

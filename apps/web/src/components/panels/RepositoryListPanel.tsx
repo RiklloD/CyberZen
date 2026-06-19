@@ -24,8 +24,7 @@ export default function RepositoryListPanel({
 	repos,
 	selected,
 	onSelect,
-	tenantSlug,
-}: {
+	tenantSlug }: {
 	repos: OverviewRepository[];
 	selected: string | null;
 	onSelect: (id: string) => void;
@@ -50,8 +49,7 @@ function RepoCard({
 	repo,
 	isSelected,
 	onSelect,
-	tenantSlug,
-}: {
+	tenantSlug }: {
 	repo: OverviewRepository;
 	isSelected: boolean;
 	onSelect: (id: string) => void;
@@ -147,8 +145,7 @@ function RepoCard({
 function RepoDropdownMenu({
 	repositoryFullName,
 	tenantSlug,
-	onClose,
-}: {
+	onClose }: {
 	repositoryFullName: string;
 	tenantSlug: string;
 	onClose: () => void;

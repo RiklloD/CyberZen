@@ -37,8 +37,7 @@ function bundleStatusTone(
 function handleBulkExport(bundles: Bundle[]) {
 	const flat = bundles.flatMap((b) => b.artifacts);
 	const blob = new Blob([JSON.stringify(flat, null, 2)], {
-		type: "application/json",
-	});
+		type: "application/json" });
 	const url = URL.createObjectURL(blob);
 	const a = document.createElement("a");
 	a.href = url;
@@ -52,8 +51,7 @@ export interface ComplianceEvidencePanelProps {
 }
 
 export default function ComplianceEvidencePanel({
-	evidence,
-}: ComplianceEvidencePanelProps) {
+	evidence }: ComplianceEvidencePanelProps) {
 	const [frameworkFilter, setFrameworkFilter] = useState<FrameworkKey>("all");
 
 	const filteredBundles: Bundle[] =

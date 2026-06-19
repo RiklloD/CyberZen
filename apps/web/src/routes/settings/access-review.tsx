@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useAuthToken } from "../../lib/clerk-compat";
 import { useMutation, useQuery } from "convex/react";
 import { CheckCircle, Flag, Plus, ClipboardList } from "lucide-react";
 import { useState, useTransition } from "react";
@@ -10,12 +9,10 @@ import QueryErrorFallback from "../../components/QueryErrorFallback";
 
 export const Route = createFileRoute("/settings/access-review")({
   errorComponent: QueryErrorFallback,
-  component: AccessReviewPage,
-});
+  component: AccessReviewPage });
 
 function AccessReviewPage() {
   const TENANT = useTenantSlug();
-  const authToken = useAuthToken() ?? "";
   const [modalOpen, setModalOpen] = useState(false);
   const [period, setPeriod] = useState("");
   const [dueDate, setDueDate] = useState("");
@@ -29,11 +26,11 @@ function AccessReviewPage() {
 
   const pendingItems = useQuery(
     api.accessReview.listPendingReviews,
-    authToken ? { authToken, tenantSlug: TENANT, cycleId: activeCycleId as any } : "skip",
+    { tenantSlug: TENANT, cycleId: activeCycleId as any },
   );
   const cycles = useQuery(
     api.accessReview.listReviewCycles,
-    authToken ? { authToken, tenantSlug: TENANT } : "skip",
+    { tenantSlug: TENANT },
   );
 
   const scheduleReview = useMutation(api.accessReview.scheduleAccessReview);
@@ -50,11 +47,9 @@ function AccessReviewPage() {
     startTransition(async () => {
       try {
         const cycleId = await scheduleReview({
-          authToken,
           tenantSlug: TENANT,
           period,
-          dueDate: new Date(dueDate).getTime(),
-        });
+          dueDate: new Date(dueDate).getTime() });
         setActiveCycleId(cycleId as string);
         setModalOpen(false);
         setPeriod("");
@@ -71,18 +66,14 @@ function AccessReviewPage() {
       try {
         if (justificationModal.action === "approve") {
           await approveAccess({
-            authToken,
             tenantSlug: TENANT,
             reviewItemId: justificationModal.itemId as any,
-            justification,
-          });
+            justification });
         } else {
           await flagForRemoval({
-            authToken,
             tenantSlug: TENANT,
             reviewItemId: justificationModal.itemId as any,
-            reason: justification,
-          });
+            reason: justification });
         }
         setJustificationModal(null);
         setJustification("");
@@ -97,10 +88,8 @@ function AccessReviewPage() {
     startTransition(async () => {
       try {
         await completeReview({
-          authToken,
           tenantSlug: TENANT,
-          cycleId: activeCycle._id as any,
-        });
+          cycleId: activeCycle._id as any });
       } catch (e) {
         console.error(e);
       }

@@ -1,4 +1,3 @@
-import { useAuthToken } from "../../lib/clerk-compat";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
 import { AlertTriangle, Cloud, Lock, Server, Shuffle } from "lucide-react";
@@ -11,8 +10,7 @@ import { useTenantSlug } from "../../lib/workspace";
 
 export const Route = createFileRoute("/settings/deployment")({
 	errorComponent: RouteErrorBoundary,
-	component: DeploymentSettingsPage,
-});
+	component: DeploymentSettingsPage });
 
 type CanonicalMode = "cloud_saas" | "vpc_injection" | "on_prem";
 
@@ -26,22 +24,19 @@ const MODE_OPTIONS: Array<{
 		value: "cloud_saas",
 		label: "Cloud SaaS",
 		description: "Hosted by Sentinel. Lowest operational burden.",
-		icon: Cloud,
-	},
+		icon: Cloud },
 	{
 		value: "vpc_injection",
 		label: "Hybrid (VPC Injection)",
 		description:
 			"Workers run in your VPC, control plane stays managed by Sentinel.",
-		icon: Shuffle,
-	},
+		icon: Shuffle },
 	{
 		value: "on_prem",
 		label: "On-Prem",
 		description:
 			"Fully self-hosted. No egress, no managed updates. Customer-owned data.",
-		icon: Server,
-	},
+		icon: Server },
 ];
 
 function DeploymentSettingsPage() {
@@ -97,10 +92,8 @@ function DeploymentSettingsPage() {
 
 function DeploymentModePanel() {
 	const tenantSlug = useTenantSlug();
-	const authToken = useAuthToken();
 	const current = useQuery(api.deploymentMode.getDeploymentModeForSlug, {
-		tenantSlug,
-	});
+		tenantSlug });
 	const switchMode = useMutation(api.deploymentMode.switchDeploymentMode);
 	const [pendingTarget, setPendingTarget] = useState<CanonicalMode | null>(
 		null,
@@ -110,20 +103,18 @@ function DeploymentModePanel() {
 	);
 	const [error, setError] = useState<string | null>(null);
 
-	if (!current || !authToken) {
+	if (!current) {
 		return <div className="page-body-padded loading-panel h-48 rounded-2xl" />;
 	}
 
 	async function applySwitch() {
-		if (!confirmTarget || !authToken || !current) return;
+		if (!confirmTarget || !current) return;
 		setPendingTarget(confirmTarget);
 		setError(null);
 		try {
 			await switchMode({
-				authToken,
 				tenantId: current.tenantId,
-				mode: confirmTarget,
-			});
+				mode: confirmTarget });
 			setConfirmTarget(null);
 		} catch (err) {
 			setError(err instanceof Error ? err.message : "Switch failed");
@@ -250,8 +241,7 @@ function ConfirmModal({
 	currentLabel,
 	onCancel,
 	onConfirm,
-	pending,
-}: {
+	pending }: {
 	target: CanonicalMode;
 	currentLabel: string;
 	onCancel: () => void;

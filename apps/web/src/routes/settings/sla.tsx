@@ -6,8 +6,7 @@ import RouteErrorBoundary from "../../components/RouteErrorBoundary";
 
 export const Route = createFileRoute("/settings/sla")({
 	errorComponent: RouteErrorBoundary,
-	component: SlaSettingsPage,
-});
+	component: SlaSettingsPage });
 
 function SlaSettingsPage() {
 	const TENANT = useTenantSlug();

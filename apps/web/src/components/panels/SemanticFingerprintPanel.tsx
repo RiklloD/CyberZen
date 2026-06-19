@@ -7,8 +7,7 @@ type SemanticAnalysis = NonNullable<
 >;
 
 export default function SemanticFingerprintPanel({
-	analysis,
-}: {
+	analysis }: {
 	analysis: SemanticAnalysis;
 }) {
 	return (

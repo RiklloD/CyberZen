@@ -13,8 +13,7 @@ interface UpgradeButtonProps {
 export default function UpgradeButton({
 	targetPlanSlug,
 	label,
-	className,
-}: UpgradeButtonProps) {
+	className }: UpgradeButtonProps) {
 	const TENANT = useTenantSlug();
 	const createCheckoutSession = useAction(api.checkout.createCheckoutSession);
 	const [pending, setPending] = useState(false);
@@ -26,8 +25,7 @@ export default function UpgradeButton({
 		try {
 			const result = await createCheckoutSession({
 				tenantSlug: TENANT,
-				planSlug: targetPlanSlug,
-			});
+				planSlug: targetPlanSlug });
 			if (result.url) {
 				window.location.href = result.url;
 				return;

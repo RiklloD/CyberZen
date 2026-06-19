@@ -12,8 +12,7 @@ export interface RepositoryConfusionScanPanelProps {
 }
 
 export default function RepositoryConfusionScanPanel({
-	data,
-}: RepositoryConfusionScanPanelProps) {
+	data }: RepositoryConfusionScanPanelProps) {
 	return (
 		<div className="card card-sm">
 			<p className="panel-label mb-2">Confusion Attack</p>

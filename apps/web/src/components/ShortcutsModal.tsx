@@ -17,8 +17,7 @@ type Props = {
 const CATEGORY_LABELS: Record<string, string> = {
 	navigation: "Navigation",
 	search: "Search",
-	general: "General",
-};
+	general: "General" };
 
 function formatKeys(keys: string): string {
 	return keys
@@ -64,26 +63,22 @@ export default function ShortcutsModal({ open, onClose }: Props) {
 			label: "Open command palette",
 			keys: "⌘K / Ctrl+K",
 			category: "general",
-			action: () => {},
-		},
+			action: () => {} },
 		{
 			label: "Show keyboard shortcuts",
 			keys: "?",
 			category: "general",
-			action: () => {},
-		},
+			action: () => {} },
 		{
 			label: "Open search",
 			keys: "/",
 			category: "search",
-			action: () => {},
-		},
+			action: () => {} },
 		{
 			label: "Close modal / overlay",
 			keys: "Escape",
 			category: "general",
-			action: () => {},
-		},
+			action: () => {} },
 	];
 
 	// Merge builtins

@@ -15,7 +15,7 @@ export const env = createEnv({
 		VITE_POSTHOG_KEY: z.string().min(1).optional(),
 		VITE_POSTHOG_HOST: z.string().url().default("https://us.i.posthog.com"),
 		VITE_TENANT_SLUG: z.string().min(1),
-		VITE_CLERK_PUBLISHABLE_KEY: z.string().min(1),
+		VITE_CLERK_PUBLISHABLE_KEY: z.string().min(1).optional(),
 	},
 
 	runtimeEnv: import.meta.env,

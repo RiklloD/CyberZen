@@ -8,8 +8,7 @@ type BlastRadiusData = NonNullable<
 >;
 
 export default function BlastRadiusPanel({
-	blastRadius,
-}: {
+	blastRadius }: {
 	blastRadius: BlastRadiusData;
 }) {
 	return (

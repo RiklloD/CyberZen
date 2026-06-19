@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useAuthToken } from "../lib/clerk-compat";
 import { useQuery } from "convex/react";
 import { ScrollText, Search, ShieldCheck, Loader2 } from "lucide-react";
 import { useState } from "react";
@@ -10,8 +9,7 @@ import RouteErrorBoundary from "../components/RouteErrorBoundary";
 
 export const Route = createFileRoute("/audit-log")({
 	errorComponent: RouteErrorBoundary,
-	component: AuditLogPage,
-});
+	component: AuditLogPage });
 
 const ACTION_OPTIONS = [
 	"role.created",
@@ -44,8 +42,6 @@ const RESOURCE_TYPE_OPTIONS = [
 
 function AuditLogPage() {
 	const TENANT = useTenantSlug();
-	const authToken = useAuthToken() ?? "";
-
 	const [actionFilter, setActionFilter] = useState<string | undefined>(undefined);
 	const [resourceTypeFilter, setResourceTypeFilter] = useState<string | undefined>(undefined);
 	const [searchQuery, setSearchQuery] = useState("");
@@ -53,20 +49,17 @@ function AuditLogPage() {
 
 	const entries = useQuery(
 		api.auditLog.listForTenant,
-		authToken
-			? {
-					authToken,
-					tenantSlug: TENANT,
-					actionFilter,
-					resourceTypeFilter,
-					limit: 200,
-				}
-			: "skip",
+		{
+			tenantSlug: TENANT,
+			actionFilter,
+			resourceTypeFilter,
+			limit: 200,
+		},
 	);
 
 	const integrityResult = useQuery(
 		api.auditLog.verifyAuditIntegrity,
-		shouldVerify && authToken ? { authToken, tenantSlug: TENANT } : "skip",
+		shouldVerify && { tenantSlug: TENANT },
 	);
 
 	return (
@@ -185,8 +178,7 @@ function AuditLogFilters({
 	searchQuery,
 	onActionFilterChange,
 	onResourceTypeFilterChange,
-	onSearchQueryChange,
-}: AuditLogFiltersProps) {
+	onSearchQueryChange }: AuditLogFiltersProps) {
 	return (
 		<div className="flex flex-wrap items-center gap-2 mb-4">
 			<div className="relative">
@@ -286,8 +278,7 @@ function formatTime(ts: number): string {
 		day: "numeric",
 		hour: "2-digit",
 		minute: "2-digit",
-		second: "2-digit",
-	});
+		second: "2-digit" });
 }
 
 function AuditLogTable({ entries, searchQuery }: AuditLogTableProps) {

@@ -8,9 +8,6 @@ import { useAuth } from "@clerk/tanstack-react-start";
  * now optional and ignored.
  */
 export function useAuthToken(): string {
-	const { getToken } = useAuth();
-	// getToken is available if callers need the raw Clerk JWT,
-	// but for Convex calls it's no longer needed.
 	return "";
 }
 

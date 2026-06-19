@@ -41,6 +41,8 @@ import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SettingsIndexRouteImport } from './routes/settings/index'
 import { Route as DashboardsIndexRouteImport } from './routes/dashboards/index'
+import { Route as SignUpSplatRouteImport } from './routes/sign-up.$'
+import { Route as SignInSplatRouteImport } from './routes/sign-in.$'
 import { Route as SettingsWebhooksRouteImport } from './routes/settings/webhooks'
 import { Route as SettingsTwoFactorRouteImport } from './routes/settings/two-factor'
 import { Route as SettingsTeamRouteImport } from './routes/settings/team'
@@ -226,6 +228,16 @@ const SettingsIndexRoute = SettingsIndexRouteImport.update({
 const DashboardsIndexRoute = DashboardsIndexRouteImport.update({
   id: '/dashboards/',
   path: '/dashboards/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignUpSplatRoute = SignUpSplatRouteImport.update({
+  id: '/sign-up/$',
+  path: '/sign-up/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignInSplatRoute = SignInSplatRouteImport.update({
+  id: '/sign-in/$',
+  path: '/sign-in/$',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsWebhooksRoute = SettingsWebhooksRouteImport.update({
@@ -416,6 +428,8 @@ export interface FileRoutesByFullPath {
   '/settings/team': typeof SettingsTeamRoute
   '/settings/two-factor': typeof SettingsTwoFactorRoute
   '/settings/webhooks': typeof SettingsWebhooksRoute
+  '/sign-in/$': typeof SignInSplatRoute
+  '/sign-up/$': typeof SignUpSplatRoute
   '/dashboards/': typeof DashboardsIndexRoute
   '/settings/': typeof SettingsIndexRoute
 }
@@ -476,6 +490,8 @@ export interface FileRoutesByTo {
   '/settings/team': typeof SettingsTeamRoute
   '/settings/two-factor': typeof SettingsTwoFactorRoute
   '/settings/webhooks': typeof SettingsWebhooksRoute
+  '/sign-in/$': typeof SignInSplatRoute
+  '/sign-up/$': typeof SignUpSplatRoute
   '/dashboards': typeof DashboardsIndexRoute
   '/settings': typeof SettingsIndexRoute
 }
@@ -537,6 +553,8 @@ export interface FileRoutesById {
   '/settings/team': typeof SettingsTeamRoute
   '/settings/two-factor': typeof SettingsTwoFactorRoute
   '/settings/webhooks': typeof SettingsWebhooksRoute
+  '/sign-in/$': typeof SignInSplatRoute
+  '/sign-up/$': typeof SignUpSplatRoute
   '/dashboards/': typeof DashboardsIndexRoute
   '/settings/': typeof SettingsIndexRoute
 }
@@ -599,6 +617,8 @@ export interface FileRouteTypes {
     | '/settings/team'
     | '/settings/two-factor'
     | '/settings/webhooks'
+    | '/sign-in/$'
+    | '/sign-up/$'
     | '/dashboards/'
     | '/settings/'
   fileRoutesByTo: FileRoutesByTo
@@ -659,6 +679,8 @@ export interface FileRouteTypes {
     | '/settings/team'
     | '/settings/two-factor'
     | '/settings/webhooks'
+    | '/sign-in/$'
+    | '/sign-up/$'
     | '/dashboards'
     | '/settings'
   id:
@@ -719,6 +741,8 @@ export interface FileRouteTypes {
     | '/settings/team'
     | '/settings/two-factor'
     | '/settings/webhooks'
+    | '/sign-in/$'
+    | '/sign-up/$'
     | '/dashboards/'
     | '/settings/'
   fileRoutesById: FileRoutesById
@@ -780,6 +804,8 @@ export interface RootRouteChildren {
   SettingsTeamRoute: typeof SettingsTeamRoute
   SettingsTwoFactorRoute: typeof SettingsTwoFactorRoute
   SettingsWebhooksRoute: typeof SettingsWebhooksRoute
+  SignInSplatRoute: typeof SignInSplatRoute
+  SignUpSplatRoute: typeof SignUpSplatRoute
   DashboardsIndexRoute: typeof DashboardsIndexRoute
   SettingsIndexRoute: typeof SettingsIndexRoute
 }
@@ -1008,6 +1034,20 @@ declare module '@tanstack/react-router' {
       path: '/dashboards'
       fullPath: '/dashboards/'
       preLoaderRoute: typeof DashboardsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sign-up/$': {
+      id: '/sign-up/$'
+      path: '/sign-up/$'
+      fullPath: '/sign-up/$'
+      preLoaderRoute: typeof SignUpSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sign-in/$': {
+      id: '/sign-in/$'
+      path: '/sign-in/$'
+      fullPath: '/sign-in/$'
+      preLoaderRoute: typeof SignInSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings/webhooks': {
@@ -1252,6 +1292,8 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsTeamRoute: SettingsTeamRoute,
   SettingsTwoFactorRoute: SettingsTwoFactorRoute,
   SettingsWebhooksRoute: SettingsWebhooksRoute,
+  SignInSplatRoute: SignInSplatRoute,
+  SignUpSplatRoute: SignUpSplatRoute,
   DashboardsIndexRoute: DashboardsIndexRoute,
   SettingsIndexRoute: SettingsIndexRoute,
 }

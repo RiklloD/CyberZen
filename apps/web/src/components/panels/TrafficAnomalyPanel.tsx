@@ -11,8 +11,7 @@ export interface TrafficAnomalyPanelProps {
 }
 
 export default function TrafficAnomalyPanel({
-	data,
-}: TrafficAnomalyPanelProps) {
+	data }: TrafficAnomalyPanelProps) {
 	return (
 		<div className="card card-sm">
 			<p className="panel-label mb-2">Traffic Anomaly</p>

@@ -26,8 +26,7 @@ export default function GateOverrideModal({
   currentDecision,
   findingTitle,
   onClose,
-  onOverridden,
-}: GateOverrideModalProps) {
+  onOverridden }: GateOverrideModalProps) {
   const [justification, setJustification] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,12 +40,10 @@ export default function GateOverrideModal({
     try {
       await overrideMutation({
         gateDecisionId: gateDecisionId as Id<"gateDecisions">,
-        justification: justification.trim(),
-      });
+        justification: justification.trim() });
       track("gate.overridden", {
         gateDecisionId,
-        findingTitle,
-      });
+        findingTitle });
       onOverridden?.();
       onClose();
     } catch (e) {
@@ -133,8 +130,7 @@ export default function GateOverrideModal({
               padding: "0.5rem 0.9rem",
               fontSize: "0.78rem",
               backgroundColor: "var(--warning)",
-              borderColor: "var(--warning)",
-            }}
+              borderColor: "var(--warning)" }}
             onClick={handleSubmit}
             disabled={isSubmitting || !justification.trim()}
           >

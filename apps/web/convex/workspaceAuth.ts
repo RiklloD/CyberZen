@@ -52,7 +52,7 @@ function normalizeEmail(email: string) {
   return email.trim().toLowerCase()
 }
 
-async function getCurrentUserId(ctx: QueryCtx | MutationCtx, authToken: string) {
+async function getCurrentUserId(ctx: QueryCtx | MutationCtx, authToken?: string) {
   const { userId } = await requireSessionAuth(ctx, authToken)
   return userId
 }

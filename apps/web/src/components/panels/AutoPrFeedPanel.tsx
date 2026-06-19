@@ -48,8 +48,7 @@ export default function AutoPrFeedPanel({
 	proposals,
 	onSelect,
 	selectedId,
-	repositoryFullName,
-}: {
+	repositoryFullName }: {
 	proposals: PrProposal[];
 	onSelect: (proposal: PrProposal) => void;
 	selectedId: string | null;

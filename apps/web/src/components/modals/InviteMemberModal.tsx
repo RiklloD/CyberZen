@@ -6,17 +6,14 @@ import { track } from "../../lib/analytics";
 
 interface InviteMemberModalProps {
 	open: boolean;
-	authToken: string;
 	tenantSlug: string;
 	onClose: () => void;
 }
 
 export default function InviteMemberModal({
 	open,
-	authToken,
 	tenantSlug,
-	onClose,
-}: InviteMemberModalProps) {
+	onClose }: InviteMemberModalProps) {
 	const [email, setEmail] = useState("");
 	const [role, setRole] = useState<"admin" | "member">("member");
 	const [assignedRoleId, setAssignedRoleId] = useState<string>("");
@@ -30,9 +27,7 @@ export default function InviteMemberModal({
 
 	// §6.11 — Fetch custom RBAC roles for the role dropdown
 	const customRoles = useQuery(api.rbac.listRoles, {
-		authToken,
-		tenantSlug,
-	});
+		tenantSlug });
 
 	if (!open) return null;
 
@@ -43,16 +38,13 @@ export default function InviteMemberModal({
 		setResult(null);
 		startTransition(async () => {
 			const res = await inviteMember({
-				authToken,
 				tenantSlug,
 				email: email.trim(),
 				role,
-				assignedRoleId: assignedRoleId || undefined,
-			});
+				assignedRoleId: assignedRoleId || undefined });
 			track("member.invited", {
 				role,
-				hasRoleId: Boolean(assignedRoleId),
-			});
+				hasRoleId: Boolean(assignedRoleId) });
 			setResult({ inviteUrl: res.inviteUrl, tenantName: res.tenantName });
 			setEmail("");
 		});
@@ -80,16 +72,14 @@ export default function InviteMemberModal({
 				alignItems: "center",
 				justifyContent: "center",
 				background: "rgba(0, 0, 0, 0.44)",
-				backdropFilter: "blur(2px)",
-			}}
+				backdropFilter: "blur(2px)" }}
 		>
 			<div
 				className="card"
 				style={{
 					width: "min(520px, 92vw)",
 					maxHeight: "90vh",
-					overflowY: "auto",
-				}}
+					overflowY: "auto" }}
 			>
 				<div className="flex items-center gap-2 mb-4">
 					<Mail size={18} className="text-[var(--signal)]" />

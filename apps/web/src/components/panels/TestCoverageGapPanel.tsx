@@ -9,8 +9,7 @@ type TestCoverage = NonNullable<
 >;
 
 export default function TestCoverageGapPanel({
-	testCoverage,
-}: {
+	testCoverage }: {
 	testCoverage: TestCoverage;
 }) {
 	return (

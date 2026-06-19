@@ -12,8 +12,7 @@ type Note = NonNullable<
 export default function MemoryNotesSection({
   targetId,
   targetType,
-  repositoryId,
-}: {
+  repositoryId }: {
   targetId: string;
   targetType: "pattern" | "prediction" | "episode";
   repositoryId: string;
@@ -25,8 +24,7 @@ export default function MemoryNotesSection({
   const notes = useQuery(api.neuralMemory.getNotes, {
     targetId,
     targetType,
-    repositoryId,
-  });
+    repositoryId });
 
   const addNote = useMutation(api.neuralMemory.addNote);
   const deleteNote = useMutation(api.neuralMemory.deleteNote);
@@ -40,8 +38,7 @@ export default function MemoryNotesSection({
         targetId,
         targetType,
         repositoryId,
-        text: newNoteText.trim(),
-      });
+        text: newNoteText.trim() });
       setNewNoteText("");
     } catch (error) {
       console.error("Failed to add note:", error);

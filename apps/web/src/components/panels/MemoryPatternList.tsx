@@ -15,8 +15,7 @@ type Pattern = NonNullable<
 export default function MemoryPatternList({
   repositoryId,
   onPatternSelect,
-  onPatternRefresh,
-}: {
+  onPatternRefresh }: {
   repositoryId: string;
   onPatternSelect: (pattern: Pattern) => void;
   onPatternRefresh?: () => void;
@@ -30,8 +29,7 @@ export default function MemoryPatternList({
   const patterns = useQuery(api.neuralMemory.getPatterns, {
     repositoryId,
     type: typeFilter === "all" ? undefined : typeFilter as any,
-    active: activeFilter,
-  });
+    active: activeFilter });
 
   const dismissPattern = useMutation(api.neuralMemory.dismissPattern);
   const exportPatternsCsv = useMutation(api.neuralMemory.exportPatternsCsv);
@@ -90,8 +88,7 @@ export default function MemoryPatternList({
         const csvContent = await exportPatternsCsv({
           repositoryId,
           patternType: typeFilter === "all" ? undefined : typeFilter as any,
-          active: activeFilter,
-        });
+          active: activeFilter });
 
         // Download CSV
         const blob = new Blob([csvContent], { type: 'text/csv' });

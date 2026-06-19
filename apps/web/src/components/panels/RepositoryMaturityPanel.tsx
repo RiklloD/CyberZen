@@ -14,8 +14,7 @@ const LEVEL_LABELS: Record<number, string> = {
 	2: "Managed",
 	3: "Defined",
 	4: "Quantitatively Managed",
-	5: "Optimising",
-};
+	5: "Optimising" };
 
 function levelTone(
 	level: number,
@@ -51,8 +50,7 @@ function LevelLadder({ current }: { current: number }) {
 
 export default function RepositoryMaturityPanel({
 	assessment,
-	repositoryFullName,
-}: {
+	repositoryFullName }: {
 	assessment: Assessment;
 	repositoryFullName: string;
 }) {

@@ -6,11 +6,9 @@ import type { Id } from "../lib/convex";
 import { api } from "../lib/convex";
 import { useTenantSlug } from "../lib/workspace";
 import FindingsSeverityFilterChips, {
-	type SeverityFilter,
-} from "../components/panels/FindingsSeverityFilterChips";
+	type SeverityFilter } from "../components/panels/FindingsSeverityFilterChips";
 import FindingsTablePanel, {
-	type OverviewFinding,
-} from "../components/panels/FindingsTablePanel";
+	type OverviewFinding } from "../components/panels/FindingsTablePanel";
 import FindingDetailDrawer from "../components/panels/FindingDetailDrawer";
 import ExportMenu from "../components/ExportMenu";
 import QueryErrorFallback from "../components/QueryErrorFallback";

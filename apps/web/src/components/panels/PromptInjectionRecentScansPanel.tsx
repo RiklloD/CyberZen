@@ -14,8 +14,7 @@ export interface PromptInjectionRecentScansPanelProps {
 }
 
 export default function PromptInjectionRecentScansPanel({
-	scans,
-}: PromptInjectionRecentScansPanelProps) {
+	scans }: PromptInjectionRecentScansPanelProps) {
 	if (scans.length === 0) return null;
 
 	return (

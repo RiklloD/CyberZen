@@ -7,16 +7,14 @@ import {
 	XCircle,
 	Wrench,
 	ChevronDown,
-	ChevronUp,
-} from "lucide-react";
+	ChevronUp } from "lucide-react";
 import { useState } from "react";
 import { api } from "../lib/convex";
 import RouteErrorBoundary from "../components/RouteErrorBoundary";
 
 export const Route = createFileRoute("/status")({
 	errorComponent: RouteErrorBoundary,
-	component: StatusPage,
-});
+	component: StatusPage });
 
 function StatusPage() {
 	const health = useQuery(api.health.getServiceHealth);
@@ -96,8 +94,7 @@ function StatusPage() {
 function OverallStatusBanner({
 	status,
 	activeIncidents,
-	lastUpdated,
-}: {
+	lastUpdated }: {
 	status: string | null;
 	activeIncidents: number;
 	lastUpdated: number | null;
@@ -106,8 +103,7 @@ function OverallStatusBanner({
 		operational: { icon: CheckCircle2, label: "All Systems Operational", color: "var(--success)", bg: "var(--success)" },
 		degraded: { icon: AlertTriangle, label: "Degraded Performance", color: "var(--warning)", bg: "var(--warning)" },
 		maintenance: { icon: Wrench, label: "Maintenance in Progress", color: "var(--signal)", bg: "var(--signal)" },
-		outage: { icon: XCircle, label: "Service Outage", color: "var(--danger)", bg: "var(--danger)" },
-	};
+		outage: { icon: XCircle, label: "Service Outage", color: "var(--danger)", bg: "var(--danger)" } };
 
 	const resolved = statusConfig[status ?? "operational"] ?? statusConfig.operational;
 	const Icon = resolved.icon;
@@ -117,8 +113,7 @@ function OverallStatusBanner({
 			className="card p-5 text-center"
 			style={{
 				borderColor: resolved.color,
-				borderWidth: "2px",
-			}}
+				borderWidth: "2px" }}
 		>
 			<Icon size={28} className="mx-auto mb-2" style={{ color: resolved.color }} />
 			<p className="text-lg font-semibold text-[var(--sea-ink)]">{resolved.label}</p>
@@ -141,15 +136,13 @@ function ServiceHealthRow({ service }: { service: any }) {
 		operational: CheckCircle2,
 		degraded: AlertTriangle,
 		maintenance: Wrench,
-		outage: XCircle,
-	};
+		outage: XCircle };
 
 	const statusColors: Record<string, string> = {
 		operational: "var(--success)",
 		degraded: "var(--warning)",
 		maintenance: "var(--signal)",
-		outage: "var(--danger)",
-	};
+		outage: "var(--danger)" };
 
 	const Icon = statusIcons[service.status] ?? CheckCircle2;
 	const color = statusColors[service.status] ?? "var(--success)";
@@ -169,8 +162,7 @@ function ServiceHealthRow({ service }: { service: any }) {
 						className="text-xs font-medium px-2 py-0.5 rounded-full"
 						style={{
 							backgroundColor: `${color}15`,
-							color,
-						}}
+							color }}
 					>
 						{service.status.replace("_", " ")}
 					</span>
@@ -187,14 +179,12 @@ function IncidentHistoryRow({ incident }: { incident: any }) {
 		investigating: "var(--danger)",
 		identified: "var(--warning)",
 		monitoring: "var(--signal)",
-		resolved: "var(--success)",
-	};
+		resolved: "var(--success)" };
 
 	const severityBadge: Record<string, string> = {
 		minor: "Minor",
 		major: "Major",
-		critical: "Critical",
-	};
+		critical: "Critical" };
 
 	const color = statusColors[incident.status] ?? "var(--neutral)";
 

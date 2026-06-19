@@ -10,8 +10,7 @@ type AttackSurface = NonNullable<
 >;
 
 export default function RepositoryAttackSurfacePanel({
-	attackSurface,
-}: {
+	attackSurface }: {
 	attackSurface: AttackSurface;
 }) {
 	return (

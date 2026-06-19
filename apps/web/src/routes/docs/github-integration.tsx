@@ -7,15 +7,13 @@ import {
 	Download,
 	Github,
 	Key,
-	Terminal,
-} from "lucide-react";
+	Terminal } from "lucide-react";
 import RouteErrorBoundary from "../../components/RouteErrorBoundary";
 import { ACTION_YML, ENTRYPOINT_SH, README_MD } from "../../data/github-action-scaffold";
 
 export const Route = createFileRoute("/docs/github-integration")({
 	errorComponent: RouteErrorBoundary,
-	component: GithubIntegrationPage,
-});
+	component: GithubIntegrationPage });
 
 function useCopy(timeout = 1500) {
 	const [copied, setCopied] = useState(false);
@@ -30,8 +28,7 @@ function useCopy(timeout = 1500) {
 
 function CodeBlock({
 	code,
-	label,
-}: {
+	label }: {
 	code: string;
 	language?: string;
 	label?: string;
@@ -114,14 +111,12 @@ const STEPS = [
 				<Key size={12} />
 				Open API Keys
 			</Link>
-		),
-	},
+		) },
 	{
 		number: 2,
 		title: "Add the secret to GitHub",
 		description:
-			'In your GitHub repository, go to Settings → Secrets → Actions and add a new secret named "CYBERZEN_API_KEY" with the key value.',
-	},
+			'In your GitHub repository, go to Settings → Secrets → Actions and add a new secret named "CYBERZEN_API_KEY" with the key value.' },
 	{
 		number: 3,
 		title: "Find your workspace slug",
@@ -134,20 +129,17 @@ const STEPS = [
 			>
 				Open General Settings
 			</Link>
-		),
-	},
+		) },
 	{
 		number: 4,
 		title: "Add the workflow file",
 		description:
-			"Create .github/workflows/security.yml in your repository with the content shown in the Quick Start tab.",
-	},
+			"Create .github/workflows/security.yml in your repository with the content shown in the Quick Start tab." },
 	{
 		number: 5,
 		title: "Verify the first run",
 		description:
-			"Push to a branch or open a pull request. The action will appear under the Checks tab. After completion, results appear in your CyberZen dashboard.",
-	},
+			"Push to a branch or open a pull request. The action will appear under the Checks tab. After completion, results appear in your CyberZen dashboard." },
 ];
 
 type Tab = "quickstart" | "action-yml" | "entrypoint" | "readme";

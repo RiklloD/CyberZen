@@ -11,8 +11,7 @@ export interface SecretDetectionPanelProps {
 }
 
 export default function SecretDetectionPanel({
-	data,
-}: SecretDetectionPanelProps) {
+	data }: SecretDetectionPanelProps) {
 	return (
 		<div className="card card-sm">
 			<p className="panel-label mb-2">Secret Detection</p>

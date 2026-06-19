@@ -14,14 +14,12 @@ import {
 	Settings,
 	Shield,
 	Users,
-	Webhook,
-} from "lucide-react";
+	Webhook } from "lucide-react";
 import RouteErrorBoundary from "../../components/RouteErrorBoundary";
 
 export const Route = createFileRoute("/settings/")({
 	errorComponent: RouteErrorBoundary,
-	component: SettingsHubPage,
-});
+	component: SettingsHubPage });
 
 /**
  * §6.14 — Settings Hub landing page.
@@ -42,113 +40,95 @@ const SETTINGS_CARDS: SettingsCard[] = [
 		to: "/settings/general",
 		label: "General",
 		description: "Workspace name, default policy, deployment mode",
-		icon: Settings,
-	},
+		icon: Settings },
 	{
 		to: "/settings/team",
 		label: "Team",
 		description: "Members, invitations, and role assignments",
-		icon: Users,
-	},
+		icon: Users },
 	{
 		to: "/settings/roles",
 		label: "Roles & Permissions",
 		description: "Custom RBAC roles, permission matrices",
-		icon: Shield,
-	},
+		icon: Shield },
 	{
 		to: "/settings/api-keys",
 		label: "API Keys",
 		description: "Manage service tokens and personal access keys",
-		icon: Key,
-	},
+		icon: Key },
 	{
 		to: "/settings/webhooks",
 		label: "Webhooks",
 		description: "Outbound webhook endpoints for event streaming",
-		icon: Webhook,
-	},
+		icon: Webhook },
 	{
 		to: "/settings/sla",
 		label: "SLA Policy",
 		description: "Per-severity response deadlines and escalation rules",
-		icon: Clock,
-	},
+		icon: Clock },
 	{
 		to: "/settings/notifications",
 		label: "Notifications",
 		description: "Email, Slack, and in-app notification preferences",
-		icon: Bell,
-	},
+		icon: Bell },
 	{
 		to: "/settings/billing",
 		label: "Billing",
 		description: "Plan details, usage, invoices, and payment methods",
-		icon: CreditCard,
-	},
+		icon: CreditCard },
 	{
 		to: "/integrations",
 		label: "Integrations",
 		description: "GitHub, GitLab, SIEM, observability, and scanner integrations",
 		icon: Globe,
-		badge: "External",
-	},
+		badge: "External" },
 	{
 		to: "/settings/agents",
 		label: "Agent Configuration",
 		description: "Configure learning agents, red/blue team behavior",
-		icon: Bot,
-	},
+		icon: Bot },
 	{
 		to: "/settings/retention",
 		label: "Data Retention",
 		description: "Retention policies for findings, logs, and artifacts",
-		icon: Database,
-	},
+		icon: Database },
 	{
 		to: "/settings/on-call",
 		label: "On-Call Rotation",
 		description: "Schedules, escalation policies, and rotation calendars",
-		icon: CalendarClock,
-	},
+		icon: CalendarClock },
 	{
 		to: "/settings/sessions",
 		label: "Active Sessions",
 		description: "View and revoke active device sessions",
-		icon: Laptop,
-	},
+		icon: Laptop },
 	{
 		to: "/settings/data-privacy",
 		label: "Data Privacy",
 		description: "GDPR data access, export, and deletion requests",
-		icon: Shield,
-	},
+		icon: Shield },
 	{
 		to: "/settings/jobs",
 		label: "Background Jobs",
 		description: "Cron job health, execution history, and failure alerts",
 		icon: Activity,
-		badge: "Admin",
-	},
+		badge: "Admin" },
 	{
 		to: "/settings/access-review",
 		label: "Access Review",
 		description: "SOC2/SOX quarterly member access reviews",
 		icon: ClipboardList,
-		badge: "Compliance",
-	},
+		badge: "Compliance" },
 	{
 		to: "/settings/mssp-keys",
 		label: "MSSP API Keys",
 		description: "Per-partner API keys for managed security providers",
-		icon: Shield,
-	},
+		icon: Shield },
 	{
 		to: "/settings/ip-allowlist",
 		label: "IP Allowlist",
 		description: "Restrict API access to approved IP ranges",
-		icon: Globe,
-	},
+		icon: Globe },
 ];
 
 function SettingsHubPage() {

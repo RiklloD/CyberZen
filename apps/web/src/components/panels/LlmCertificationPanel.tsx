@@ -79,8 +79,7 @@ function overallStatusIcon(status: string) {
 
 export default function LlmCertificationPanel({
 	report,
-	onReCert,
-}: {
+	onReCert }: {
 	report: CertReport;
 	onReCert?: () => void;
 }) {

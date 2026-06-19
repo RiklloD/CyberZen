@@ -2,8 +2,7 @@ import { SignUp } from "@clerk/tanstack-react-start";
 import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/sign-up/$")({
-	component: Page,
-});
+	component: Page });
 
 function Page() {
 	return (
@@ -13,8 +12,7 @@ function Page() {
 				minHeight: "100vh",
 				alignItems: "center",
 				justifyContent: "center",
-				background: "var(--page-bg, #0d1117)",
-			}}
+				background: "var(--page-bg, #0d1117)" }}
 		>
 			<SignUp
 				appearance={{
@@ -22,44 +20,32 @@ function Page() {
 						rootBox: {
 							width: "100%",
 							maxWidth: "420px",
-							padding: "1rem",
-						},
+							padding: "1rem" },
 						card: {
 							background: "var(--panel-bg, #161b22)",
 							border: "1px solid var(--border, #30363d)",
 							borderRadius: "1rem",
-							boxShadow: "none",
-						},
+							boxShadow: "none" },
 						headerTitle: {
-							color: "var(--sea-ink, #e6edf3)",
-						},
+							color: "var(--sea-ink, #e6edf3)" },
 						headerSubtitle: {
-							color: "var(--sea-ink-soft, #8b949e)",
-						},
+							color: "var(--sea-ink-soft, #8b949e)" },
 						dividerLine: {
-							background: "var(--border, #30363d)",
-						},
+							background: "var(--border, #30363d)" },
 						dividerText: {
-							color: "var(--sea-ink-soft, #8b949e)",
-						},
+							color: "var(--sea-ink-soft, #8b949e)" },
 						formFieldLabel: {
-							color: "var(--sea-ink, #e6edf3)",
-						},
+							color: "var(--sea-ink, #e6edf3)" },
 						formFieldInput: {
 							background: "var(--surface-soft, #0d1117)",
 							border: "1px solid var(--border, #30363d)",
-							color: "var(--sea-ink, #e6edf3)",
-						},
+							color: "var(--sea-ink, #e6edf3)" },
 						footerActionLink: {
-							color: "var(--signal, #58a6ff)",
-						},
+							color: "var(--signal, #58a6ff)" },
 						socialButtonsBlockButton: {
 							border: "1px solid var(--border, #30363d)",
 							color: "var(--sea-ink, #e6edf3)",
-							background: "transparent",
-						},
-					},
-				}}
+							background: "transparent" } } }}
 			/>
 		</div>
 	);

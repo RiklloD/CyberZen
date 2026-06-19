@@ -16,8 +16,7 @@ import { useTenantSlug } from "../lib/workspace";
 
 export const Route = createFileRoute("/neural-memory")({
   errorComponent: QueryErrorFallback,
-  component: NeuralMemoryPage,
-});
+  component: NeuralMemoryPage });
 
 type Tab = "dashboard" | "patterns" | "predictions" | "episodes" | "insights" | "settings";
 type OverviewData = NonNullable<FunctionReturnType<typeof api.dashboard.overview>>;

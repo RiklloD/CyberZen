@@ -5,8 +5,7 @@ import {
 	GaugeCircle,
 	GitBranch,
 	ShieldCheck,
-	Skull,
-} from "lucide-react";
+	Skull } from "lucide-react";
 import StatusPill from "../../components/StatusPill";
 import type { api } from "../../lib/convex";
 import { repositoryHealthTone } from "../../lib/utils";
@@ -108,8 +107,7 @@ function exportJson(
 	report: TenantExecutiveReportPanelProps["report"],
 ): void {
 	const blob = new Blob([JSON.stringify(report, null, 2)], {
-		type: "application/json",
-	});
+		type: "application/json" });
 	const url = URL.createObjectURL(blob);
 	const a = document.createElement("a");
 	a.href = url;
@@ -143,8 +141,7 @@ function KpiTile({
 	label,
 	value,
 	hint,
-	tone,
-}: {
+	tone }: {
 	icon: React.ReactNode;
 	label: string;
 	value: string | number;
@@ -169,8 +166,7 @@ function KpiTile({
 }
 
 export default function TenantExecutiveReportPanel({
-	report,
-}: TenantExecutiveReportPanelProps) {
+	report }: TenantExecutiveReportPanelProps) {
 	const { domainAverages } = report;
 
 	return (
@@ -235,23 +231,19 @@ export default function TenantExecutiveReportPanel({
 						{
 							key: "health",
 							label: "Health",
-							value: domainAverages.healthAvg,
-						},
+							value: domainAverages.healthAvg },
 						{
 							key: "drift",
 							label: "Drift Posture",
-							value: domainAverages.driftPostureAvg,
-						},
+							value: domainAverages.driftPostureAvg },
 						{
 							key: "supply",
 							label: "Supply Chain",
-							value: domainAverages.supplyChainAvg,
-						},
+							value: domainAverages.supplyChainAvg },
 						{
 							key: "compliance",
 							label: "Compliance",
-							value: domainAverages.complianceAvg,
-						},
+							value: domainAverages.complianceAvg },
 					].map(({ key, label, value }) => (
 						<div key={key} className="inset-panel text-center">
 							<div className="text-xs font-bold text-[var(--sea-ink-soft)] mb-1 uppercase tracking-wider">

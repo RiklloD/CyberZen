@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useAuthToken } from "../../lib/clerk-compat";
 import { useMutation, useQuery } from "convex/react";
 import { Plus, RefreshCw, Trash2, Copy, Shield } from "lucide-react";
 import { useState, useTransition } from "react";
@@ -10,8 +9,7 @@ import QueryErrorFallback from "../../components/QueryErrorFallback";
 
 export const Route = createFileRoute("/settings/mssp-keys")({
   errorComponent: QueryErrorFallback,
-  component: MsspKeysPage,
-});
+  component: MsspKeysPage });
 
 const AVAILABLE_SCOPES = [
   "findings:read",
@@ -24,7 +22,6 @@ const AVAILABLE_SCOPES = [
 
 function MsspKeysPage() {
   const TENANT = useTenantSlug();
-  const authToken = useAuthToken() ?? "";
   const [modalOpen, setModalOpen] = useState(false);
   const [partnerName, setPartnerName] = useState("");
   const [selectedScopes, setSelectedScopes] = useState<string[]>([]);
@@ -33,7 +30,7 @@ function MsspKeysPage() {
 
   const keys = useQuery(
     api.msspApiKeys.listMsspApiKeys,
-    authToken ? { authToken, tenantSlug: TENANT } : "skip",
+    { tenantSlug: TENANT },
   );
 
   const createKey = useMutation(api.msspApiKeys.createMsspApiKey);
@@ -51,11 +48,9 @@ function MsspKeysPage() {
     startTransition(async () => {
       try {
         const result = await createKey({
-          authToken,
           tenantSlug: TENANT,
           partnerName,
-          scopes: selectedScopes,
-        });
+          scopes: selectedScopes });
         setRevealSecret({ secret: result.secret, partner: result.partnerName });
         setModalOpen(false);
         setPartnerName("");
@@ -70,10 +65,8 @@ function MsspKeysPage() {
     startTransition(async () => {
       try {
         const result = await rotateKey({
-          authToken,
           tenantSlug: TENANT,
-          keyId: keyId as any,
-        });
+          keyId: keyId as any });
         setRevealSecret({ secret: result.secret, partner: result.partnerName });
       } catch (e) {
         console.error(e);
@@ -85,7 +78,7 @@ function MsspKeysPage() {
     if (!confirm("Revoke this MSSP API key? This cannot be undone.")) return;
     startTransition(async () => {
       try {
-        await revokeKey({ authToken, tenantSlug: TENANT, keyId: keyId as any });
+        await revokeKey({ tenantSlug: TENANT, keyId: keyId as any });
       } catch (e) {
         console.error(e);
       }

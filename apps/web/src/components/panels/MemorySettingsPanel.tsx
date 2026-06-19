@@ -39,8 +39,7 @@ export default function MemorySettingsPanel({ repositoryId }: { repositoryId: st
     patternDetection: storedSettings.enabledAlgorithms?.patternDetection ?? true,
     predictionGeneration: storedSettings.enabledAlgorithms?.predictionGeneration ?? true,
     falsePositiveLearning: storedSettings.enabledAlgorithms?.falsePositiveLearning ?? true,
-    temporalAnalysis: storedSettings.enabledAlgorithms?.temporalAnalysis ?? false,
-  });
+    temporalAnalysis: storedSettings.enabledAlgorithms?.temporalAnalysis ?? false });
 
   useEffect(() => {
     if (!memory || !("settings" in memory) || !memory.settings) return;
@@ -53,8 +52,7 @@ export default function MemorySettingsPanel({ repositoryId }: { repositoryId: st
         patternDetection: s.enabledAlgorithms.patternDetection ?? true,
         predictionGeneration: s.enabledAlgorithms.predictionGeneration ?? true,
         falsePositiveLearning: s.enabledAlgorithms.falsePositiveLearning ?? true,
-        temporalAnalysis: s.enabledAlgorithms.temporalAnalysis ?? false,
-      });
+        temporalAnalysis: s.enabledAlgorithms.temporalAnalysis ?? false });
     }
   }, [memory]);
 
@@ -65,8 +63,7 @@ export default function MemorySettingsPanel({ repositoryId }: { repositoryId: st
     try {
       await updateSettings({
         repositoryId,
-        settings: { episodesBeforePattern: episodes, predictionHorizonDays: horizon, patternExpiryDays: expiry, enabledAlgorithms: algorithms },
-      });
+        settings: { episodesBeforePattern: episodes, predictionHorizonDays: horizon, patternExpiryDays: expiry, enabledAlgorithms: algorithms } });
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } finally {

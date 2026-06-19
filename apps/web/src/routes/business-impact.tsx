@@ -12,8 +12,7 @@ import RouteErrorBoundary from "../components/RouteErrorBoundary";
 
 export const Route = createFileRoute("/business-impact")({
 	errorComponent: RouteErrorBoundary,
-	component: BusinessImpactPage,
-});
+	component: BusinessImpactPage });
 
 type OverviewData = NonNullable<
 	FunctionReturnType<typeof api.dashboard.overview>
@@ -86,8 +85,7 @@ function BusinessImpactPage() {
 }
 
 function TenantBusinessImpactSummaryView({
-	tenantId,
-}: {
+	tenantId }: {
 	tenantId: Id<"tenants">;
 }) {
 	const summary = useQuery(
@@ -124,8 +122,7 @@ function TenantBusinessImpactSummaryView({
 
 function RepositoryBusinessImpactView({
 	tenantSlug,
-	repositoryFullName,
-}: {
+	repositoryFullName }: {
 	tenantSlug: string;
 	repositoryFullName: string;
 }) {

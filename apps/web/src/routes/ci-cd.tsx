@@ -119,8 +119,7 @@ function OverviewTab({
 	repositories,
 	activeRepo,
 	selectedRepo: _selectedRepo,
-	setSelectedRepo,
-}: {
+	setSelectedRepo }: {
 	TENANT: string;
 	ciGateEnforcement: OverviewData["ciGateEnforcement"];
 	repositories: OverviewData["repositories"];
@@ -246,8 +245,7 @@ function GateDecisionsTab({
 	activeRepo,
 	selectedDecisionId,
 	onSelectDecision,
-	onOverride,
-}: {
+	onOverride }: {
 	tenantSlug: string;
 	activeRepo: OverviewRepository | undefined;
 	selectedDecisionId: string | null;
@@ -284,15 +282,13 @@ function GateDecisionsTab({
 
 function RepoCiCdIntelligence({
 	tenantSlug,
-	repositoryFullName,
-}: {
+	repositoryFullName }: {
 	tenantSlug: string;
 	repositoryFullName: string;
 }) {
 	const cicdScan = useQuery(api.cicdScanIntel.getLatestCicdScan, {
 		tenantSlug,
-		repositoryFullName,
-	});
+		repositoryFullName });
 	const branchProtection = useQuery(
 		api.branchProtectionIntel.getLatestBranchProtectionBySlug,
 		{ tenantSlug, repositoryFullName },
@@ -315,16 +311,14 @@ function RepoCiCdIntelligence({
 	);
 	const depLock = useQuery(api.depLockIntel.getLatestDepLockVerifyScanBySlug, {
 		tenantSlug,
-		repositoryFullName,
-	});
+		repositoryFullName });
 	const testCoverage = useQuery(
 		api.testCoverageGapIntel.getLatestTestCoverageGapBySlug,
 		{ tenantSlug, repositoryFullName },
 	);
 	const iacScan = useQuery(api.iacScanIntel.getLatestIacScan, {
 		tenantSlug,
-		repositoryFullName,
-	});
+		repositoryFullName });
 
 	return (
 		<div className="grid gap-3 sm:grid-cols-2">

@@ -9,8 +9,7 @@ type TrustScore = NonNullable<
 >;
 
 export default function RepositoryTrustScorePanel({
-	score,
-}: {
+	score }: {
 	score: TrustScore;
 }) {
 	return (

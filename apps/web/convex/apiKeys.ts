@@ -15,7 +15,7 @@ const apiKeySummary = v.object({
 
 async function getTenantAndVerifyMember(
   ctx: any,
-  authToken: string,
+  authToken: string | undefined,
   tenantSlug: string,
 ) {
   const { userId } = await requireSessionAuth(ctx, authToken)

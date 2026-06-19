@@ -20,8 +20,7 @@ import RouteErrorBoundary from "../components/RouteErrorBoundary";
 
 export const Route = createFileRoute("/supply-chain")({
 	errorComponent: RouteErrorBoundary,
-	component: SupplyChainPage,
-});
+	component: SupplyChainPage });
 
 type OverviewData = NonNullable<
 	FunctionReturnType<typeof api.dashboard.overview>
@@ -85,8 +84,7 @@ function SupplyChainPage() {
 function RepoSupplyChainIntelligence({
 	tenantSlug,
 	repositoryFullName,
-	repositoryId,
-}: {
+	repositoryId }: {
 	tenantSlug: string;
 	repositoryFullName: string;
 	repositoryId: string;
@@ -98,8 +96,7 @@ function RepoSupplyChainIntelligence({
 	const promptScans = useQuery(api.promptIntelligence.recentScans, {
 		tenantSlug,
 		repositoryFullName,
-		limit: 10,
-	});
+		limit: 10 });
 	const supplyChainAnalysis = useQuery(
 		api.promptIntelligence.supplyChainAnalysis,
 		{ tenantSlug, repositoryFullName },
@@ -118,8 +115,7 @@ function RepoSupplyChainIntelligence({
 	);
 	const eolDetection = useQuery(api.eolDetectionIntel.getLatestEolScan, {
 		tenantSlug,
-		repositoryFullName,
-	});
+		repositoryFullName });
 	const cryptoWeakness = useQuery(
 		api.cryptoWeaknessIntel.getLatestCryptoWeaknessScan,
 		{ tenantSlug, repositoryFullName },

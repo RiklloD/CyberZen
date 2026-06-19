@@ -13,8 +13,7 @@ export default function MemoryPatternDetail({
   pattern,
   repositoryId,
   onClose,
-  onNavigateToPattern,
-}: {
+  onNavigateToPattern }: {
   pattern: Pattern;
   repositoryId: string;
   onClose: () => void;

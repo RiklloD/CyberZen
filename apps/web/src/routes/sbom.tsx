@@ -108,8 +108,7 @@ function SbomPage() {
 function SbomRepoView({
 	tenantSlug,
 	repo,
-	snapshot,
-}: {
+	snapshot }: {
 	tenantSlug: string;
 	repo: OverviewRepository;
 	snapshot: OverviewSnapshot;
@@ -118,16 +117,13 @@ function SbomRepoView({
 
 	const quality = useQuery(api.sbomQualityIntel.getSbomQualityForRepository, {
 		tenantSlug,
-		repositoryFullName,
-	});
+		repositoryFullName });
 	const attestation = useQuery(api.sbomAttestationIntel.getLatestAttestation, {
 		tenantSlug,
-		repositoryFullName,
-	});
+		repositoryFullName });
 	const cveScan = useQuery(api.cveVersionScanIntel.getLatestCveScan, {
 		tenantSlug,
-		repositoryFullName,
-	});
+		repositoryFullName });
 	const containerScan = useQuery(
 		api.containerImageIntel.getLatestContainerImageScan,
 		{ tenantSlug, repositoryFullName },

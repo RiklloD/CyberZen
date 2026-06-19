@@ -14,8 +14,7 @@ import QueryErrorFallback from "../components/QueryErrorFallback";
 
 export const Route = createFileRoute("/breach-intel")({
 	errorComponent: QueryErrorFallback,
-	component: BreachIntelPage,
-});
+	component: BreachIntelPage });
 
 type OverviewData = NonNullable<
 	FunctionReturnType<typeof api.dashboard.overview>

@@ -17,8 +17,7 @@ import { api } from "../lib/convex";
 import {
 	formatTimestamp,
 	severityTone,
-	validationTone,
-} from "../lib/utils";
+	validationTone } from "../lib/utils";
 import { useTenantSlug } from "../lib/workspace";
 import RouteErrorBoundary from "../components/RouteErrorBoundary";
 
@@ -303,8 +302,7 @@ function AgentsPage() {
 function RepoAgentIntelligence({
 	tenantSlug,
 	repositoryId,
-	repositoryFullName,
-}: {
+	repositoryFullName }: {
 	tenantSlug: string;
 	repositoryId: Id<"repositories">;
 	repositoryFullName: string;
@@ -319,15 +317,13 @@ function RepoAgentIntelligence({
 	);
 	const agentMemory = useQuery(api.agentMemory.getRepositoryMemory, {
 		tenantSlug: tenantSlug,
-		repositoryFullName: repositoryFullName,
-	});
+		repositoryFullName: repositoryFullName });
 	const learningProfile = useQuery(
 		api.learningProfileIntel.getLatestLearningProfile,
 		{ tenantSlug, repositoryFullName },
 	);
 	const agenticScan = useQuery(api.agenticWorkflowIntel.getLatestAgenticScan, {
-		repositoryId,
-	});
+		repositoryId });
 	const semanticAnalysis = useQuery(
 		api.semanticFingerprintIntel.getLatestCodeAnalysis,
 		{ repositoryId },
@@ -386,8 +382,7 @@ function RepoAgentIntelligence({
 }
 
 function RepoLlmCertificationSection({
-	repositoryId,
-}: {
+	repositoryId }: {
 	repositoryId: Id<"repositories">;
 }) {
 	const certReport = useQuery(
@@ -435,8 +430,7 @@ function RepoLlmCertificationSection({
 }
 
 function RepoModelProvenanceSection({
-	repositoryId,
-}: {
+	repositoryId }: {
 	repositoryId: Id<"repositories">;
 }) {
 	const provenanceScan = useQuery(

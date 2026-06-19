@@ -8,7 +8,7 @@ type IntegrationType = (typeof INTEGRATION_TYPES)[number]
 
 async function getTenantAndVerifyMember(
   ctx: any,
-  authToken: string,
+  authToken: string | undefined,
   tenantSlug: string,
 ) {
   const { userId } = await requireSessionAuth(ctx, authToken)

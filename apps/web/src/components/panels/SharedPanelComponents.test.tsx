@@ -3,8 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
 	EmptyState,
 	PanelContainer,
-	PanelSkeleton,
-} from "./SharedPanelComponents";
+	PanelSkeleton } from "./SharedPanelComponents";
 
 describe("PanelSkeleton", () => {
 	it("renders a single skeleton block by default", () => {

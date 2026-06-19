@@ -1,11 +1,9 @@
-import { useAuthToken } from "../lib/clerk-compat";
 import { useQuery } from "convex/react";
 import {
 	createContext,
 	createElement,
 	type ReactNode,
-	useContext,
-} from "react";
+	useContext } from "react";
 import { api } from "#/lib/convex";
 import { TENANT_SLUG } from "./config";
 
@@ -13,8 +11,7 @@ const WorkspaceSlugContext = createContext<string | null>(null);
 
 export function WorkspaceSlugProvider({
 	slug,
-	children,
-}: {
+	children }: {
 	slug: string;
 	children: ReactNode;
 }) {
@@ -26,7 +23,6 @@ export function WorkspaceSlugProvider({
 }
 
 export function useWorkspaceState() {
-	const authToken = useAuthToken();
 	return useQuery(api.workspaceAuth.currentWorkspace);
 }
 

@@ -14,8 +14,7 @@ type RiskAcceptanceSummary = NonNullable<
 
 export default function RepositoryRiskAcceptancePanel({
 	riskAcceptance,
-	repositoryId,
-}: {
+	repositoryId }: {
 	riskAcceptance: RiskAcceptanceSummary;
 	repositoryId?: Id<"repositories">;
 }) {
@@ -36,8 +35,7 @@ export default function RepositoryRiskAcceptancePanel({
 		startTransition(async () => {
 			await revokeMutation({
 				findingId,
-				revokedBy: "operator",
-			});
+				revokedBy: "operator" });
 		});
 	}
 
@@ -105,8 +103,7 @@ export default function RepositoryRiskAcceptancePanel({
 								className="signal-button secondary-button shrink-0"
 								style={{
 									padding: "0.35rem 0.65rem",
-									fontSize: "0.7rem",
-								}}
+									fontSize: "0.7rem" }}
 							>
 								<ShieldOff size={12} />
 								Revoke

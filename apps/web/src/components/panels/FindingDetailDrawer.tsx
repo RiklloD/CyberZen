@@ -9,14 +9,12 @@ import {
 	ExternalLink,
 	Loader2,
 	Shield,
-	Wrench,
-} from "lucide-react";
+	Wrench } from "lucide-react";
 import { useState } from "react";
 import StatusPill from "../StatusPill";
 import type { Id } from "../../lib/convex";
 import { api } from "../../lib/convex";
 import { formatTimestamp, priorityTierTone } from "../../lib/utils";
-import { useAuthToken } from "../../lib/clerk-compat";
 import { useTenantSlug } from "../../lib/workspace";
 import BlastRadiusPanel from "./BlastRadiusPanel";
 import FindingTriageActionBar from "./FindingTriageActionBar";
@@ -28,14 +26,12 @@ type OverviewFinding = OverviewData["findings"][number];
 
 export default function FindingDetailDrawer({
 	findingId,
-	finding,
-}: {
+	finding }: {
 	findingId: Id<"findings">;
 	finding: OverviewFinding;
 }) {
 	const blastRadius = useQuery(api.blastRadiusIntel.getBlastRadius, {
-		findingId,
-	});
+		findingId });
 
 	return (
 		<div className="mt-2 card border-l-2 border-l-[var(--lagoon)] rounded-tl-none rounded-bl-none">
@@ -199,8 +195,7 @@ function GeneratePrButton({ findingId }: { findingId: Id<"findings"> }) {
 
 function ThreatIntelSection({ findingId }: { findingId: Id<"findings"> }) {
 	const intelList = useQuery(api.threatIntelligence.getThreatIntelForFinding, {
-		findingId,
-	});
+		findingId });
 
 	if (!intelList || intelList.length === 0) return null;
 
@@ -320,8 +315,7 @@ function ThreatIntelSection({ findingId }: { findingId: Id<"findings"> }) {
 }
 
 function SecurityEducationSection({
-	findingType,
-}: {
+	findingType }: {
 	findingType: string;
 	findingId: Id<"findings">;
 }) {
@@ -330,8 +324,7 @@ function SecurityEducationSection({
 	const [markedRead, setMarkedRead] = useState(false);
 
 	const content = useQuery(api.securityEducation.getEducationContent, {
-		findingType,
-	});
+		findingType });
 	const trackView = useMutation(api.securityEducation.trackEducationView);
 
 	if (!content) return null;
@@ -349,8 +342,7 @@ function SecurityEducationSection({
 		await trackView({
 			findingType,
 			contentId: content._id,
-			tenantSlug: TENANT,
-		});
+			tenantSlug: TENANT });
 		setMarkedRead(true);
 	}
 
@@ -503,12 +495,10 @@ function difficultyTone(diff: string) {
 }
 
 function RemediationPlaybookSection({
-	findingId,
-}: {
+	findingId }: {
 	findingId: Id<"findings">;
 }) {
 	const TENANT = useTenantSlug();
-	const authToken = useAuthToken();
 	const [open, setOpen] = useState(false);
 	const [generating, setGenerating] = useState(false);
 	const [error, setError] = useState<string | null>(null);
@@ -517,15 +507,13 @@ function RemediationPlaybookSection({
 
 	const playbook = useQuery(
 		api.remediationPlaybooks.getPlaybookForFinding,
-		authToken
-			? { authToken, tenantSlug: TENANT, findingId }
-			: "skip",
+		{ tenantSlug: TENANT, findingId },
 	);
 	const generate = useMutation(api.remediationPlaybooks.generatePlaybook);
 	const markUsed = useMutation(api.remediationPlaybooks.markPlaybookUsed);
 	const stats = useQuery(
 		api.remediationPlaybooks.getPlaybookEffectivenessStats,
-		authToken ? { authToken, tenantSlug: TENANT } : "skip",
+		{ tenantSlug: TENANT },
 	);
 
 	const steps: PlaybookStep[] = playbook?.steps
@@ -535,11 +523,10 @@ function RemediationPlaybookSection({
 		: [];
 
 	async function handleGenerate() {
-		if (!authToken) return;
 		setGenerating(true);
 		setError(null);
 		try {
-			await generate({ authToken, tenantSlug: TENANT, findingId });
+			await generate({ tenantSlug: TENANT, findingId });
 		} catch (e) {
 			setError(e instanceof Error ? e.message : "Failed to generate playbook");
 		} finally {
@@ -548,15 +535,13 @@ function RemediationPlaybookSection({
 	}
 
 	async function handleMark(wasEffective: boolean) {
-		if (!authToken || !playbook) return;
+		if (!playbook) return;
 		setMarkingUsed(true);
 		try {
 			await markUsed({
-				authToken,
 				tenantSlug: TENANT,
 				playbookId: playbook._id,
-				wasEffective,
-			});
+				wasEffective });
 			setMarked(wasEffective ? "effective" : "used");
 		} finally {
 			setMarkingUsed(false);

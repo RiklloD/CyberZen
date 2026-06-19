@@ -12,8 +12,7 @@ export interface PromptInjectionSupplyChainPanelProps {
 }
 
 export default function PromptInjectionSupplyChainPanel({
-	data,
-}: PromptInjectionSupplyChainPanelProps) {
+	data }: PromptInjectionSupplyChainPanelProps) {
 	return (
 		<div className="card card-sm">
 			<p className="panel-label mb-2">Supply Chain Risk Analysis</p>

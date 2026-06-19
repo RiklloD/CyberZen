@@ -13,8 +13,7 @@ type Episode = NonNullable<
 >[number];
 
 export default function MemoryEpisodeTimeline({
-  repositoryId,
-}: {
+  repositoryId }: {
   repositoryId: string;
 }) {
   const [typeFilter, setTypeFilter] = useState<string>("all");
@@ -26,8 +25,7 @@ export default function MemoryEpisodeTimeline({
   const episodes = useQuery(api.neuralMemory.getEpisodes, {
     repositoryId,
     type: typeFilter === "all" ? undefined : typeFilter as any,
-    limit,
-  });
+    limit });
 
   const exportEpisodesCsv = useMutation(api.neuralMemory.exportEpisodesCsv);
 
@@ -102,8 +100,7 @@ export default function MemoryEpisodeTimeline({
         const csvContent = await exportEpisodesCsv({
           repositoryId: repositoryId as any,
           episodeType: typeFilter === "all" ? undefined : typeFilter as any,
-          limit,
-        });
+          limit });
         const blob = new Blob([csvContent], { type: 'text/csv' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');

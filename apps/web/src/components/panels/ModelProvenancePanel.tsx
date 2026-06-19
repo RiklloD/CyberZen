@@ -5,8 +5,7 @@ import {
 	CheckCircle2,
 	AlertTriangle,
 	ShieldCheck,
-	XCircle,
-} from "lucide-react";
+	XCircle } from "lucide-react";
 import StatusPill from "../StatusPill";
 import type { api } from "../../lib/convex";
 import { formatTimestamp } from "../../lib/utils";
@@ -99,8 +98,7 @@ function ModelComponentRow({ component }: { component: ModelComponent }) {
 }
 
 export default function ModelProvenancePanel({
-	scan,
-}: {
+	scan }: {
 	scan: ProvenanceScan;
 }) {
 	const verifiedPct =

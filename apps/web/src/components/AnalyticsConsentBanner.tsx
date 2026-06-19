@@ -1,13 +1,10 @@
-import { useAuthToken } from "../lib/clerk-compat";
 import { useMutation, useQuery } from "convex/react";
 import { BarChart2, X } from "lucide-react";
 import { api } from "../lib/convex";
 
 export default function AnalyticsConsentBanner() {
-	const authToken = useAuthToken() ?? "";
 	const consentRecord = useQuery(
 		api.analyticsConsent.getMyConsent,
-		authToken ? { authToken } : "skip",
 	);
 	const updateConsent = useMutation(api.analyticsConsent.updateMyConsent);
 
@@ -15,11 +12,11 @@ export default function AnalyticsConsentBanner() {
 	if (consentRecord === undefined || consentRecord !== null) return null;
 
 	async function accept() {
-		await updateConsent({ authToken, consent: true });
+		await updateConsent({ consent: true });
 	}
 
 	async function decline() {
-		await updateConsent({ authToken, consent: false });
+		await updateConsent({ consent: false });
 	}
 
 	return (

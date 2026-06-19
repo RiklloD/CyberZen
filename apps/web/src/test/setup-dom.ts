@@ -8,8 +8,7 @@ import { JSDOM } from "jsdom";
 
 const dom = new JSDOM("<!DOCTYPE html><html><body></body></html>", {
 	url: "http://localhost/",
-	pretendToBeVisual: true,
-});
+	pretendToBeVisual: true });
 
 const { window } = dom;
 
@@ -55,15 +54,13 @@ const domGlobals: Record<string, unknown> = {
 	Range: window.Range,
 	TreeWalker: window.TreeWalker,
 	NodeFilter: window.NodeFilter,
-	XMLSerializer: window.XMLSerializer,
-};
+	XMLSerializer: window.XMLSerializer };
 
 for (const [key, value] of Object.entries(domGlobals)) {
 	if (value !== undefined) {
 		Object.defineProperty(globalThis, key, {
 			value,
 			writable: true,
-			configurable: true,
-		});
+			configurable: true });
 	}
 }

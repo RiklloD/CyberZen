@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useAuthToken } from "../lib/clerk-compat";
 import { useAction, useMutation, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { CheckCircle, Loader2, MessageSquare, Plug, XCircle } from "lucide-react";
@@ -14,8 +13,7 @@ import RouteErrorBoundary from "../components/RouteErrorBoundary";
 
 export const Route = createFileRoute("/integrations")({
 	errorComponent: RouteErrorBoundary,
-	component: IntegrationsPage,
-});
+	component: IntegrationsPage });
 
 type OverviewData = NonNullable<
 	FunctionReturnType<typeof api.dashboard.overview>
@@ -32,15 +30,12 @@ function IntegrationsPage() {
 	const TENANT = useTenantSlug();
 	const overview = useQuery(api.dashboard.overview, { tenantSlug: TENANT });
 	const vendors = useQuery(api.vendorTrust.listVendorsBySlug, {
-		tenantSlug: TENANT,
-	});
+		tenantSlug: TENANT });
 	const marketplace = useQuery(api.communityMarketplace.listContributions, {
-		limit: 12,
-	});
+		limit: 12 });
 	const catalog = useQuery(api.integrations.listIntegrationCatalog);
 	const integrationStatus = useQuery(api.integrations.listIntegrationStatusForTenant, {
-		tenantSlug: TENANT,
-	});
+		tenantSlug: TENANT });
 	const [selectedRepo, setSelectedRepo] = useState<string | null>(null);
 	const [activeTab, setActiveTab] = useState<"main" | "observability" | "siem">("main");
 
@@ -305,8 +300,7 @@ function IntegrationsPage() {
 
 function ObservabilityTab({ tenantSlug }: { tenantSlug: string }) {
 	const intel = useQuery(api.observabilityIntel.getLatestObservabilityIntel, {
-		tenantSlug,
-	});
+		tenantSlug });
 
 	if (!intel) {
 		return (
@@ -324,8 +318,7 @@ function ObservabilityTab({ tenantSlug }: { tenantSlug: string }) {
 }
 
 function SiemTab({
-	repositories,
-}: {
+	repositories }: {
 	repositories: OverviewRepository[];
 }) {
 	const [selectedRepo, setSelectedRepo] = useState<string | null>(null);
@@ -387,14 +380,12 @@ function SiemTab({
 
 function RepoGamification({
 	tenantSlug,
-	repositoryFullName,
-}: {
+	repositoryFullName }: {
 	tenantSlug: string;
 	repositoryFullName: string;
 }) {
 	const gamification = useQuery(api.gamificationIntel.getLatestGamification, {
-		tenantSlug,
-	});
+		tenantSlug });
 
 	if (!gamification) return null;
 
@@ -441,10 +432,9 @@ const SLACK_ALERT_EVENTS = [
 ] as const;
 
 function SlackIntegrationCard({ tenantSlug }: { tenantSlug: string }) {
-	const authToken = useAuthToken();
 	const integration = useQuery(
 		api.slack.getSlackIntegration,
-		authToken ? { authToken, tenantSlug } : "skip",
+		{ tenantSlug },
 	);
 	const initiateOAuth = useMutation(api.slack.initiateSlackOAuth);
 	const configureAlerts = useMutation(api.slack.configureSlackAlerts);
@@ -479,10 +469,9 @@ function SlackIntegrationCard({ tenantSlug }: { tenantSlug: string }) {
 	}
 
 	const handleConnect = async () => {
-		if (!authToken) return;
 		setConnecting(true);
 		try {
-			const { oauthUrl } = await initiateOAuth({ authToken, tenantSlug });
+			const { oauthUrl } = await initiateOAuth({ tenantSlug });
 			window.location.href = oauthUrl;
 		} catch {
 			setConnecting(false);
@@ -490,26 +479,22 @@ function SlackIntegrationCard({ tenantSlug }: { tenantSlug: string }) {
 	};
 
 	const handleDisconnect = async () => {
-		if (!authToken) return;
 		setDisconnecting(true);
 		try {
-			await disconnect({ authToken, tenantSlug });
+			await disconnect({ tenantSlug });
 		} finally {
 			setDisconnecting(false);
 		}
 	};
 
 	const handleSave = async () => {
-		if (!authToken) return;
 		setSaving(true);
 		try {
 			await configureAlerts({
-				authToken,
 				tenantSlug,
 				channel,
 				events: selectedEvents,
-				minSeverity,
-			});
+				minSeverity });
 			setConfigDirty(false);
 		} finally {
 			setSaving(false);
@@ -517,11 +502,11 @@ function SlackIntegrationCard({ tenantSlug }: { tenantSlug: string }) {
 	};
 
 	const handleTest = async () => {
-		if (!authToken || !channel) return;
+		if (!channel) return;
 		setTesting(true);
 		setTestResult(null);
 		try {
-			await sendTest({ authToken, tenantSlug, channel });
+			await sendTest({ tenantSlug, channel });
 			setTestResult("ok");
 		} catch {
 			setTestResult("err");
@@ -726,8 +711,7 @@ function CommunityContributionCard({ item }: { item: MarketplaceItem }) {
 		setActing(true);
 		try {
 			await accept({
-				contributionId: item._id as Id<"communityContributions">,
-			});
+				contributionId: item._id as Id<"communityContributions"> });
 		} catch {
 			/* optimistic — mutation will refresh list */
 		} finally {
@@ -739,8 +723,7 @@ function CommunityContributionCard({ item }: { item: MarketplaceItem }) {
 		setActing(true);
 		try {
 			await reject({
-				contributionId: item._id as Id<"communityContributions">,
-			});
+				contributionId: item._id as Id<"communityContributions"> });
 		} catch {
 			/* optimistic — mutation will refresh list */
 		} finally {

@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useAuthToken } from "../../lib/clerk-compat";
 import { useMutation, useQuery } from "convex/react";
 import { ShieldCheck, Smartphone, AlertTriangle, X, Loader2 } from "lucide-react";
 import { useState, useTransition } from "react";
@@ -11,21 +10,17 @@ import RouteErrorBoundary from "../../components/RouteErrorBoundary";
 
 export const Route = createFileRoute("/settings/two-factor")({
 	errorComponent: RouteErrorBoundary,
-	component: TwoFactorPage,
-});
+	component: TwoFactorPage });
 
 function TwoFactorPage() {
 	const TENANT = useTenantSlug();
-	const authToken = useAuthToken() ?? "";
-
 	const status = useQuery(
 		api.twoFactor.getTwoFactorStatus,
-		authToken ? { authToken } : "skip",
 	);
 
 	const tenantPolicy = useQuery(
 		api.twoFactor.getTenantTwoFactorPolicy,
-		authToken ? { authToken, tenantSlug: TENANT } : "skip",
+		{ tenantSlug: TENANT },
 	);
 
 	return (
@@ -47,7 +42,7 @@ function TwoFactorPage() {
 				{!status ? (
 					<div className="loading-panel h-32 rounded-2xl" />
 				) : (
-					<StatusSection status={status} authToken={authToken} tenantSlug={TENANT} />
+					<StatusSection status={status} tenantSlug={TENANT} />
 				)}
 
 				{/* Tenant-wide 2FA Policy */}
@@ -109,22 +104,19 @@ function TwoFactorPage() {
 
 function StatusSection({
 	status,
-	authToken,
-	tenantSlug,
-}: {
+	tenantSlug }: {
 	status: any;
-	authToken: string;
 	tenantSlug: string;
 }) {
 	const [enrolling, setEnrolling] = useState(false);
 	const [disabling, setDisabling] = useState(false);
 
 	if (enrolling) {
-		return <EnrollmentFlow authToken={authToken} tenantSlug={tenantSlug} onCancel={() => setEnrolling(false)} />;
+		return <EnrollmentFlow tenantSlug={tenantSlug} onCancel={() => setEnrolling(false)} />;
 	}
 
 	if (disabling) {
-		return <DisableFlow authToken={authToken} onCancel={() => setDisabling(false)} />;
+		return <DisableFlow onCancel={() => setDisabling(false)} />;
 	}
 
 	return (
@@ -190,11 +182,8 @@ function StatusSection({
 }
 
 function EnrollmentFlow({
-	authToken,
 	tenantSlug,
-	onCancel,
-}: {
-	authToken: string;
+	onCancel }: {
 	tenantSlug: string;
 	onCancel: () => void;
 }) {
@@ -208,7 +197,7 @@ function EnrollmentFlow({
 
 	function handleStart() {
 		startTransition(async () => {
-			const data = await startEnrollment({ authToken, tenantSlug });
+			const data = await startEnrollment({ tenantSlug });
 			setEnrollmentData(data);
 			setStep("verify");
 		});
@@ -217,7 +206,7 @@ function EnrollmentFlow({
 	function handleVerify() {
 		if (code.length !== 6) return;
 		startTransition(async () => {
-			await verifyEnrollment({ authToken, code });
+			await verifyEnrollment({ code });
 			onCancel();
 		});
 	}
@@ -318,7 +307,7 @@ function EnrollmentFlow({
 	);
 }
 
-function DisableFlow({ authToken, onCancel }: { authToken: string; onCancel: () => void }) {
+function DisableFlow({ onCancel }: { onCancel: () => void }) {
 	const [code, setCode] = useState("");
 	const [isPending, startTransition] = useTransition();
 	const disable2fa = useMutation(api.twoFactor.disableTwoFactor);
@@ -326,7 +315,7 @@ function DisableFlow({ authToken, onCancel }: { authToken: string; onCancel: () 
 	function handleDisable() {
 		if (code.length !== 6) return;
 		startTransition(async () => {
-			await disable2fa({ authToken, code });
+			await disable2fa({ code });
 			onCancel();
 		});
 	}

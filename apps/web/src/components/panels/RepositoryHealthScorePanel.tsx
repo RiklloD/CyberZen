@@ -10,8 +10,7 @@ type HealthScore = NonNullable<
 >;
 
 export default function RepositoryHealthScorePanel({
-	healthScore,
-}: {
+	healthScore }: {
 	healthScore: HealthScore;
 }) {
 	return (

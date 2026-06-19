@@ -6,14 +6,12 @@ import {
 	Users,
 	ToggleLeft,
 	ToggleRight,
-	AlertTriangle,
-} from "lucide-react";
+	AlertTriangle } from "lucide-react";
 import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "#/lib/convex";
 import { useTenantSlug } from "../../lib/workspace";
-import { useAuthToken } from "../../lib/clerk-compat";
 import RouteErrorBoundary from "../../components/RouteErrorBoundary";
 
 type OnCallSchedule = NonNullable<FunctionReturnType<typeof api.onCall.listSchedules>>[number];
@@ -22,35 +20,26 @@ type EscalationPolicy = NonNullable<FunctionReturnType<typeof api.onCall.listEsc
 
 export const Route = createFileRoute("/settings/on-call")({
 	errorComponent: RouteErrorBoundary,
-	component: OnCallSettingsPage,
-});
+	component: OnCallSettingsPage });
 
 const ROTATION_LABELS: Record<string, string> = {
 	daily: "Daily",
 	weekly: "Weekly",
 	biweekly: "Bi-weekly",
-	monthly: "Monthly",
-};
+	monthly: "Monthly" };
 
 const CHANNEL_LABELS: Record<string, string> = {
 	email: "Email",
 	slack: "Slack",
 	sms: "SMS",
-	webhook: "Webhook",
-};
+	webhook: "Webhook" };
 
 function OnCallSettingsPage() {
 	const TENANT = useTenantSlug();
-	const authToken = useAuthToken() ?? "";
-
 	const schedules = useQuery(api.onCall.listSchedules, {
-		authToken,
-		tenantSlug: TENANT,
-	});
+		tenantSlug: TENANT });
 	const escalationPolicies = useQuery(api.onCall.listEscalationPolicies, {
-		authToken,
-		tenantSlug: TENANT,
-	});
+		tenantSlug: TENANT });
 
 	const createSchedule = useMutation(api.onCall.createSchedule);
 	const deleteSchedule = useMutation(api.onCall.deleteSchedule);
@@ -64,40 +53,34 @@ function OnCallSettingsPage() {
 		name: "",
 		rotationType: "weekly",
 		timezone: "UTC",
-		enabled: true,
-	});
+		enabled: true });
 	const [escalationForm, setEscalationForm] = useState({
 		name: "",
 		scheduleId: "",
 		delayMinutes: 15,
 		channels: ["email"] as string[],
 		repeatCount: 0,
-		enabled: true,
-	});
+		enabled: true });
 
 	async function handleCreateSchedule() {
 		await createSchedule({
-			authToken,
 			tenantSlug: TENANT,
 			name: scheduleForm.name,
 			rotationType: scheduleForm.rotationType as any,
 			memberIds: [], // Will be populated via team member selector
 			timezone: scheduleForm.timezone,
-			enabled: scheduleForm.enabled,
-		});
+			enabled: scheduleForm.enabled });
 		setShowScheduleForm(false);
 		setScheduleForm({
 			name: "",
 			rotationType: "weekly",
 			timezone: "UTC",
-			enabled: true,
-		});
+			enabled: true });
 	}
 
 	async function handleCreateEscalation() {
 		if (!escalationForm.scheduleId) return;
 		await createEscalationPolicy({
-			authToken,
 			tenantSlug: TENANT,
 			name: escalationForm.name,
 			onCallScheduleId: escalationForm.scheduleId as any,
@@ -105,12 +88,10 @@ function OnCallSettingsPage() {
 				{
 					delayMinutes: escalationForm.delayMinutes,
 					target: "current_on_call" as const,
-					channels: escalationForm.channels as any,
-				},
+					channels: escalationForm.channels as any },
 			],
 			repeatCount: escalationForm.repeatCount,
-			enabled: escalationForm.enabled,
-		});
+			enabled: escalationForm.enabled });
 		setShowEscalationForm(false);
 		setEscalationForm({
 			name: "",
@@ -118,8 +99,7 @@ function OnCallSettingsPage() {
 			delayMinutes: 15,
 			channels: ["email"],
 			repeatCount: 0,
-			enabled: true,
-		});
+			enabled: true });
 	}
 
 	// Generate calendar-like grid for the current week
@@ -277,11 +257,9 @@ function OnCallSettingsPage() {
 											className="p-1.5 rounded-lg hover:bg-[var(--surface-soft)] transition-colors"
 											onClick={() =>
 												updateSchedule({
-													authToken,
 													tenantSlug: TENANT,
 													scheduleId: schedule._id,
-													enabled: !schedule.enabled,
-												})
+													enabled: !schedule.enabled })
 											}
 											aria-label={schedule.enabled ? "Disable schedule" : "Enable schedule"}
 										>
@@ -294,7 +272,7 @@ function OnCallSettingsPage() {
 										<button
 											type="button"
 											className="p-1.5 rounded-lg hover:bg-red-50 text-[var(--danger)] transition-colors"
-											onClick={() => deleteSchedule({ authToken, tenantSlug: TENANT, scheduleId: schedule._id })}
+											onClick={() => deleteSchedule({ tenantSlug: TENANT, scheduleId: schedule._id })}
 											aria-label="Delete schedule"
 										>
 											<Trash2 size={16} />
@@ -401,7 +379,7 @@ function OnCallSettingsPage() {
 									<button
 										type="button"
 										className="p-1.5 rounded-lg hover:bg-red-50 text-[var(--danger)] transition-colors"
-										onClick={() => deleteEscalationPolicy({ authToken, tenantSlug: TENANT, policyId: policy._id })}
+										onClick={() => deleteEscalationPolicy({ tenantSlug: TENANT, policyId: policy._id })}
 										aria-label="Delete escalation policy"
 									>
 										<Trash2 size={16} />

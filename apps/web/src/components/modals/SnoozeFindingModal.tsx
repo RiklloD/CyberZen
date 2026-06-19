@@ -1,5 +1,4 @@
 import { useState, useTransition } from "react";
-import { useAuthToken } from "../../lib/clerk-compat";
 import { useMutation } from "convex/react";
 import type { Id } from "../../lib/convex";
 import { api } from "../../lib/convex";
@@ -19,11 +18,9 @@ interface SnoozeFindingModalProps {
 
 export default function SnoozeFindingModal({
 	findingId,
-	onClose,
-}: SnoozeFindingModalProps) {
+	onClose }: SnoozeFindingModalProps) {
 	const snoozeMutation = useMutation(api.findingTriage.snoozeFinding);
 	const [isPending, startTransition] = useTransition();
-	const authToken = useAuthToken() ?? ""; // FIX: C1 — auth token for tenant verification
 
 	const [duration, setDuration] = useState<SnoozeDuration>(7);
 	const [reason, setReason] = useState("");
@@ -31,11 +28,9 @@ export default function SnoozeFindingModal({
 	function handleSubmit() {
 		startTransition(() => {
 			void snoozeMutation({
-				findingId,
-				authToken, // FIX: C1 — pass auth token
+				findingId, // FIX: C1 — pass auth token
 				durationDays: duration,
-				reason: reason.trim() || undefined,
-			}).then(() => {
+				reason: reason.trim() || undefined }).then(() => {
 				onClose();
 			});
 		});
@@ -49,8 +44,7 @@ export default function SnoozeFindingModal({
 				zIndex: 50,
 				display: "flex",
 				alignItems: "center",
-				justifyContent: "center",
-			}}
+				justifyContent: "center" }}
 		>
 			{/* Dark overlay */}
 			<div
@@ -59,8 +53,7 @@ export default function SnoozeFindingModal({
 					position: "fixed",
 					inset: 0,
 					background: "rgba(0, 0, 0, 0.44)",
-					backdropFilter: "blur(2px)",
-				}}
+					backdropFilter: "blur(2px)" }}
 			/>
 
 			{/* Modal card */}
@@ -90,8 +83,7 @@ export default function SnoozeFindingModal({
 								border: "1px solid var(--line)",
 								background: "var(--chip-bg)",
 								color: "var(--sea-ink)",
-								fontSize: "0.85rem",
-							}}
+								fontSize: "0.85rem" }}
 						>
 							{DURATION_OPTIONS.map((opt) => (
 								<option key={opt.value} value={opt.value}>
@@ -125,8 +117,7 @@ export default function SnoozeFindingModal({
 								color: "var(--sea-ink)",
 								fontSize: "0.85rem",
 								resize: "vertical",
-								fontFamily: "inherit",
-							}}
+								fontFamily: "inherit" }}
 						/>
 					</div>
 

@@ -11,8 +11,7 @@ import RouteErrorBoundary from "../components/RouteErrorBoundary";
 
 export const Route = createFileRoute("/drift-posture")({
 	errorComponent: RouteErrorBoundary,
-	component: DriftPosturePage,
-});
+	component: DriftPosturePage });
 
 function DriftPosturePage() {
 	const tenantSlug = useTenantSlug();
@@ -86,15 +85,13 @@ function DriftPosturePage() {
 
 function RepositoryDriftView({
 	tenantSlug,
-	repositoryFullName,
-}: {
+	repositoryFullName }: {
 	tenantSlug: string;
 	repositoryFullName: string;
 }) {
 	const report = useQuery(api.driftPostureIntel.getLatestDriftPostureBySlug, {
 		tenantSlug,
-		repositoryFullName,
-	});
+		repositoryFullName });
 
 	if (report === undefined) {
 		return (

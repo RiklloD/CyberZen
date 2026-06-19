@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useAuthToken } from "../../lib/clerk-compat";
 import { useMutation, useQuery } from "convex/react";
 import { Plus, Shield, Trash2, X, Check, Pencil, UserCog } from "lucide-react";
 import { useState, useTransition } from "react";
@@ -9,8 +8,7 @@ import { useTenantSlug } from "../../lib/workspace";
 
 export const Route = createFileRoute("/settings/roles")({
 	errorComponent: RouteErrorBoundary,
-	component: RolesPage,
-});
+	component: RolesPage });
 
 const AVAILABLE_PERMISSIONS = [
 	"read:findings",
@@ -31,18 +29,15 @@ const AVAILABLE_PERMISSIONS = [
 
 function RolesPage() {
 	const TENANT = useTenantSlug();
-	const authToken = useAuthToken() ?? "";
 	const [drawerOpen, setDrawerOpen] = useState(false);
 	const [editingRoleId, setEditingRoleId] = useState<string | null>(null);
 
 	const roles = useQuery(
 		api.rbac.listRoles,
-		authToken ? { authToken, tenantSlug: TENANT } : "skip",
+		{ tenantSlug: TENANT },
 	);
 
-	const currentUser = useQuery(api.workspaceAuth.currentWorkspace, {
-		authToken,
-	});
+	const currentUser = useQuery(api.workspaceAuth.currentWorkspace);
 
 	const currentUserCanAdmin =
 		currentUser?.workspaces?.some(
@@ -91,7 +86,6 @@ function RolesPage() {
 				{roles ? (
 					<RoleListTable
 						roles={roles}
-						authToken={authToken}
 						tenantSlug={TENANT}
 						currentUserCanAdmin={currentUserCanAdmin}
 						onEdit={(roleId) => {
@@ -110,7 +104,6 @@ function RolesPage() {
 
 			{drawerOpen && currentUserCanAdmin && (
 				<RoleEditorDrawer
-					authToken={authToken}
 					tenantSlug={TENANT}
 					roleId={editingRoleId}
 					roles={roles ?? []}
@@ -123,7 +116,6 @@ function RolesPage() {
 
 			{currentUserCanAdmin && (
 				<DelegatedAdminSection
-					authToken={authToken}
 					tenantSlug={TENANT}
 				/>
 			)}
@@ -146,7 +138,6 @@ type Role = {
 
 interface RoleListTableProps {
 	roles: Role[];
-	authToken: string;
 	tenantSlug: string;
 	currentUserCanAdmin: boolean;
 	onEdit: (roleId: string) => void;
@@ -154,11 +145,9 @@ interface RoleListTableProps {
 
 function RoleListTable({
 	roles,
-	authToken,
 	tenantSlug,
 	currentUserCanAdmin,
-	onEdit,
-}: RoleListTableProps) {
+	onEdit }: RoleListTableProps) {
 	const [isPending, startTransition] = useTransition();
 	const deleteRole = useMutation(api.rbac.deleteRole);
 
@@ -166,7 +155,7 @@ function RoleListTable({
 		if (!confirm(`Delete role "${name}"? This will remove all grants for this role.`))
 			return;
 		startTransition(async () => {
-			await deleteRole({ authToken, tenantSlug, roleId: roleId as any });
+			await deleteRole({ tenantSlug, roleId: roleId as any });
 		});
 	}
 
@@ -249,7 +238,6 @@ function RoleListTable({
 // ─── RoleEditorDrawer ───────────────────────────────────────────────────────
 
 interface RoleEditorDrawerProps {
-	authToken: string;
 	tenantSlug: string;
 	roleId: string | null;
 	roles: Role[];
@@ -257,12 +245,10 @@ interface RoleEditorDrawerProps {
 }
 
 function RoleEditorDrawer({
-	authToken,
 	tenantSlug,
 	roleId,
 	roles,
-	onClose,
-}: RoleEditorDrawerProps) {
+	onClose }: RoleEditorDrawerProps) {
 	const [name, setName] = useState("");
 	const [description, setDescription] = useState("");
 	const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
@@ -300,21 +286,17 @@ function RoleEditorDrawer({
 		startTransition(async () => {
 			if (isEditing && roleId) {
 				await updateRole({
-					authToken,
 					tenantSlug,
 					roleId: roleId as any,
 					name: name.trim(),
 					description: description.trim() || undefined,
-					permissions: selectedPermissions,
-				});
+					permissions: selectedPermissions });
 			} else {
 				await createRole({
-					authToken,
 					tenantSlug,
 					name: name.trim(),
 					description: description.trim() || undefined,
-					permissions: selectedPermissions,
-				});
+					permissions: selectedPermissions });
 			}
 			onClose();
 		});
@@ -449,16 +431,15 @@ type MemberDelegation = {
 };
 
 interface DelegatedAdminSectionProps {
-	authToken: string;
 	tenantSlug: string;
 }
 
-function DelegatedAdminSection({ authToken, tenantSlug }: DelegatedAdminSectionProps) {
+function DelegatedAdminSection({ tenantSlug }: DelegatedAdminSectionProps) {
 	const [editingUserId, setEditingUserId] = useState<string | null>(null);
 
 	const members = useQuery(
 		api.rbac.listMembersWithDelegations,
-		authToken ? { authToken, tenantSlug } : "skip",
+		{ tenantSlug },
 	) as MemberDelegation[] | undefined;
 
 	return (
@@ -527,7 +508,6 @@ function DelegatedAdminSection({ authToken, tenantSlug }: DelegatedAdminSectionP
 
 			{editingUserId && members && (
 				<DelegatedPermissionsDrawer
-					authToken={authToken}
 					tenantSlug={tenantSlug}
 					member={members.find((m) => m.userId === editingUserId)!}
 					onClose={() => setEditingUserId(null)}
@@ -538,7 +518,6 @@ function DelegatedAdminSection({ authToken, tenantSlug }: DelegatedAdminSectionP
 }
 
 interface DelegatedPermissionsDrawerProps {
-	authToken: string;
 	tenantSlug: string;
 	member: {
 		userId: string;
@@ -551,11 +530,9 @@ interface DelegatedPermissionsDrawerProps {
 }
 
 function DelegatedPermissionsDrawer({
-	authToken,
 	tenantSlug,
 	member,
-	onClose,
-}: DelegatedPermissionsDrawerProps) {
+	onClose }: DelegatedPermissionsDrawerProps) {
 	const [selected, setSelected] = useState<string[]>(member.delegatedPermissions ?? []);
 	const [isPending, startTransition] = useTransition();
 	const setDelegated = useMutation(api.rbac.setDelegatedPermissions);
@@ -569,11 +546,9 @@ function DelegatedPermissionsDrawer({
 	function handleSave() {
 		startTransition(async () => {
 			await setDelegated({
-				authToken,
 				tenantSlug,
 				targetUserId: member.userId as any,
-				permissions: selected,
-			});
+				permissions: selected });
 			onClose();
 		});
 	}

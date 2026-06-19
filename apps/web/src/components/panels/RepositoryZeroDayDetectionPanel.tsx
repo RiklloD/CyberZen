@@ -88,8 +88,7 @@ function FindingRow({ finding }: { finding: Finding }) {
 
 export default function RepositoryZeroDayDetectionPanel({
 	detection,
-	repositoryFullName,
-}: {
+	repositoryFullName }: {
 	detection: Detection;
 	repositoryFullName: string;
 }) {

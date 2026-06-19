@@ -31,8 +31,7 @@ export default function TenantMaturityRadar({
 	totalRepositories,
 	assessedRepositories,
 	levelDistribution,
-	averageScore,
-}: TenantMaturityRadarProps) {
+	averageScore }: TenantMaturityRadarProps) {
 	const counts = [
 		levelDistribution.level1,
 		levelDistribution.level2,

@@ -13,8 +13,7 @@ type Prediction = NonNullable<
 >[number];
 
 export default function MemoryPredictionFeed({
-  repositoryId,
-}: {
+  repositoryId }: {
   repositoryId: string;
 }) {
   const [statusFilter, setStatusFilter] = useState<string>("active");
@@ -22,8 +21,7 @@ export default function MemoryPredictionFeed({
 
   const predictions = useQuery(api.neuralMemory.getPredictions, {
     repositoryId,
-    status: statusFilter === "all" ? undefined : statusFilter as any,
-  });
+    status: statusFilter === "all" ? undefined : statusFilter as any });
 
   if (predictions === undefined) {
     return <PanelSkeleton count={3} />;

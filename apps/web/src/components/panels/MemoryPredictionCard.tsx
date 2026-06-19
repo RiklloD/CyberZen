@@ -15,8 +15,7 @@ export default function MemoryPredictionCard({
   prediction,
   repositoryId,
   onClose,
-  onPredictionRefresh,
-}: {
+  onPredictionRefresh }: {
   prediction: Prediction;
   repositoryId: string;
   onClose: () => void;
@@ -37,8 +36,7 @@ export default function MemoryPredictionCard({
       await submitFeedback({
         predictionId: prediction._id,
         outcome: feedbackMode,
-        actualEvent: feedbackText.trim(),
-      });
+        actualEvent: feedbackText.trim() });
       onClose();
     } catch (error) {
       console.error("Failed to submit feedback:", error);
@@ -53,8 +51,7 @@ export default function MemoryPredictionCard({
       await resolvePrediction({
         predictionId: prediction._id,
         outcome: "disproved",
-        actualEvent: "User dismissed prediction",
-      });
+        actualEvent: "User dismissed prediction" });
       onPredictionRefresh?.();
       onClose();
     } catch (error) {

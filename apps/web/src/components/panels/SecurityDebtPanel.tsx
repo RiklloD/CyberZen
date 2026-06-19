@@ -7,8 +7,7 @@ type SecurityDebt = NonNullable<
 >;
 
 export default function SecurityDebtPanel({
-	data,
-}: {
+	data }: {
 	data: SecurityDebt;
 }) {
 	return (

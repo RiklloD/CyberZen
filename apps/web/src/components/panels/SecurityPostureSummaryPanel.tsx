@@ -108,8 +108,7 @@ function ScoreArc({ score, level }: { score: number; level: string }) {
 }
 
 export default function SecurityPostureSummaryPanel({
-	report,
-}: SecurityPostureSummaryPanelProps) {
+	report }: SecurityPostureSummaryPanelProps) {
 	const { overallScore, postureLevel, topActions, summary } = report;
 
 	return (

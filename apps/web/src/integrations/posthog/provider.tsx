@@ -3,7 +3,6 @@ import posthog from "posthog-js";
 import type { ReactNode } from "react";
 import { useEffect } from "react";
 import { useQuery } from "convex/react";
-import { useAuthToken } from "../../lib/clerk-compat";
 import { env } from "#/env";
 import { api } from "#/lib/convex";
 
@@ -12,10 +11,8 @@ interface PostHogProviderProps {
 }
 
 function PostHogInitializer() {
-	const authToken = useAuthToken() ?? "";
 	const consentRecord = useQuery(
 		api.analyticsConsent.getMyConsent,
-		authToken ? { authToken } : "skip",
 	);
 
 	useEffect(() => {
@@ -28,8 +25,7 @@ function PostHogInitializer() {
 					api_host: env.VITE_POSTHOG_HOST,
 					person_profiles: "identified_only",
 					capture_pageview: false,
-					defaults: "2025-11-30",
-				});
+					defaults: "2025-11-30" });
 			}
 		} else {
 			// Opt out without unloading — prevents tracking when consent is withdrawn

@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useAuthToken } from "../../lib/clerk-compat";
 import { useMutation, useQuery } from "convex/react";
 import { Globe, Plus, Trash2, CheckCircle, XCircle } from "lucide-react";
 import { useState, useTransition } from "react";
@@ -10,23 +9,21 @@ import QueryErrorFallback from "../../components/QueryErrorFallback";
 
 export const Route = createFileRoute("/settings/ip-allowlist")({
   errorComponent: QueryErrorFallback,
-  component: IpAllowlistPage,
-});
+  component: IpAllowlistPage });
 
 function IpAllowlistPage() {
   const TENANT = useTenantSlug();
-  const authToken = useAuthToken() ?? "";
   const [newCidr, setNewCidr] = useState("");
   const [testIp, setTestIp] = useState("");
   const [, startTransition] = useTransition();
 
   const allowlist = useQuery(
     api.ipAllowlist.getIpAllowlist,
-    authToken ? { authToken, tenantSlug: TENANT } : "skip",
+    { tenantSlug: TENANT },
   );
   const testResult2 = useQuery(
     api.ipAllowlist.testIpAccess,
-    authToken && testIp.length > 6 ? { authToken, tenantSlug: TENANT, testIp } : "skip",
+    testIp.length > 6 ? { tenantSlug: TENANT, testIp } : "skip",
   );
 
   const updateAllowlist = useMutation(api.ipAllowlist.updateIpAllowlist);
@@ -36,7 +33,7 @@ function IpAllowlistPage() {
     const updated = [...allowlist, newCidr];
     startTransition(async () => {
       try {
-        await updateAllowlist({ authToken, tenantSlug: TENANT, cidrs: updated });
+        await updateAllowlist({ tenantSlug: TENANT, cidrs: updated });
         setNewCidr("");
       } catch (e: any) {
         alert(e.message ?? "Invalid CIDR");
@@ -49,7 +46,7 @@ function IpAllowlistPage() {
     const updated = (allowlist as string[]).filter((c) => c !== cidr);
     startTransition(async () => {
       try {
-        await updateAllowlist({ authToken, tenantSlug: TENANT, cidrs: updated });
+        await updateAllowlist({ tenantSlug: TENANT, cidrs: updated });
       } catch (e) {
         console.error(e);
       }
@@ -60,7 +57,7 @@ function IpAllowlistPage() {
     if (!confirm("Remove all IP restrictions? All IPs will be allowed.")) return;
     startTransition(async () => {
       try {
-        await updateAllowlist({ authToken, tenantSlug: TENANT, cidrs: [] });
+        await updateAllowlist({ tenantSlug: TENANT, cidrs: [] });
       } catch (e) {
         console.error(e);
       }

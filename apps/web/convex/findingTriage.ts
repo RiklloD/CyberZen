@@ -26,7 +26,7 @@ import { requireSessionAuth } from './lib/sessionAuth'
 import type { Id } from './_generated/dataModel'
 
 // FIX: C1 — shared helper that verifies the caller is a member of the finding's tenant
-async function verifyTenantMembership(ctx: any, authToken: string, tenantId: Id<'tenants'>) {
+async function verifyTenantMembership(ctx: any, authToken: string | undefined, tenantId: Id<'tenants'>) {
   const { userId } = await requireSessionAuth(ctx, authToken)
   const membership = await ctx.db
     .query('tenantMembers')

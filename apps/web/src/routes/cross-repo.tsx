@@ -8,14 +8,12 @@ import RouteErrorBoundary from "../components/RouteErrorBoundary";
 
 export const Route = createFileRoute("/cross-repo")({
 	errorComponent: RouteErrorBoundary,
-	component: CrossRepoPage,
-});
+	component: CrossRepoPage });
 
 function CrossRepoPage() {
 	const TENANT = useTenantSlug();
 	const summary = useQuery(api.crossRepoIntel.getTenantCrossRepoSummaryBySlug, {
-		tenantSlug: TENANT,
-	});
+		tenantSlug: TENANT });
 
 	if (!summary) {
 		return (

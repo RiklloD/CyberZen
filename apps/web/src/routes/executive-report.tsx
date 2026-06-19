@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useAuthToken } from "../lib/clerk-compat";
 import { useAction, useMutation, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { BarChart3, Calendar, Download, FileText, Loader2, RefreshCw } from "lucide-react";
@@ -18,14 +17,12 @@ type GeneratedReport = NonNullable<FunctionReturnType<typeof api.reports.listRep
 
 export const Route = createFileRoute("/executive-report")({
 	errorComponent: QueryErrorFallback,
-	component: ExecutiveReportPage,
-});
+	component: ExecutiveReportPage });
 
 function ExecutiveReportPage() {
 	const tenantSlug = useTenantSlug();
 	const report = useQuery(api.executiveReportIntel.getExecutiveReport, {
-		tenantSlug,
-	});
+		tenantSlug });
 
 	if (report === undefined) {
 		return (
@@ -98,14 +95,13 @@ function ExecutiveReportPage() {
 }
 
 function GeneratedReportsSection({ tenantSlug }: { tenantSlug: string }) {
-	const authToken = useAuthToken();
 	const reports = useQuery(
 		api.reports.listReports,
-		authToken ? { authToken, tenantSlug } : "skip",
+		{ tenantSlug },
 	);
 	const deliveryConfig = useQuery(
 		api.reports.getDeliveryConfig,
-		authToken ? { authToken, tenantSlug } : "skip",
+		{ tenantSlug },
 	);
 	const generateReport = useAction(api.reports.generateExecutiveReport);
 	const scheduleDelivery = useMutation(api.reports.scheduleReportDelivery);
@@ -122,17 +118,15 @@ function GeneratedReportsSection({ tenantSlug }: { tenantSlug: string }) {
 	const [scheduleSaved, setScheduleSaved] = useState(false);
 
 	const handleGenerate = async () => {
-		if (!authToken) return;
 		setGenerating(true);
 		try {
-			await generateReport({ authToken, tenantSlug, period, type: reportType });
+			await generateReport({ tenantSlug, period, type: reportType });
 		} finally {
 			setGenerating(false);
 		}
 	};
 
 	const handleSaveSchedule = async () => {
-		if (!authToken) return;
 		setSavingSchedule(true);
 		try {
 			const recipients = scheduleRecipients
@@ -140,12 +134,10 @@ function GeneratedReportsSection({ tenantSlug }: { tenantSlug: string }) {
 				.map((r) => r.trim())
 				.filter(Boolean);
 			await scheduleDelivery({
-				authToken,
 				tenantSlug,
 				frequency: scheduleFreq,
 				recipients,
-				isActive: true,
-			});
+				isActive: true });
 			setScheduleSaved(true);
 			setTimeout(() => setScheduleSaved(false), 3000);
 		} finally {
@@ -155,7 +147,7 @@ function GeneratedReportsSection({ tenantSlug }: { tenantSlug: string }) {
 
 	const getDownloadUrl = (reportId: string) => {
 		const base = window.location.origin;
-		return `${base}/api/reports/download?reportId=${reportId}&authToken=${encodeURIComponent(authToken ?? "")}`;
+		return `${base}/api/reports/download?reportId=${reportId}`;
 	};
 
 	return (
@@ -194,7 +186,7 @@ function GeneratedReportsSection({ tenantSlug }: { tenantSlug: string }) {
 					<button
 						type="button"
 						onClick={handleGenerate}
-						disabled={generating || !authToken}
+						disabled={generating}
 						className="btn signal-button inline-flex items-center gap-1.5 text-xs disabled:opacity-50"
 					>
 						{generating ? (
@@ -323,7 +315,7 @@ function GeneratedReportsSection({ tenantSlug }: { tenantSlug: string }) {
 					<button
 						type="button"
 						onClick={handleSaveSchedule}
-						disabled={savingSchedule || !authToken}
+						disabled={savingSchedule}
 						className="btn signal-button inline-flex items-center gap-1.5 text-xs disabled:opacity-50"
 					>
 						{savingSchedule ? (

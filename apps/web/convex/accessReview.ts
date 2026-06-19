@@ -5,7 +5,7 @@ import { requireSessionAuth } from './lib/sessionAuth'
 
 async function getTenantAndVerifyAdmin(
   ctx: any,
-  authToken: string,
+  authToken: string | undefined,
   tenantSlug: string,
 ) {
   const { userId } = await requireSessionAuth(ctx, authToken)

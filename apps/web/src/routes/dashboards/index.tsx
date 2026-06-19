@@ -1,5 +1,4 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useAuthToken } from "../../lib/clerk-compat";
 import { useMutation, useQuery } from "convex/react";
 import { LayoutDashboard, Plus, Trash2, X } from "lucide-react";
 import { useState, useTransition } from "react";
@@ -10,16 +9,13 @@ import RouteErrorBoundary from "../../components/RouteErrorBoundary";
 
 export const Route = createFileRoute("/dashboards/")({
 	errorComponent: RouteErrorBoundary,
-	component: DashboardListPage,
-});
+	component: DashboardListPage });
 
 function DashboardListPage() {
 	const TENANT = useTenantSlug();
-	const authToken = useAuthToken() ?? "";
-
 	const dashboards = useQuery(
 		api.dashboards.listDashboards,
-		authToken ? { authToken, tenantSlug: TENANT } : "skip",
+		{ tenantSlug: TENANT },
 	);
 
 	return (
@@ -45,7 +41,7 @@ function DashboardListPage() {
 							tone="neutral"
 						/>
 					)}
-					<CreateDashboardButton authToken={authToken} tenantSlug={TENANT} />
+					<CreateDashboardButton tenantSlug={TENANT} />
 				</div>
 
 				{!dashboards ? (
@@ -60,7 +56,6 @@ function DashboardListPage() {
 							<DashboardCard
 								key={d._id}
 								dashboard={d}
-								authToken={authToken}
 								tenantSlug={TENANT}
 							/>
 						))}
@@ -80,11 +75,8 @@ function DashboardListPage() {
 
 function DashboardCard({
 	dashboard,
-	authToken,
-	tenantSlug,
-}: {
+	tenantSlug }: {
 	dashboard: any;
-	authToken: string;
 	tenantSlug: string;
 }) {
 	const [isPending, startTransition] = useTransition();
@@ -93,7 +85,7 @@ function DashboardCard({
 	function handleDelete() {
 		if (!confirm(`Delete dashboard "${dashboard.name}"?`)) return;
 		startTransition(async () => {
-			await deleteDashboard({ authToken, tenantSlug, dashboardId: dashboard._id });
+			await deleteDashboard({ tenantSlug, dashboardId: dashboard._id });
 		});
 	}
 
@@ -144,10 +136,7 @@ function DashboardCard({
 }
 
 function CreateDashboardButton({
-	authToken,
-	tenantSlug,
-}: {
-	authToken: string;
+	tenantSlug }: {
 	tenantSlug: string;
 }) {
 	const [isOpen, setIsOpen] = useState(false);
@@ -165,17 +154,13 @@ function CreateDashboardButton({
 					{
 						type: "findings_feed",
 						title: "Recent Findings",
-						gridArea: "1 / 3 / 3 / 5",
-					},
-				],
-			});
+						gridArea: "1 / 3 / 3 / 5" },
+				] });
 			await createDashboard({
-				authToken,
 				tenantSlug,
 				name: name.trim(),
 				description: description.trim() || undefined,
-				layout: defaultLayout,
-			});
+				layout: defaultLayout });
 			setName("");
 			setDescription("");
 			setIsOpen(false);

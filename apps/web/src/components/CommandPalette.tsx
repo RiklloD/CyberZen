@@ -1,4 +1,3 @@
-import { useAuthToken } from "../lib/clerk-compat";
 import { useNavigate } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import {
@@ -7,8 +6,7 @@ import {
 	GitBranch,
 	Search,
 	Shield,
-	X,
-} from "lucide-react";
+	X } from "lucide-react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "../lib/convex";
 import { useTenantSlug } from "../lib/workspace";
@@ -60,12 +58,8 @@ export default function CommandPalette() {
 	const inputRef = useRef<HTMLInputElement>(null);
 	const navigate = useNavigate();
 	const TENANT = useTenantSlug();
-	const authToken = useAuthToken() ?? "";
-
 	// Derive tenantId from slug (we need it for the search query)
-	const workspace = useQuery(api.workspaceAuth.currentWorkspace, {
-		authToken,
-	});
+	const workspace = useQuery(api.workspaceAuth.currentWorkspace);
 
 	const tenantId = workspace?.workspaces?.find(
 		(w: { tenantSlug: string; tenantId: string }) => w.tenantSlug === TENANT,

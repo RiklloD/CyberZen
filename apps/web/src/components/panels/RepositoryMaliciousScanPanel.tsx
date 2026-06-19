@@ -12,8 +12,7 @@ export interface RepositoryMaliciousScanPanelProps {
 }
 
 export default function RepositoryMaliciousScanPanel({
-	data,
-}: RepositoryMaliciousScanPanelProps) {
+	data }: RepositoryMaliciousScanPanelProps) {
 	return (
 		<div className="card card-sm">
 			<p className="panel-label mb-2">Malicious Package Scan</p>

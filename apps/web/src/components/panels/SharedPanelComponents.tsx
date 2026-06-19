@@ -12,8 +12,7 @@ import type { ReactNode } from "react";
 export function PanelSkeleton({
 	count = 1,
 	rows,
-	className = "",
-}: {
+	className = "" }: {
 	count?: number;
 	rows?: number;
 	className?: string;
@@ -48,8 +47,7 @@ export function PanelSkeleton({
  */
 export function EmptyState({
 	icon,
-	message,
-}: {
+	message }: {
 	icon?: ReactNode;
 	message: string;
 }) {
@@ -74,8 +72,7 @@ export function PanelContainer({
 	subtitle,
 	actions,
 	children,
-	className = "",
-}: {
+	className = "" }: {
 	title: string;
 	subtitle?: string;
 	actions?: ReactNode;

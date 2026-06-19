@@ -20,8 +20,7 @@ export type SeverityFilter = (typeof SEVERITY_LEVELS)[number];
 export default function FindingsSeverityFilterChips({
 	findings,
 	severityFilter,
-	onChange,
-}: {
+	onChange }: {
 	findings: OverviewFinding[];
 	severityFilter: SeverityFilter;
 	onChange: (level: SeverityFilter) => void;

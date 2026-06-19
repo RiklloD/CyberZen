@@ -22,8 +22,7 @@ function gradeTone(grade: string): "success" | "warning" | "danger" | "neutral" 
 }
 
 export default function RepositoryEmailSecurityDriftPanel({
-  data,
-}: {
+  data }: {
   data: ScanDoc;
 }) {
   const [expandedRules, setExpandedRules] = useState<Set<number>>(new Set());
@@ -69,8 +68,7 @@ export default function RepositoryEmailSecurityDriftPanel({
                 ? "var(--success)"
                 : passRate >= 60
                   ? "var(--warning)"
-                  : "var(--danger)",
-          }}
+                  : "var(--danger)" }}
         />
       </div>
 

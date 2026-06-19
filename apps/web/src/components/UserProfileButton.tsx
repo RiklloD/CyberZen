@@ -7,8 +7,7 @@ import {
 	LogOut,
 	Plug,
 	Settings,
-	User,
-} from "lucide-react";
+	User } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../lib/convex";

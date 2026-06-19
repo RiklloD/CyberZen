@@ -19,15 +19,13 @@ import {
 	formatTimestamp,
 	priorityTierTone,
 	severityTone,
-	slaComplianceTone,
-} from "../lib/utils";
+	slaComplianceTone } from "../lib/utils";
 import { useTenantSlug } from "../lib/workspace";
 import RouteErrorBoundary from "../components/RouteErrorBoundary";
 
 export const Route = createFileRoute("/remediation")({
 	errorComponent: RouteErrorBoundary,
-	component: RemediationPage,
-});
+	component: RemediationPage });
 
 type OverviewData = NonNullable<
 	FunctionReturnType<typeof api.dashboard.overview>
@@ -101,8 +99,7 @@ function RemediationPage() {
 function RepoRemediationView({
 	tenantSlug,
 	repositoryId,
-	repositoryFullName,
-}: {
+	repositoryFullName }: {
 	tenantSlug: string;
 	repositoryId: Id<"repositories">;
 	repositoryFullName: string;
@@ -138,8 +135,7 @@ function RepoRemediationView({
 		{ repositoryId },
 	);
 	const sla = useQuery(api.slaIntel.getSlaStatusForRepository, {
-		repositoryId,
-	});
+		repositoryId });
 	const depUpdates = useQuery(
 		api.dependencyUpdateIntel.getLatestDependencyUpdateRecommendations,
 		{ tenantSlug, repositoryFullName },
@@ -541,8 +537,7 @@ function RepoRemediationView({
 					alignItems: "center",
 					justifyContent: "center",
 					background: "rgba(0, 0, 0, 0.44)",
-					backdropFilter: "blur(2px)",
-				}}
+					backdropFilter: "blur(2px)" }}
 			>
 				<div
 					className="card"
@@ -578,8 +573,7 @@ function RepoRemediationView({
 								await dispatchRemediation({ repositoryId: dispatchTarget });
 								track("pr.generated", {
 									repositoryName: repositoryFullName,
-									fixType: "auto-remediation-batch",
-								});
+									fixType: "auto-remediation-batch" });
 								setDispatchTarget(null);
 							}}
 							className="signal-button"

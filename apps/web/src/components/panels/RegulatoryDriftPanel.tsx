@@ -8,8 +8,7 @@ type RegulatoryDrift = NonNullable<
 >;
 
 export default function RegulatoryDriftPanel({
-	data,
-}: {
+	data }: {
 	data: RegulatoryDrift;
 }) {
 	return (
@@ -42,13 +41,11 @@ export default function RegulatoryDriftPanel({
 					{
 						key: "hipaa",
 						label: "HIPAA",
-						score: data.hipaaScore,
-					},
+						score: data.hipaaScore },
 					{
 						key: "pci_dss",
 						label: "PCI-DSS",
-						score: data.pciDssScore,
-					},
+						score: data.pciDssScore },
 					{ key: "nis2", label: "NIS2", score: data.nis2Score },
 				].map(({ key, label, score }) => (
 					<div key={key} className="inset-panel text-center">

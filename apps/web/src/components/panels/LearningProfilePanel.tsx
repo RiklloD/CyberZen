@@ -4,16 +4,14 @@ import type { api } from "../../lib/convex";
 import {
 	learningTrendTone,
 	maturityTone,
-	multiplierTone,
-} from "../../lib/utils";
+	multiplierTone } from "../../lib/utils";
 
 type LearningProfile = NonNullable<
 	FunctionReturnType<typeof api.learningProfileIntel.getLatestLearningProfile>
 >;
 
 export default function LearningProfilePanel({
-	profile,
-}: {
+	profile }: {
 	profile: LearningProfile;
 }) {
 	return (

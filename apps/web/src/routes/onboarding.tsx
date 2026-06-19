@@ -1,4 +1,3 @@
-import { useAuthToken } from "../lib/clerk-compat";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { Building2, Github, Plus, Rocket, Trash2 } from "lucide-react";
@@ -77,8 +76,7 @@ type ImportSnapshotDraft = {
 
 export const Route = createFileRoute("/onboarding")({
 	errorComponent: RouteErrorBoundary,
-	component: OnboardingPage,
-});
+	component: OnboardingPage });
 
 function humanizeSlug(slug: string) {
 	return slug
@@ -96,13 +94,11 @@ function createRepoDraft(overrides: Partial<RepoDraft> = {}): RepoDraft {
 		defaultBranch: "main",
 		primaryLanguage: "TypeScript",
 		visibility: "private",
-		...overrides,
-	};
+		...overrides };
 }
 
 function OnboardingPage() {
 	const TENANT = useTenantSlug();
-	const authToken = useAuthToken();
 	const provisionWorkspace = useMutation(api.onboarding.provisionWorkspace);
 	const createWorkspaceInvite = useMutation(
 		api.workspaceAuth.createWorkspaceInvite,
@@ -208,8 +204,7 @@ function OnboardingPage() {
 			.then((result) => {
 				setGithubRepos({
 					login: result.login,
-					repos: result.repos as GithubRepoOption[],
-				});
+					repos: result.repos as GithubRepoOption[] });
 			})
 			.catch((err: unknown) => {
 				setGithubReposError(
@@ -279,8 +274,7 @@ function OnboardingPage() {
 					provider: repo.provider,
 					defaultBranch: repo.defaultBranch.trim() || "main",
 					primaryLanguage: repo.primaryLanguage.trim() || "TypeScript",
-					visibility: repo.visibility,
-				}))
+					visibility: repo.visibility }))
 				.filter((repo) => repo.fullName.length > 0);
 
 			if (cleanedRepositories.length === 0) {
@@ -337,18 +331,15 @@ function OnboardingPage() {
 								? value.dependents.map((dependent) => String(dependent))
 								: [],
 							license:
-								typeof value.license === "string" ? value.license : undefined,
-						};
-					}),
-				};
+								typeof value.license === "string" ? value.license : undefined };
+					}) };
 			}
 
 			const primaryRepository = cleanedRepositories[0];
 			const repositoriesForProvision = [
 				{
 					...primaryRepository,
-					...(importSnapshot ? { importSnapshot } : {}),
-				},
+					...(importSnapshot ? { importSnapshot } : {}) },
 				...cleanedRepositories.slice(1),
 			];
 
@@ -356,8 +347,7 @@ function OnboardingPage() {
 				tenantSlug: TENANT,
 				companyName: companyName.trim(),
 				deploymentMode,
-				repositories: repositoriesForProvision,
-			})) as ProvisionResult;
+				repositories: repositoriesForProvision })) as ProvisionResult;
 
 			setResult(response);
 		} catch (err) {
@@ -389,8 +379,7 @@ function OnboardingPage() {
 			const created = (await createWorkspaceInvite({
 				tenantSlug: result.tenantSlug,
 				email: normalizedEmail,
-				role: inviteRole,
-			})) as InviteResult;
+				role: inviteRole })) as InviteResult;
 
 			setInviteResult(created);
 			setInviteEmail("");
@@ -700,8 +689,7 @@ function OnboardingPage() {
 												try {
 													const result = await startGithubConnect({
 														tenantSlug: TENANT,
-														returnTo: "/onboarding",
-													});
+														returnTo: "/onboarding" });
 													window.location.assign(result.authorizeUrl);
 												} catch (err) {
 													setGithubConnectError(
@@ -755,16 +743,14 @@ function OnboardingPage() {
 																	);
 																	if (!picked) {
 																		updateRepository(repo.id, {
-																			fullName: event.target.value,
-																		});
+																			fullName: event.target.value });
 																		return;
 																	}
 																	updateRepository(repo.id, {
 																		fullName: picked.fullName,
 																		defaultBranch: picked.defaultBranch,
 																		primaryLanguage: picked.primaryLanguage,
-																		visibility: picked.visibility,
-																	});
+																		visibility: picked.visibility });
 																}}
 																className="w-full rounded-2xl border border-[var(--line)] bg-[var(--bg-panel)] px-3 py-2.5 text-sm text-[var(--sea-ink)] outline-none transition focus:border-[var(--accent-line)] focus:ring-2 focus:ring-[rgba(47,207,132,0.14)]"
 															>
@@ -789,8 +775,7 @@ function OnboardingPage() {
 																value={repo.fullName}
 																onChange={(event) =>
 																	updateRepository(repo.id, {
-																		fullName: event.target.value,
-																	})
+																		fullName: event.target.value })
 																}
 																className="w-full rounded-2xl border border-[var(--line)] bg-[var(--bg-panel)] px-3 py-2.5 text-sm text-[var(--sea-ink)] outline-none transition focus:border-[var(--accent-line)] focus:ring-2 focus:ring-[rgba(47,207,132,0.14)]"
 																placeholder="acme/payments-api"
@@ -829,8 +814,7 @@ function OnboardingPage() {
 															onChange={(event) =>
 																updateRepository(repo.id, {
 																	provider: event.target
-																		.value as RepoDraft["provider"],
-																})
+																		.value as RepoDraft["provider"] })
 															}
 															className="w-full rounded-2xl border border-[var(--line)] bg-[var(--bg-panel)] px-3 py-2.5 text-sm text-[var(--sea-ink)] outline-none transition focus:border-[var(--accent-line)] focus:ring-2 focus:ring-[rgba(47,207,132,0.14)]"
 														>
@@ -851,8 +835,7 @@ function OnboardingPage() {
 															className="signal-button secondary-button w-full justify-center"
 															style={{
 																padding: "0.74rem 0.9rem",
-																fontSize: "0.8rem",
-															}}
+																fontSize: "0.8rem" }}
 														>
 															<Trash2 size={14} className="mr-1.5" />
 															Remove
@@ -869,8 +852,7 @@ function OnboardingPage() {
 															value={repo.defaultBranch}
 															onChange={(event) =>
 																updateRepository(repo.id, {
-																	defaultBranch: event.target.value,
-																})
+																	defaultBranch: event.target.value })
 															}
 															className="w-full rounded-2xl border border-[var(--line)] bg-[var(--bg-panel)] px-3 py-2.5 text-sm text-[var(--sea-ink)] outline-none transition focus:border-[var(--accent-line)] focus:ring-2 focus:ring-[rgba(47,207,132,0.14)]"
 															placeholder="main"
@@ -885,8 +867,7 @@ function OnboardingPage() {
 															value={repo.primaryLanguage}
 															onChange={(event) =>
 																updateRepository(repo.id, {
-																	primaryLanguage: event.target.value,
-																})
+																	primaryLanguage: event.target.value })
 															}
 															className="w-full rounded-2xl border border-[var(--line)] bg-[var(--bg-panel)] px-3 py-2.5 text-sm text-[var(--sea-ink)] outline-none transition focus:border-[var(--accent-line)] focus:ring-2 focus:ring-[rgba(47,207,132,0.14)]"
 															placeholder="TypeScript"
@@ -902,8 +883,7 @@ function OnboardingPage() {
 															onChange={(event) =>
 																updateRepository(repo.id, {
 																	visibility: event.target
-																		.value as RepoDraft["visibility"],
-																})
+																		.value as RepoDraft["visibility"] })
 															}
 															className="w-full rounded-2xl border border-[var(--line)] bg-[var(--bg-panel)] px-3 py-2.5 text-sm text-[var(--sea-ink)] outline-none transition focus:border-[var(--accent-line)] focus:ring-2 focus:ring-[rgba(47,207,132,0.14)]"
 														>

@@ -6,8 +6,7 @@ import {
 	Check,
 	ArrowUpRight,
 	Download,
-	Sparkles,
-} from "lucide-react";
+	Sparkles } from "lucide-react";
 import StatusPill from "../../components/StatusPill";
 import UpgradeButton from "../../components/UpgradeButton";
 import { api } from "../../lib/convex";
@@ -17,24 +16,19 @@ import RouteErrorBoundary from "../../components/RouteErrorBoundary";
 
 export const Route = createFileRoute("/settings/billing")({
 	errorComponent: RouteErrorBoundary,
-	component: BillingPage,
-});
+	component: BillingPage });
 
 function BillingPage() {
 	const TENANT = useTenantSlug();
 	const plans = useQuery(api.billing.listPlans);
 	const current = useQuery(api.billing.currentPlanForTenant, {
-		tenantSlug: TENANT,
-	});
+		tenantSlug: TENANT });
 	const invoices = useQuery(api.billing.listInvoicesForTenant, {
-		tenantSlug: TENANT,
-	});
+		tenantSlug: TENANT });
 	const usage = useQuery(api.billing.currentUsageForTenant, {
-		tenantSlug: TENANT,
-	});
+		tenantSlug: TENANT });
 	const tieredPlan = useQuery(api.plans.currentPlanForTenant, {
-		tenantSlug: TENANT,
-	});
+		tenantSlug: TENANT });
 	const tieredPlans = useQuery(api.plans.listPlans);
 
 	return (
@@ -81,8 +75,7 @@ function BillingPage() {
 
 function CurrentTierCard({
 	plan,
-	allTieredPlans,
-}: {
+	allTieredPlans }: {
 	plan: {
 		_id: string;
 		slug: string;
@@ -162,8 +155,7 @@ type BillingInvoices = FunctionReturnType<typeof api.billing.listInvoicesForTena
 function BillingSummaryCard({
 	current,
 	usage,
-	plans,
-}: {
+	plans }: {
 	current: BillingCurrent | null | undefined;
 	usage: BillingUsage | null | undefined;
 	plans: BillingPlans | null | undefined;
@@ -198,8 +190,7 @@ function BillingSummaryCard({
 		active: "success",
 		trialing: "neutral",
 		past_due: "danger",
-		canceled: "warning",
-	};
+		canceled: "warning" };
 
 	const planName = current.plan?.name ?? current.subscription.planSlug;
 	const priceFmt = current.plan
@@ -282,8 +273,7 @@ function BillingSummaryCard({
 
 function PlanComparisonTable({
 	plans,
-	currentPlanSlug,
-}: {
+	currentPlanSlug }: {
 	plans: BillingPlans;
 	currentPlanSlug: string | null;
 }) {
@@ -358,8 +348,7 @@ function PlanComparisonTable({
 }
 
 function InvoiceList({
-	invoices,
-}: {
+	invoices }: {
 	invoices: BillingInvoices | undefined;
 }) {
 	return (

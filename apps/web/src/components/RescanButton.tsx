@@ -58,8 +58,7 @@ export default function RescanButton({
 	scannerType,
 	tenantSlug,
 	repositoryFullName,
-	label = "Re-scan",
-}: RescanButtonProps) {
+	label = "Re-scan" }: RescanButtonProps) {
 	const dispatch = useMutation(api.events.dispatchScannerForRepository);
 	const [loading, setLoading] = useState(false);
 	const [lastResult, setLastResult] = useState<
@@ -73,13 +72,11 @@ export default function RescanButton({
 			await dispatch({
 				tenantSlug,
 				repositoryFullName,
-				scannerType,
-			});
+				scannerType });
 			track("scan.triggered", {
 				scannerSlug: scannerType,
 				repositoryName: repositoryFullName,
-				triggerType: "manual",
-			});
+				triggerType: "manual" });
 			setLastResult("success");
 		} catch {
 			setLastResult("error");

@@ -7,8 +7,7 @@ type Tier3Signal = FunctionReturnType<
 >[number];
 
 export default function Tier3SignalsPanel({
-	signals,
-}: {
+	signals }: {
 	signals: Tier3Signal[];
 }) {
 	if (signals.length === 0) return null;

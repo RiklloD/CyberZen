@@ -245,7 +245,7 @@ function generateSastFindingPlaybook(title: string, affectedFiles: string[]): Ge
 
 async function requireMembership(
   ctx: MutationCtx | QueryCtx,
-  authToken: string,
+  authToken: string | undefined,
   tenantSlug: string,
 ) {
   const { userId } = await requireSessionAuth(ctx, authToken)

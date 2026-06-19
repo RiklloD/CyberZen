@@ -9,8 +9,7 @@ type ComplianceRemediation = NonNullable<
 >;
 
 export default function ComplianceRemediationPanel({
-	data,
-}: {
+	data }: {
 	data: ComplianceRemediation;
 }) {
 	return (

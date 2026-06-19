@@ -9,7 +9,7 @@ type AuthCtx = QueryCtx | MutationCtx;
  */
 export async function requireSessionAuth(
 	ctx: AuthCtx,
-	_authToken?: string,
+	_authToken?: string | undefined,
 ): Promise<{ userId: Id<"users">; sessionId: null }> {
 	const identity = await ctx.auth.getUserIdentity();
 	if (!identity) {

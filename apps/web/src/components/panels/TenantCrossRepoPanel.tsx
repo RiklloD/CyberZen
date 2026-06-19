@@ -19,8 +19,7 @@ function severityCellTone(severity: string) {
 }
 
 export default function TenantCrossRepoPanel({
-	summary,
-}: {
+	summary }: {
 	summary: SummaryData;
 }) {
 	const [selectedEvent, setSelectedEvent] = useState<CrossRepoEvent | null>(

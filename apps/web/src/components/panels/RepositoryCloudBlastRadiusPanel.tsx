@@ -80,8 +80,7 @@ function ResourceFanOutNode({ resource }: { resource: CloudResource }) {
 
 function RiskFlag({
 	active,
-	label,
-}: {
+	label }: {
 	active: boolean;
 	label: string;
 }) {
@@ -96,8 +95,7 @@ function RiskFlag({
 
 export default function RepositoryCloudBlastRadiusPanel({
 	data,
-	repositoryFullName,
-}: {
+	repositoryFullName }: {
 	data: CloudBlastData;
 	repositoryFullName: string;
 }) {
@@ -111,8 +109,7 @@ export default function RepositoryCloudBlastRadiusPanel({
 		lateralMovementRisk,
 		cloudBlastScore,
 		cloudRiskTier,
-		cloudSummary,
-	} = data;
+		cloudSummary } = data;
 
 	// Group resources by provider
 	const byProvider = new Map<string, CloudResource[]>();

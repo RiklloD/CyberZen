@@ -21,8 +21,7 @@ type PredictionAccuracy = NonNullable<
 
 export default function NeuralMemoryDashboard({
   repositoryId,
-  onTabChange,
-}: {
+  onTabChange }: {
   repositoryId: string;
   onTabChange: (tab: string) => void;
 }) {

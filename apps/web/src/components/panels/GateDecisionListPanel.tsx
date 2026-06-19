@@ -51,8 +51,7 @@ export interface GateDecisionListPanelProps {
 export default function GateDecisionListPanel({
   decisions,
   selectedId,
-  onSelect,
-}: GateDecisionListPanelProps) {
+  onSelect }: GateDecisionListPanelProps) {
   if (!decisions) {
     return (
       <div className="space-y-6">

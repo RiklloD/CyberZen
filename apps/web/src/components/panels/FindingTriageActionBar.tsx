@@ -1,5 +1,4 @@
 import { useState, useTransition } from "react";
-import { useAuthToken } from "../../lib/clerk-compat";
 import { useMutation } from "convex/react";
 import type { Id } from "../../lib/convex";
 import { api } from "../../lib/convex";
@@ -7,27 +6,22 @@ import { track } from "../../lib/analytics";
 import SnoozeFindingModal from "../modals/SnoozeFindingModal";
 
 export default function FindingTriageActionBar({
-	findingId,
-}: {
+	findingId }: {
 	findingId: Id<"findings">;
 }) {
 	const triageMutation = useMutation(api.findingTriage.markFalsePositive);
 	const [isPending, startTransition] = useTransition();
 	const [showSnoozeModal, setShowSnoozeModal] = useState(false);
-	const authToken = useAuthToken() ?? ""; // FIX: C1 — auth token for tenant verification
 
 	function handleFalsePositive() {
 		startTransition(() => {
 			void triageMutation({
-				findingId,
-				authToken, // FIX: C1 — pass auth token
-				note: "Marked false positive via operator dashboard",
-			}).then(() => {
+				findingId, // FIX: C1 — pass auth token
+				note: "Marked false positive via operator dashboard" }).then(() => {
 				track("finding.triaged", {
 					severity: "unknown",
 					action: "false_positive",
-					findingId,
-				});
+					findingId });
 			});
 		});
 	}

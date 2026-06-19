@@ -82,8 +82,7 @@ function tileTone(
 }
 
 export default function DriftPostureScannerGrid({
-	report,
-}: DriftPostureScannerGridProps) {
+	report }: DriftPostureScannerGridProps) {
 	// Build a lookup: category label → { score, grade, worstRiskLevel }
 	const catMap = new Map<
 		string,
@@ -93,8 +92,7 @@ export default function DriftPostureScannerGrid({
 		catMap.set(cs.label, {
 			score: cs.score,
 			grade: cs.grade,
-			worstRiskLevel: cs.worstRiskLevel,
-		});
+			worstRiskLevel: cs.worstRiskLevel });
 	}
 
 	return (
@@ -147,8 +145,7 @@ export default function DriftPostureScannerGrid({
 														? "var(--warning)"
 														: tone === "danger"
 															? "var(--danger)"
-															: "var(--border)",
-									}}
+															: "var(--border)" }}
 								/>
 							</div>
 						</button>

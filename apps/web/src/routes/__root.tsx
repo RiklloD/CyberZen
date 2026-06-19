@@ -1,12 +1,11 @@
-import { ClerkProvider, useAuth, SignInButton, UserButton, SignedIn, SignedOut } from "@clerk/tanstack-react-start";
+import { ClerkProvider, useAuth, SignInButton } from "@clerk/tanstack-react-start";
 import { TanStackDevtools } from "@tanstack/react-devtools";
 import {
 	createRootRoute,
 	Navigate,
 	Outlet,
 	useLocation,
-	useNavigate,
-} from "@tanstack/react-router";
+	useNavigate } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { useMutation, useQuery } from "convex/react";
 import { useEffect, useState } from "react";
@@ -22,8 +21,7 @@ import PostHogProvider from "../integrations/posthog/provider";
 import { api } from "../lib/convex";
 import {
 	attachGlobalShortcutListener,
-	registerNavigationShortcuts,
-} from "../lib/shortcuts";
+	registerNavigationShortcuts } from "../lib/shortcuts";
 import { WorkspaceSlugProvider } from "../lib/workspace";
 
 export const Route = createRootRoute({
@@ -35,17 +33,14 @@ export const Route = createRootRoute({
 			{
 				name: "description",
 				content:
-					"Continuous security posture management with 40+ drift detectors, exploit validation, SBOM tracking, and AI-powered remediation.",
-			},
+					"Continuous security posture management with 40+ drift detectors, exploit validation, SBOM tracking, and AI-powered remediation." },
 			{
 				name: "og:title",
-				content: "CyberZen — AI-Powered Security Posture Platform",
-			},
+				content: "CyberZen — AI-Powered Security Posture Platform" },
 			{
 				name: "og:description",
 				content:
-					"From code to cloud: automated vulnerability detection, compliance evidence, and security maturity scoring.",
-			},
+					"From code to cloud: automated vulnerability detection, compliance evidence, and security maturity scoring." },
 			{ name: "og:type", content: "website" },
 			{ name: "twitter:card", content: "summary_large_image" },
 		],
@@ -53,9 +48,7 @@ export const Route = createRootRoute({
 			{ rel: "icon", href: "/favicon.ico" },
 			{ rel: "apple-touch-icon", href: "/logo192.png" },
 			{ rel: "manifest", href: "/manifest.json" },
-		],
-	}),
-});
+		] }) });
 
 const PUBLIC_ROUTES = new Set<string>(["/about", "/sign-in", "/sign-up"]);
 
@@ -116,11 +109,9 @@ function UnauthenticatedShell() {
 							Sign in
 						</button>
 					</SignInButton>
-					<SignUpButton mode="modal">
-						<button type="button" className="auth-submit" style={{ background: "transparent", border: "1px solid var(--border, #30363d)", color: "var(--sea-ink, #e6edf3)" }}>
-							Create account
-						</button>
-					</SignUpButton>
+					<a href="/sign-up" className="auth-submit" style={{ textAlign: "center", background: "transparent", border: "1px solid var(--border, #30363d)", color: "var(--sea-ink, #e6edf3)", textDecoration: "none" }}>
+						Create account
+					</a>
 				</div>
 			</div>
 		</div>
@@ -239,8 +230,7 @@ function RootGate() {
 					plugins={[
 						{
 							name: "Tanstack Router",
-							render: <TanStackRouterDevtoolsPanel />,
-						},
+							render: <TanStackRouterDevtoolsPanel /> },
 					]}
 				/>
 				<AnalyticsConsentBanner />
@@ -272,8 +262,7 @@ function LoadingShell() {
 function InviteBootstrap({
 	inviteToken,
 	isProcessed,
-	onComplete,
-}: {
+	onComplete }: {
 	inviteToken: string | null;
 	isProcessed: boolean;
 	onComplete: () => void;

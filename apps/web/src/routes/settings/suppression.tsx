@@ -11,8 +11,7 @@ type SuppressionRule = NonNullable<FunctionReturnType<typeof api.suppressionRule
 
 export const Route = createFileRoute("/settings/suppression")({
 	errorComponent: RouteErrorBoundary,
-	component: SuppressionRulesPage,
-});
+	component: SuppressionRulesPage });
 
 const SCOPE_OPTIONS = [
 	{ value: "all" as const, label: "All Findings" },
@@ -25,8 +24,7 @@ const SCOPE_OPTIONS = [
 function SuppressionRulesPage() {
 	const TENANT = useTenantSlug();
 	const rules = useQuery(api.suppressionRules.listRules, {
-		tenantSlug: TENANT,
-	});
+		tenantSlug: TENANT });
 
 	const createRule = useMutation(api.suppressionRules.createRule);
 	const updateRule = useMutation(api.suppressionRules.updateRule);
@@ -86,8 +84,7 @@ function SuppressionRulesPage() {
 				scopeValue: formScopeValue || undefined,
 				justification: formJustification,
 				expiresAt,
-				enabled: formEnabled,
-			});
+				enabled: formEnabled });
 		} else {
 			createRule({
 				tenantSlug: TENANT,
@@ -96,8 +93,7 @@ function SuppressionRulesPage() {
 				scopeValue: formScopeValue || undefined,
 				justification: formJustification,
 				expiresAt,
-				enabled: formEnabled,
-			});
+				enabled: formEnabled });
 		}
 		setEditorOpen(false);
 	}

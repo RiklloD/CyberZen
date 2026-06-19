@@ -11,8 +11,7 @@ export interface RepositoryAbandonmentPanelProps {
 }
 
 export default function RepositoryAbandonmentPanel({
-	data,
-}: RepositoryAbandonmentPanelProps) {
+	data }: RepositoryAbandonmentPanelProps) {
 	return (
 		<div className="card card-sm">
 			<p className="panel-label mb-2">Abandonment Scan</p>

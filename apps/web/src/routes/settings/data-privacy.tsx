@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useAuthToken } from "../../lib/clerk-compat";
 import { useMutation, useQuery } from "convex/react";
 import {
 	BarChart2,
@@ -8,8 +7,7 @@ import {
 	Loader2,
 	Shield,
 	Trash2,
-	X,
-} from "lucide-react";
+	X } from "lucide-react";
 import { useState } from "react";
 import { api } from "../../lib/convex";
 import { useTenantSlug } from "../../lib/workspace";
@@ -17,44 +15,38 @@ import QueryErrorFallback from "../../components/QueryErrorFallback";
 
 export const Route = createFileRoute("/settings/data-privacy")({
 	errorComponent: QueryErrorFallback,
-	component: DataPrivacyPage,
-});
+	component: DataPrivacyPage });
 
 const TYPE_LABELS: Record<string, string> = {
 	access: "Data Access",
 	deletion: "Data Deletion",
-	portability: "Data Export",
-};
+	portability: "Data Export" };
 
 const STATUS_COLORS: Record<string, string> = {
 	pending: "text-yellow-600",
 	processing: "text-blue-600",
 	complete: "text-[var(--success)]",
-	cancelled: "text-[var(--sea-ink-soft)]",
-};
+	cancelled: "text-[var(--sea-ink-soft)]" };
 
 function formatDate(ts: number) {
 	return new Date(ts).toLocaleDateString("en-US", {
 		year: "numeric",
 		month: "short",
-		day: "numeric",
-	});
+		day: "numeric" });
 }
 
 function DataPrivacyPage() {
 	const TENANT = useTenantSlug();
-	const authToken = useAuthToken() ?? "";
 	const [pending, setPending] = useState<string | null>(null);
 	const [msg, setMsg] = useState<{ text: string; ok: boolean } | null>(null);
 
 	const requests = useQuery(
 		api.dataPrivacy.listDataRequests,
-		authToken ? { authToken, tenantSlug: TENANT } : "skip",
+		{ tenantSlug: TENANT },
 	);
 
 	const consentRecord = useQuery(
 		api.analyticsConsent.getMyConsent,
-		authToken ? { authToken } : "skip",
 	);
 	const updateConsent = useMutation(api.analyticsConsent.updateMyConsent);
 
@@ -76,10 +68,10 @@ function DataPrivacyPage() {
 		setPending(action);
 		try {
 			if (action === "access")
-				await requestAccess({ authToken, tenantSlug: TENANT });
+				await requestAccess({ tenantSlug: TENANT });
 			else if (action === "deletion")
-				await requestDeletion({ authToken, tenantSlug: TENANT });
-			else await requestExport({ authToken, tenantSlug: TENANT });
+				await requestDeletion({ tenantSlug: TENANT });
+			else await requestExport({ tenantSlug: TENANT });
 			flash("Request submitted. Processing may take up to 24 hours.", true);
 		} catch (err) {
 			flash(
@@ -93,7 +85,7 @@ function DataPrivacyPage() {
 
 	async function handleCancel(id: string) {
 		try {
-			await cancelRequest({ authToken, requestId: id as any });
+			await cancelRequest({ requestId: id as any });
 			flash("Request cancelled.", true);
 		} catch (err) {
 			flash(
@@ -224,7 +216,7 @@ function DataPrivacyPage() {
 								role="switch"
 								aria-checked={consentRecord?.consent ?? false}
 								onClick={() =>
-									updateConsent({ authToken, consent: !(consentRecord?.consent ?? false) })
+									updateConsent({ consent: !(consentRecord?.consent ?? false) })
 								}
 								aria-label="Toggle analytics consent"
 							>

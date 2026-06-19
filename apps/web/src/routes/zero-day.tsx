@@ -12,8 +12,7 @@ import RouteErrorBoundary from "../components/RouteErrorBoundary";
 
 export const Route = createFileRoute("/zero-day")({
 	errorComponent: RouteErrorBoundary,
-	component: ZeroDayPage,
-});
+	component: ZeroDayPage });
 
 type SummaryData = NonNullable<
 	FunctionReturnType<
@@ -129,8 +128,7 @@ function ZeroDayPage() {
 
 function RepoZeroDaySection({
 	tenantSlug,
-	repositoryFullName,
-}: {
+	repositoryFullName }: {
 	tenantSlug: string;
 	repositoryFullName: string;
 }) {

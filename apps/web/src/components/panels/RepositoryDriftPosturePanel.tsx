@@ -106,8 +106,7 @@ function DriftScoreArc({ score, grade }: { score: number; grade: string }) {
 }
 
 export default function RepositoryDriftPosturePanel({
-	report,
-}: RepositoryDriftPosturePanelProps) {
+	report }: RepositoryDriftPosturePanelProps) {
 	const {
 		overallScore,
 		overallGrade,
@@ -117,8 +116,7 @@ export default function RepositoryDriftPosturePanel({
 		criticalDriftCount,
 		highDriftCount,
 		topRisks,
-		summary,
-	} = report;
+		summary } = report;
 
 	return (
 		<div className="space-y-4">
@@ -240,8 +238,7 @@ export default function RepositoryDriftPosturePanel({
 										className="h-full rounded-full transition-all duration-300"
 										style={{
 											width: `${barPercent}%`,
-											backgroundColor: barColor,
-										}}
+											backgroundColor: barColor }}
 									/>
 								</div>
 							</div>

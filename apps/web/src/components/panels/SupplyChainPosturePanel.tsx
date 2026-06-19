@@ -12,8 +12,7 @@ export interface SupplyChainPosturePanelProps {
 }
 
 export default function SupplyChainPosturePanel({
-	data,
-}: SupplyChainPosturePanelProps) {
+	data }: SupplyChainPosturePanelProps) {
 	return (
 		<div className="card">
 			<p className="panel-label mb-2">Supply Chain Posture</p>

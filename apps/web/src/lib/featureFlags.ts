@@ -12,8 +12,7 @@ export function useFeatureFlag(slug: string): boolean | undefined {
 	const tenantSlug = useTenantSlug();
 	const enabled = useQuery(api.featureFlags.isEnabledForTenant, {
 		tenantSlug,
-		slug,
-	});
+		slug });
 	return enabled;
 }
 

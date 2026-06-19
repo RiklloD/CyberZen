@@ -13,8 +13,7 @@ type OverviewDisclosure = OverviewData["disclosures"][number];
 
 export default function BreachIntelFeedPanel({
 	disclosures,
-	tenantSlug,
-}: {
+	tenantSlug }: {
 	disclosures: OverviewDisclosure[];
 	tenantSlug: string;
 }) {

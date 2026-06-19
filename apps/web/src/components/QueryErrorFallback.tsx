@@ -25,8 +25,7 @@ export default function QueryErrorFallback({
 	error,
 	reset,
 	title = "Failed to load data",
-	className,
-}: Props): ReactNode {
+	className }: Props): ReactNode {
 	const msg = error !== undefined ? errorMessage(error) : null;
 
 	return (

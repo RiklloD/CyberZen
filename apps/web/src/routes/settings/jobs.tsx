@@ -9,8 +9,7 @@ import {
 	ChevronUp,
 	Clock,
 	Loader2,
-	XCircle,
-} from "lucide-react";
+	XCircle } from "lucide-react";
 import { useState } from "react";
 import StatusPill from "../../components/StatusPill";
 import { api } from "../../lib/convex";
@@ -20,8 +19,7 @@ import RouteErrorBoundary from "../../components/RouteErrorBoundary";
 
 export const Route = createFileRoute("/settings/jobs")({
 	errorComponent: RouteErrorBoundary,
-	component: JobMonitoringPage,
-});
+	component: JobMonitoringPage });
 
 type JobHealth = NonNullable<
 	FunctionReturnType<typeof api.jobMonitoring.getJobHealth>
@@ -59,8 +57,7 @@ function JobHistory({ jobName }: { jobName: string }) {
 	const history = useQuery(api.jobMonitoring.getJobHistory, {
 		tenantSlug: TENANT,
 		jobName,
-		limit: 20,
-	});
+		limit: 20 });
 
 	if (!history) {
 		return (
@@ -187,8 +184,7 @@ function JobRow({ job }: { job: JobHealth }) {
 function JobMonitoringPage() {
 	const TENANT = useTenantSlug();
 	const health = useQuery(api.jobMonitoring.getJobHealth, {
-		tenantSlug: TENANT,
-	});
+		tenantSlug: TENANT });
 
 	const totalAlerts = health?.reduce((sum: number, j: JobHealth) => sum + (j.alertCount ?? 0), 0) ?? 0;
 	const failedJobs = health?.filter((j: JobHealth) => j.lastStatus === "failed").length ?? 0;

@@ -6,8 +6,7 @@ type PredictionAccuracy = NonNullable<
 >;
 
 export default function PredictionAccuracyChart({
-  accuracy,
-}: {
+  accuracy }: {
   accuracy: PredictionAccuracy;
 }) {
   const { confirmed, disproved, partial, totalPredictions } = accuracy;

@@ -12,8 +12,7 @@ export interface RepositoryCryptoWeaknessPanelProps {
 }
 
 export default function RepositoryCryptoWeaknessPanel({
-	data,
-}: RepositoryCryptoWeaknessPanelProps) {
+	data }: RepositoryCryptoWeaknessPanelProps) {
 	return (
 		<div className="card card-sm">
 			<p className="panel-label mb-2">Crypto Weakness</p>

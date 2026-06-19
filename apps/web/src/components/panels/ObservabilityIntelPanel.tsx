@@ -34,8 +34,7 @@ function scoreTone(
 }
 
 export default function ObservabilityIntelPanel({
-	intel,
-}: ObservabilityIntelPanelProps) {
+	intel }: ObservabilityIntelPanelProps) {
 	const { platforms, pushHistory, summary } = intel;
 
 	const failedPushes = pushHistory.filter(

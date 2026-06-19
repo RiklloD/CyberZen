@@ -8,8 +8,7 @@ type AdversarialSummary = NonNullable<
 
 export default function RedBlueAdversarialPanel({
 	adversarialSummary,
-	redAgentFindingCount,
-}: {
+	redAgentFindingCount }: {
 	adversarialSummary: AdversarialSummary;
 	redAgentFindingCount: number | null | undefined;
 }) {

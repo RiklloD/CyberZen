@@ -9,8 +9,7 @@ type BranchProtection = NonNullable<
 >;
 
 export default function BranchProtectionPanel({
-	branchProtection,
-}: {
+	branchProtection }: {
 	branchProtection: BranchProtection;
 }) {
 	return (

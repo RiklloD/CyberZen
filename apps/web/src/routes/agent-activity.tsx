@@ -11,18 +11,15 @@ import RouteErrorBoundary from "../components/RouteErrorBoundary";
 
 export const Route = createFileRoute("/agent-activity")({
 	errorComponent: RouteErrorBoundary,
-	component: AgentsPage,
-});
+	component: AgentsPage });
 
 function AgentsPage() {
 	const TENANT = useTenantSlug();
 	const agentTasks = useQuery(api.agentOrchestrator.getAgentTasksForTenant, {
 		tenantSlug: TENANT,
-		limit: 50,
-	});
+		limit: 50 });
 	const llmUsage = useQuery(api.agentOrchestrator.getLLMUsageForTenant, {
-		tenantSlug: TENANT,
-	});
+		tenantSlug: TENANT });
 	const [activeTab, setActiveTab] = useState<
 		"activity" | "remediation" | "redblue" | "prompt_injection" | "usage"
 	>("activity");
@@ -134,8 +131,7 @@ function AgentsPage() {
 function AgentActivityPanel({
 	tasks,
 	expandedTask,
-	setExpandedTask,
-}: {
+	setExpandedTask }: {
 	tasks: Array<{
 		_id: string;
 		agentType: string;
@@ -302,8 +298,7 @@ function ReasoningLogViewer({ taskId }: { taskId: Id<"agentTasks"> }) {
 function RemediationPanel({ tenantSlug }: { tenantSlug: string }) {
 	const proposals = useQuery(api.agentOrchestrator.getRemediationProposalsForTenant, {
 		tenantSlug,
-		limit: 20,
-	});
+		limit: 20 });
 
 	if (!proposals || proposals.length === 0) {
 		return (
@@ -366,11 +361,9 @@ function RemediationPanel({ tenantSlug }: { tenantSlug: string }) {
 function RedBluePanel({ tenantSlug }: { tenantSlug: string }) {
 	const attacks = useQuery(api.agentOrchestrator.getRedTeamAttacksForTenant, {
 		tenantSlug,
-		limit: 30,
-	});
+		limit: 30 });
 	const rules = useQuery(api.agentOrchestrator.getBlueTeamRulesForTenant, {
-		tenantSlug,
-	});
+		tenantSlug });
 
 	return (
 		<div className="space-y-6">
@@ -437,8 +430,7 @@ function RedBluePanel({ tenantSlug }: { tenantSlug: string }) {
 
 function PromptInjectionPanel({ tenantSlug }: { tenantSlug: string }) {
 	const findings = useQuery(api.agentOrchestrator.getPromptInjectionFindingsForTenant, {
-		tenantSlug,
-	});
+		tenantSlug });
 
 	if (!findings || findings.length === 0) {
 		return (
@@ -486,8 +478,7 @@ function PromptInjectionPanel({ tenantSlug }: { tenantSlug: string }) {
 // ─── LLM Usage Panel ─────────────────────────────────────────────────────────
 
 function LLMUsagePanel({
-	usage,
-}: {
+	usage }: {
 	usage: { totalCostUsd: number; totalTokens: number; records: Array<Record<string, unknown>> } | undefined;
 }) {
 	if (!usage || usage.records.length === 0) {
@@ -559,8 +550,7 @@ function StatCard({
 	icon,
 	label,
 	value,
-	sublabel,
-}: {
+	sublabel }: {
 	icon: React.ReactNode;
 	label: string;
 	value: string;
@@ -582,8 +572,7 @@ function TabButton({
 	active,
 	onClick,
 	icon,
-	label,
-}: {
+	label }: {
 	active: boolean;
 	onClick: () => void;
 	icon: React.ReactNode;
@@ -613,8 +602,7 @@ function AgentTypeIcon({ type }: { type: string }) {
 		blast_radius: <Brain size={16} className="text-[var(--signal)]" />,
 		prompt_injection: <Eye size={16} className="text-[var(--warning,#f59e0b)]" />,
 		surface_reduction: <Zap size={16} className="text-[var(--signal)]" />,
-		regulatory_drift: <FileJson size={16} className="text-[var(--signal)]" />,
-	};
+		regulatory_drift: <FileJson size={16} className="text-[var(--signal)]" /> };
 	return icons[type] ?? <Bot size={16} className="text-[var(--text-dim)]" />;
 }
 

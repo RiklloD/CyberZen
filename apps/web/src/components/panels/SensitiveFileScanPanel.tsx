@@ -7,8 +7,7 @@ type SensitiveFiles = NonNullable<
 >;
 
 export default function SensitiveFileScanPanel({
-	data,
-}: {
+	data }: {
 	data: SensitiveFiles;
 }) {
 	return (

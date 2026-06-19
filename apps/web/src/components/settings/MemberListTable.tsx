@@ -16,7 +16,6 @@ type Member = {
 
 interface MemberListTableProps {
 	members: Member[];
-	authToken: string;
 	tenantSlug: string;
 	currentUserCanAdmin: boolean;
 }
@@ -29,10 +28,8 @@ function roleTone(role: string) {
 
 export default function MemberListTable({
 	members,
-	authToken,
 	tenantSlug,
-	currentUserCanAdmin,
-}: MemberListTableProps) {
+	currentUserCanAdmin }: MemberListTableProps) {
 	const [isPending, startTransition] = useTransition();
 	const [changingRole, setChangingRole] = useState<string | null>(null);
 
@@ -42,10 +39,8 @@ export default function MemberListTable({
 	function handleRemove(userId: Id<"users">) {
 		startTransition(async () => {
 			await removeMember({
-				authToken,
 				tenantSlug,
-				memberUserId: userId,
-			});
+				memberUserId: userId });
 		});
 	}
 
@@ -53,11 +48,9 @@ export default function MemberListTable({
 		setChangingRole(userId);
 		startTransition(async () => {
 			await changeRole({
-				authToken,
 				tenantSlug,
 				memberUserId: userId,
-				newRole,
-			});
+				newRole });
 			setChangingRole(null);
 		});
 	}

@@ -14,8 +14,7 @@ interface AcceptRiskModalProps {
 export default function AcceptRiskModal({
 	findingId,
 	open,
-	onClose,
-}: AcceptRiskModalProps) {
+	onClose }: AcceptRiskModalProps) {
 	const [justification, setJustification] = useState("");
 	const [approver, setApprover] = useState("");
 	const [durationDays, setDurationDays] = useState("");
@@ -36,13 +35,11 @@ export default function AcceptRiskModal({
 				findingId,
 				justification: justification.trim(),
 				approver: approver.trim(),
-				durationDays: durationDays ? Number(durationDays) : undefined,
-			});
+				durationDays: durationDays ? Number(durationDays) : undefined });
 			track("finding.accepted_risk", {
 				findingId,
 				justification: justification.trim(),
-				expiryDays: durationDays ? Number(durationDays) : undefined,
-			});
+				expiryDays: durationDays ? Number(durationDays) : undefined });
 			setJustification("");
 			setApprover("");
 			setDurationDays("");
@@ -65,16 +62,14 @@ export default function AcceptRiskModal({
 				alignItems: "center",
 				justifyContent: "center",
 				background: "rgba(0, 0, 0, 0.44)",
-				backdropFilter: "blur(2px)",
-			}}
+				backdropFilter: "blur(2px)" }}
 		>
 			<div
 				className="card"
 				style={{
 					width: "min(480px, 92vw)",
 					maxHeight: "90vh",
-					overflowY: "auto",
-				}}
+					overflowY: "auto" }}
 			>
 				<div className="flex items-center gap-2 mb-4">
 					<ShieldCheck
@@ -157,8 +152,7 @@ export default function AcceptRiskModal({
 							className="signal-button secondary-button"
 							style={{
 								padding: "0.5rem 0.9rem",
-								fontSize: "0.78rem",
-							}}
+								fontSize: "0.78rem" }}
 						>
 							Cancel
 						</button>
@@ -168,8 +162,7 @@ export default function AcceptRiskModal({
 							className="signal-button"
 							style={{
 								padding: "0.5rem 0.9rem",
-								fontSize: "0.78rem",
-							}}
+								fontSize: "0.78rem" }}
 						>
 							{isPending ? "Accepting…" : "Accept Risk"}
 						</button>

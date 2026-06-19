@@ -1,8 +1,8 @@
 export default {
   providers: [
     {
-      domain: process.env.CONVEX_SITE_URL,
-      applicationID: 'convex',
+      domain: "engaged-meerkat-95.clerk.accounts.dev",
+      applicationID: "convex",
     },
   ],
 }

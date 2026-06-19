@@ -3,65 +3,57 @@ import { describe, expect, it, vi } from "vitest";
 // Mock Convex hooks — they won't exist in the test environment
 vi.mock("convex/react", () => ({
 	useQuery: vi.fn(() => undefined),
-	useMutation: vi.fn(() => vi.fn()),
-}));
+	useMutation: vi.fn(() => vi.fn()) }));
 
-vi.mock("@convex-dev/auth/react", () => ({
-	useAuthToken: vi.fn(() => "mock-token"),
-}));
+vi.mock("convex/react-clerk", () => ({
+	ConvexProviderWithClerk: vi.fn(({ children }: any) => children) }));
+
+vi.mock("@clerk/tanstack-react-start", () => ({
+	ClerkProvider: vi.fn(({ children }: any) => children),
+	useAuth: vi.fn(() => ({ isSignedIn: true, isLoaded: true, getToken: vi.fn(() => "mock-token") })),
+	useClerk: vi.fn(() => ({ signOut: vi.fn() })),
+	SignInButton: vi.fn(({ children }: any) => children),
+	SignUpButton: vi.fn(({ children }: any) => children),
+	SignedIn: vi.fn(({ children }: any) => children),
+	SignedOut: vi.fn(({ children }: any) => children),
+	UserButton: vi.fn(() => null) }));
 
 // Mock TanStack Router
 vi.mock("@tanstack/react-router", () => ({
 	createRootRoute: vi.fn((opts: any) => opts),
 	useRouterState: vi.fn(() => ({
-		location: { pathname: "/", search: "" },
-	})),
+		location: { pathname: "/", search: "" } })),
 	useLocation: vi.fn(() => ({ pathname: "/", search: "" })),
 	useNavigate: vi.fn(() => vi.fn()),
 	Navigate: vi.fn(() => null),
-	Outlet: vi.fn(() => null),
-}));
+	Outlet: vi.fn(() => null) }));
 
 vi.mock("@tanstack/react-router-devtools", () => ({
-	TanStackRouterDevtoolsPanel: vi.fn(() => null),
-}));
+	TanStackRouterDevtoolsPanel: vi.fn(() => null) }));
 
 vi.mock("@tanstack/react-devtools", () => ({
-	TanStackDevtools: vi.fn(() => null),
-}));
+	TanStackDevtools: vi.fn(() => null) }));
 
 // Mock heavy child components
 vi.mock("../components/Sidebar", () => ({
-	default: vi.fn(() => <div data-testid="sidebar">Sidebar</div>),
-}));
-vi.mock("../components/AuthScreen", () => ({
-	default: vi.fn(() => <div data-testid="auth-screen">AuthScreen</div>),
-}));
+	default: vi.fn(() => <div data-testid="sidebar">Sidebar</div>) }));
 vi.mock("../components/CommandPalette", () => ({
-	default: vi.fn(() => null),
-}));
+	default: vi.fn(() => null) }));
 vi.mock("../components/RouteErrorBoundary", () => ({
-	default: vi.fn(({ children }: any) => children),
-}));
+	default: vi.fn(({ children }: any) => children) }));
 vi.mock("../components/ShortcutsModal", () => ({
-	default: vi.fn(() => null),
-}));
+	default: vi.fn(() => null) }));
 vi.mock("../components/Toaster", () => ({
-	default: vi.fn(() => null),
-}));
+	default: vi.fn(() => null) }));
 vi.mock("../integrations/convex/provider", () => ({
-	default: vi.fn(({ children }: any) => children),
-}));
+	default: vi.fn(({ children }: any) => children) }));
 vi.mock("../integrations/posthog/provider", () => ({
-	default: vi.fn(({ children }: any) => children),
-}));
+	default: vi.fn(({ children }: any) => children) }));
 vi.mock("../lib/shortcuts", () => ({
 	attachGlobalShortcutListener: vi.fn(),
-	registerNavigationShortcuts: vi.fn(() => vi.fn()),
-}));
+	registerNavigationShortcuts: vi.fn(() => vi.fn()) }));
 vi.mock("../lib/workspace", () => ({
-	WorkspaceSlugProvider: vi.fn(({ children }: any) => children),
-}));
+	WorkspaceSlugProvider: vi.fn(({ children }: any) => children) }));
 
 describe("__root.tsx workspace gating", () => {
 	it("shows loading shell when auth token is present but workspace query is loading", async () => {

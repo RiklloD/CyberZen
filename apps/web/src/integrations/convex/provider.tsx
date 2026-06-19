@@ -17,8 +17,7 @@ function ConvexMissingPage() {
 				alignItems: "center",
 				justifyContent: "center",
 				background: "var(--page-bg, #0d1117)",
-				padding: "2rem",
-			}}
+				padding: "2rem" }}
 		>
 			<div
 				style={{
@@ -28,8 +27,7 @@ function ConvexMissingPage() {
 					border: "1px solid var(--border, #30363d)",
 					borderRadius: "1rem",
 					padding: "2.5rem",
-					textAlign: "center",
-				}}
+					textAlign: "center" }}
 			>
 				<div
 					style={{
@@ -40,8 +38,7 @@ function ConvexMissingPage() {
 						height: "3rem",
 						borderRadius: "50%",
 						background: "rgba(239,68,68,0.15)",
-						marginBottom: "1.25rem",
-					}}
+						marginBottom: "1.25rem" }}
 				>
 					<svg
 						width="22"
@@ -63,8 +60,7 @@ function ConvexMissingPage() {
 						fontSize: "1.125rem",
 						fontWeight: 600,
 						color: "var(--sea-ink, #e6edf3)",
-						margin: "0 0 0.5rem",
-					}}
+						margin: "0 0 0.5rem" }}
 				>
 					CyberZen is not configured
 				</h1>
@@ -73,8 +69,7 @@ function ConvexMissingPage() {
 						fontSize: "0.875rem",
 						color: "var(--sea-ink-soft, #8b949e)",
 						margin: "0 0 1.25rem",
-						lineHeight: 1.6,
-					}}
+						lineHeight: 1.6 }}
 				>
 					<code
 						style={{
@@ -82,8 +77,7 @@ function ConvexMissingPage() {
 							color: "#ef4444",
 							borderRadius: "0.25rem",
 							padding: "0.125rem 0.375rem",
-							fontSize: "0.8rem",
-						}}
+							fontSize: "0.8rem" }}
 					>
 						VITE_CONVEX_URL
 					</code>{" "}
@@ -94,8 +88,7 @@ function ConvexMissingPage() {
 						fontSize: "0.75rem",
 						color: "var(--sea-ink-soft, #8b949e)",
 						margin: 0,
-						opacity: 0.6,
-					}}
+						opacity: 0.6 }}
 				>
 					This value is required to connect to the CyberZen backend.
 				</p>
@@ -105,8 +98,7 @@ function ConvexMissingPage() {
 }
 
 export default function AppConvexProvider({
-	children,
-}: {
+	children }: {
 	children: ReactNode;
 }) {
 	useEffect(() => {

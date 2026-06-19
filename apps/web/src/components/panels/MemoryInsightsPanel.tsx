@@ -14,8 +14,7 @@ const severityToneMap: Record<string, "danger" | "warning" | "neutral" | "info">
   high: "warning",
   medium: "neutral",
   low: "info",
-  informational: "info",
-};
+  informational: "info" };
 
 export default function MemoryInsightsPanel({ tenantSlug }: { tenantSlug: string }) {
   const insights = useQuery(api.neuralMemory.getMemoryInsightsBySlug, { tenantSlug });

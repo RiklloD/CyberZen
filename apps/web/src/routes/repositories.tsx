@@ -25,15 +25,13 @@ import {
 	honeypotScoreTone,
 	learningTrendTone,
 	maturityTone,
-	multiplierTone,
-} from "../lib/utils";
+	multiplierTone } from "../lib/utils";
 import { useTenantSlug } from "../lib/workspace";
 import QueryErrorFallback from "../components/QueryErrorFallback";
 
 export const Route = createFileRoute("/repositories")({
 	errorComponent: QueryErrorFallback,
-	component: RepositoriesPage,
-});
+	component: RepositoriesPage });
 
 type OverviewData = NonNullable<
 	FunctionReturnType<typeof api.dashboard.overview>
@@ -105,8 +103,7 @@ function RepositoriesPage() {
 
 function RepositoryDrillDown({
 	tenantSlug,
-	repo,
-}: {
+	repo }: {
 	tenantSlug: string;
 	repo: OverviewRepository;
 }) {
@@ -126,8 +123,7 @@ function RepositoryDrillDown({
 		{ tenantSlug, repositoryFullName },
 	);
 	const sla = useQuery(api.slaIntel.getSlaStatusForRepository, {
-		repositoryId,
-	});
+		repositoryId });
 	const remediationQueue = useQuery(
 		api.remediationQueueIntel.getRemediationQueueForRepository,
 		{ repositoryId },
@@ -142,8 +138,7 @@ function RepositoryDrillDown({
 	);
 	const honeypot = useQuery(api.honeypotIntel.getLatestHoneypotPlan, {
 		tenantSlug,
-		repositoryFullName,
-	});
+		repositoryFullName });
 	const riskAcceptance = useQuery(
 		api.riskAcceptanceIntel.getAcceptanceSummaryForRepository,
 		{ repositoryId },
@@ -352,8 +347,7 @@ function RepositoryDrillDown({
 function HoneypotCtaButtons({
 	tenantSlug,
 	repositoryFullName,
-	hasActiveHoneypots,
-}: {
+	hasActiveHoneypots }: {
 	tenantSlug: string;
 	repositoryFullName: string;
 	hasActiveHoneypots: boolean;

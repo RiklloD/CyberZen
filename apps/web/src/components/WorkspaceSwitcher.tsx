@@ -92,8 +92,7 @@ export default function WorkspaceSwitcher() {
 							setIsSwitching(true);
 							try {
 								await switchWorkspace({
-									tenantSlug: event.currentTarget.value,
-								});
+									tenantSlug: event.currentTarget.value });
 							} finally {
 								setIsSwitching(false);
 							}

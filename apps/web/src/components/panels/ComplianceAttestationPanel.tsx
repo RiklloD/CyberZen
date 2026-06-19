@@ -9,8 +9,7 @@ type ComplianceAttestation = NonNullable<
 >;
 
 export default function ComplianceAttestationPanel({
-	data,
-}: {
+	data }: {
 	data: ComplianceAttestation;
 }) {
 	return (

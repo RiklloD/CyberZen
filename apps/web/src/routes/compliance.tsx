@@ -20,8 +20,7 @@ import QueryErrorFallback from "../components/QueryErrorFallback";
 
 export const Route = createFileRoute("/compliance")({
 	errorComponent: QueryErrorFallback,
-	component: CompliancePage,
-});
+	component: CompliancePage });
 
 type OverviewData = NonNullable<
 	FunctionReturnType<typeof api.dashboard.overview>
@@ -143,8 +142,7 @@ function CompliancePage() {
 
 function RepoComplianceIntelligence({
 	tenantSlug,
-	repositoryFullName,
-}: {
+	repositoryFullName }: {
 	tenantSlug: string;
 	repositoryFullName: string;
 }) {

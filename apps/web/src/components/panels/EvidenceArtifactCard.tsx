@@ -23,8 +23,7 @@ function artifactStatusTone(
 
 function handleDownload(artifact: Artifact) {
 	const blob = new Blob([JSON.stringify(artifact, null, 2)], {
-		type: "application/json",
-	});
+		type: "application/json" });
 	const url = URL.createObjectURL(blob);
 	const a = document.createElement("a");
 	a.href = url;
@@ -38,8 +37,7 @@ export type EvidenceArtifactCardProps = {
 };
 
 export default function EvidenceArtifactCard({
-	artifact,
-}: EvidenceArtifactCardProps) {
+	artifact }: EvidenceArtifactCardProps) {
 	return (
 		<div className="card card-sm flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
 			<div className="flex items-start gap-3 min-w-0">

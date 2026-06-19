@@ -8,8 +8,7 @@ import QueryErrorFallback from "../../components/QueryErrorFallback";
 
 export const Route = createFileRoute("/settings/general")({
 	errorComponent: QueryErrorFallback,
-	component: GeneralSettingsPage,
-});
+	component: GeneralSettingsPage });
 
 /**
  * §3.13 — Workspace General Settings.
@@ -50,8 +49,7 @@ interface WorkspaceSettings {
 function GeneralSettingsPage() {
 	const TENANT = useTenantSlug();
 	const settings = useQuery(api.workspaceAuth.getWorkspaceSettings, {
-		tenantSlug: TENANT,
-	});
+		tenantSlug: TENANT });
 	const updateSettings = useMutation(
 		api.workspaceAuth.updateWorkspaceSettings,
 	);
@@ -65,8 +63,7 @@ function GeneralSettingsPage() {
 		name: settings?.name ?? "",
 		defaultPolicy: (settings?.defaultPolicy as PolicyOption) ?? "standard",
 		deploymentMode:
-			(settings?.deploymentMode as DeploymentMode) ?? "production",
-	};
+			(settings?.deploymentMode as DeploymentMode) ?? "production" };
 
 	const handleSave = async () => {
 		setSaving(true);
@@ -76,8 +73,7 @@ function GeneralSettingsPage() {
 				tenantSlug: TENANT,
 				name: currentForm.name,
 				defaultPolicy: currentForm.defaultPolicy,
-				deploymentMode: currentForm.deploymentMode,
-			});
+				deploymentMode: currentForm.deploymentMode });
 			setSaveMsg("Settings saved successfully.");
 		} catch (err) {
 			setSaveMsg(
@@ -151,8 +147,7 @@ function GeneralSettingsPage() {
 							onChange={(e) =>
 								setForm({
 									...currentForm,
-									defaultPolicy: e.target.value as PolicyOption,
-								})
+									defaultPolicy: e.target.value as PolicyOption })
 							}
 							className="w-full rounded-lg border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--sea-ink)] outline-none focus:border-[var(--signal)] transition-colors"
 						>
@@ -182,8 +177,7 @@ function GeneralSettingsPage() {
 							onChange={(e) =>
 								setForm({
 									...currentForm,
-									deploymentMode: e.target.value as DeploymentMode,
-								})
+									deploymentMode: e.target.value as DeploymentMode })
 							}
 							className="w-full rounded-lg border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--sea-ink)] outline-none focus:border-[var(--signal)] transition-colors"
 						>

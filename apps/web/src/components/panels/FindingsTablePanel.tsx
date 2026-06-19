@@ -16,8 +16,7 @@ export default function FindingsTablePanel({
 	onSelect,
 	renderDetail,
 	selectedIds,
-	onToggleSelect,
-}: {
+	onToggleSelect }: {
 	findings: OverviewFinding[];
 	selectedId: string | null;
 	onSelect: (id: string | null) => void;

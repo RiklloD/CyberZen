@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useAuthToken } from "../../lib/clerk-compat";
 import { useMutation, useQuery } from "convex/react";
 import { Key, Plus, RefreshCw, Trash2, X, Copy, AlertTriangle, BarChart3 } from "lucide-react";
 import { useState, useTransition } from "react";
@@ -10,8 +9,7 @@ import QueryErrorFallback from "../../components/QueryErrorFallback";
 
 export const Route = createFileRoute("/settings/api-keys")({
 	errorComponent: QueryErrorFallback,
-	component: ApiKeysPage,
-});
+	component: ApiKeysPage });
 
 const AVAILABLE_SCOPES = [
 	"findings:read",
@@ -26,7 +24,6 @@ const AVAILABLE_SCOPES = [
 
 function ApiKeysPage() {
 	const TENANT = useTenantSlug();
-	const authToken = useAuthToken() ?? "";
 	const [modalOpen, setModalOpen] = useState(false);
 	const [revealData, setRevealData] = useState<{
 		secret: string;
@@ -35,12 +32,10 @@ function ApiKeysPage() {
 
 	const keys = useQuery(
 		api.apiKeys.listApiKeys,
-		authToken ? { authToken, tenantSlug: TENANT } : "skip",
+		{ tenantSlug: TENANT },
 	);
 
-	const currentUser = useQuery(api.workspaceAuth.currentWorkspace, {
-		authToken,
-	});
+	const currentUser = useQuery(api.workspaceAuth.currentWorkspace);
 
 	const currentUserCanAdmin =
 		currentUser?.workspaces?.some(
@@ -86,7 +81,6 @@ function ApiKeysPage() {
 				{keys ? (
 					<ApiKeyList
 						keys={keys}
-						authToken={authToken}
 						tenantSlug={TENANT}
 						currentUserCanAdmin={currentUserCanAdmin}
 					/>
@@ -101,7 +95,6 @@ function ApiKeysPage() {
 
 			{modalOpen && currentUserCanAdmin && (
 				<CreateApiKeyModal
-					authToken={authToken}
 					tenantSlug={TENANT}
 					onClose={() => setModalOpen(false)}
 					onCreated={(secret, name) => setRevealData({ secret, name })}
@@ -118,7 +111,7 @@ function ApiKeysPage() {
 
 			{/* §6.28 API Rate Limiting — Usage Panel */}
 			{currentUserCanAdmin && (
-				<ApiUsagePanel authToken={authToken} tenantSlug={TENANT} />
+				<ApiUsagePanel tenantSlug={TENANT} />
 			)}
 		</main>
 	);
@@ -139,12 +132,11 @@ type ApiKey = {
 
 interface ApiKeyListProps {
 	keys: ApiKey[];
-	authToken: string;
 	tenantSlug: string;
 	currentUserCanAdmin: boolean;
 }
 
-function ApiKeyList({ keys, authToken, tenantSlug, currentUserCanAdmin }: ApiKeyListProps) {
+function ApiKeyList({ keys, tenantSlug, currentUserCanAdmin }: ApiKeyListProps) {
 	const [isPending, startTransition] = useTransition();
 	const [rotatingId, setRotatingId] = useState<string | null>(null);
 	const [rotatedSecret, setRotatedSecret] = useState<{
@@ -158,7 +150,7 @@ function ApiKeyList({ keys, authToken, tenantSlug, currentUserCanAdmin }: ApiKey
 	function handleRevoke(keyId: string, name: string) {
 		if (!confirm(`Revoke API key "${name}"? This action cannot be undone.`)) return;
 		startTransition(async () => {
-			await revokeKey({ authToken, tenantSlug, keyId: keyId as any });
+			await revokeKey({ tenantSlug, keyId: keyId as any });
 		});
 	}
 
@@ -166,10 +158,8 @@ function ApiKeyList({ keys, authToken, tenantSlug, currentUserCanAdmin }: ApiKey
 		setRotatingId(keyId);
 		startTransition(async () => {
 			const result = await rotateKey({
-				authToken,
 				tenantSlug,
-				keyId: keyId as any,
-			});
+				keyId: keyId as any });
 			setRotatingId(null);
 			setRotatedSecret({ secret: result.secret, name: result.name });
 		});
@@ -276,18 +266,15 @@ function ApiKeyList({ keys, authToken, tenantSlug, currentUserCanAdmin }: ApiKey
 // ─── CreateApiKeyModal ──────────────────────────────────────────────────────
 
 interface CreateApiKeyModalProps {
-	authToken: string;
 	tenantSlug: string;
 	onClose: () => void;
 	onCreated: (secret: string, name: string) => void;
 }
 
 function CreateApiKeyModal({
-	authToken,
 	tenantSlug,
 	onClose,
-	onCreated,
-}: CreateApiKeyModalProps) {
+	onCreated }: CreateApiKeyModalProps) {
 	const [name, setName] = useState("");
 	const [selectedScopes, setSelectedScopes] = useState<string[]>([]);
 	const [expiresInDays, setExpiresInDays] = useState<number>(90);
@@ -307,12 +294,10 @@ function CreateApiKeyModal({
 			const now = Date.now();
 			const expiresAt = expiresInDays > 0 ? now + expiresInDays * 24 * 60 * 60 * 1000 : undefined;
 			const result = await createKey({
-				authToken,
 				tenantSlug,
 				name: name.trim(),
 				scopes: selectedScopes,
-				expiresAt,
-			});
+				expiresAt });
 			onCreated(result.secret, result.name);
 		});
 	}
@@ -424,8 +409,7 @@ function CreateApiKeyModal({
 function SecretRevealModal({
 	secret,
 	name,
-	onClose,
-}: {
+	onClose }: {
 	secret: string;
 	name: string;
 	onClose: () => void;
@@ -498,10 +482,10 @@ function SecretRevealModal({
 
 // ─── §6.28 ApiUsagePanel ──────────────────────────────────────────────────
 
-function ApiUsagePanel({ authToken, tenantSlug }: { authToken: string; tenantSlug: string }) {
+function ApiUsagePanel({ tenantSlug }: { tenantSlug: string }) {
 	const usage = useQuery(
 		api.apiKeys.getApiKeyUsage,
-		authToken ? { authToken, tenantSlug } : "skip",
+		{ tenantSlug },
 	);
 
 	return (
@@ -565,8 +549,7 @@ function ApiUsagePanel({ authToken, tenantSlug }: { authToken: string; tenantSlu
 												className="h-full rounded-full transition-all"
 												style={{
 													width: `${hourlyPct}%`,
-													backgroundColor: barColor,
-												}}
+													backgroundColor: barColor }}
 											/>
 										</div>
 										<p className="text-[0.6rem] text-[var(--sea-ink-soft)] mt-0.5">

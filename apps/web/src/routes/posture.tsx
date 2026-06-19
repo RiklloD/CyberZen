@@ -12,8 +12,7 @@ import RouteErrorBoundary from "../components/RouteErrorBoundary";
 
 export const Route = createFileRoute("/posture")({
 	errorComponent: RouteErrorBoundary,
-	component: SecurityPosturePage,
-});
+	component: SecurityPosturePage });
 
 type OverviewData = NonNullable<
 	FunctionReturnType<typeof api.dashboard.overview>
@@ -92,15 +91,13 @@ function SecurityPosturePage() {
 
 function RepositoryPostureView({
 	tenantSlug,
-	repositoryFullName,
-}: {
+	repositoryFullName }: {
 	tenantSlug: string;
 	repositoryFullName: string;
 }) {
 	const report = useQuery(api.securityPosture.getSecurityPostureReport, {
 		tenantSlug,
-		repositoryFullName,
-	});
+		repositoryFullName });
 
 	if (report === undefined) {
 		return (

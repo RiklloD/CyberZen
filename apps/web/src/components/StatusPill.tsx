@@ -12,13 +12,11 @@ const toneStyles: Record<Tone, string> = {
 	danger:
 		"border-[rgba(220,38,38,0.26)] bg-[rgba(220,38,38,0.09)] text-[var(--danger)]",
 	info:
-		"border-[rgba(30,157,154,0.26)] bg-[rgba(30,157,154,0.08)] text-[var(--teal)]",
-};
+		"border-[rgba(30,157,154,0.26)] bg-[rgba(30,157,154,0.08)] text-[var(--teal)]" };
 
 export default function StatusPill({
 	label,
-	tone = "neutral",
-}: {
+	tone = "neutral" }: {
 	label: string;
 	tone?: Tone;
 }) {

@@ -10,8 +10,7 @@ type RemediationQueue = NonNullable<
 >;
 
 export default function RepositoryRemediationQueuePanel({
-	remediationQueue,
-}: {
+	remediationQueue }: {
 	remediationQueue: RemediationQueue;
 }) {
 	return (

@@ -7,8 +7,7 @@ import {
 	Merge,
 	Package,
 	ShieldCheck,
-	XCircle,
-} from "lucide-react";
+	XCircle } from "lucide-react";
 import { useState } from "react";
 import StatusPill from "../StatusPill";
 import type { Id } from "../../lib/convex";
@@ -47,8 +46,7 @@ function validationStatusTone(
 
 export default function AutoPrDetailDrawer({
 	proposal,
-	onClose,
-}: {
+	onClose }: {
 	proposal: PrProposal;
 	onClose: () => void;
 }) {

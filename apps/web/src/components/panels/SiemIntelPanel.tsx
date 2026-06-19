@@ -34,8 +34,7 @@ export interface SiemIntelPanelProps {
 export default function SiemIntelPanel({
 	latestPush,
 	history,
-	repositoryId,
-}: SiemIntelPanelProps) {
+	repositoryId }: SiemIntelPanelProps) {
 	const triggerPush = useMutation(api.siemIntel.triggerSiemPushForRepository);
 	const [retrying, setRetrying] = useState(false);
 

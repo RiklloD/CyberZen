@@ -5,13 +5,11 @@ import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "#/lib/convex";
 import { useTenantSlug } from "../../lib/workspace";
-import { useAuthToken } from "../../lib/clerk-compat";
 import RouteErrorBoundary from "../../components/RouteErrorBoundary";
 
 export const Route = createFileRoute("/settings/retention")({
 	errorComponent: RouteErrorBoundary,
-	component: RetentionSettingsPage,
-});
+	component: RetentionSettingsPage });
 
 type RetentionPolicy = NonNullable<FunctionReturnType<typeof api.retention.listRetentionPolicies>>[number];
 
@@ -21,8 +19,7 @@ const DATA_TYPE_LABELS: Record<string, string> = {
 	sbom_snapshots: "SBOM Snapshots",
 	webhook_deliveries: "Webhook Deliveries",
 	sandbox_environments: "Sandbox Environments",
-	ingestion_events: "Ingestion Events",
-};
+	ingestion_events: "Ingestion Events" };
 
 const DATA_TYPE_OPTIONS = Object.entries(DATA_TYPE_LABELS);
 
@@ -30,15 +27,13 @@ const ENFORCEMENT_MINIMUMS = {
 	findingsDays: 90,
 	auditLogsDays: 365,
 	apiUsageRecordsDays: 30,
-	webhookDeliveriesDays: 7,
-};
+	webhookDeliveriesDays: 7 };
 
 const ENFORCEMENT_LABELS: Record<string, string> = {
 	findingsDays: "Closed Findings",
 	auditLogsDays: "Audit Logs",
 	apiUsageRecordsDays: "API Usage Records",
-	webhookDeliveriesDays: "Webhook Deliveries",
-};
+	webhookDeliveriesDays: "Webhook Deliveries" };
 
 function nextCleanupDate(): string {
 	const now = new Date();
@@ -50,23 +45,16 @@ function nextCleanupDate(): string {
 		day: "numeric",
 		hour: "2-digit",
 		minute: "2-digit",
-		timeZoneName: "short",
-	});
+		timeZoneName: "short" });
 }
 
 function RetentionSettingsPage() {
 	const TENANT = useTenantSlug();
-	const authToken = useAuthToken() ?? "";
-
 	const policies = useQuery(api.retention.listPolicies, {
-		authToken,
-		tenantSlug: TENANT,
-	});
+		tenantSlug: TENANT });
 
 	const enforcement = useQuery(api.dataRetention.getRetentionPolicies, {
-		authToken,
-		tenantSlug: TENANT,
-	});
+		tenantSlug: TENANT });
 
 	const createPolicy = useMutation(api.retention.createPolicy);
 	const updatePolicy = useMutation(api.retention.updatePolicy);
@@ -79,8 +67,7 @@ function RetentionSettingsPage() {
 		dataType: "findings" as string,
 		retentionDays: 90,
 		action: "archive" as string,
-		enabled: true,
-	});
+		enabled: true });
 
 	const [enforcementForm, setEnforcementForm] = useState<{
 		findingsDays: number;
@@ -101,8 +88,7 @@ function RetentionSettingsPage() {
 		findingsDays: enforcement.findingsDays,
 		auditLogsDays: enforcement.auditLogsDays,
 		apiUsageRecordsDays: enforcement.apiUsageRecordsDays,
-		webhookDeliveriesDays: enforcement.webhookDeliveriesDays,
-	} : null);
+		webhookDeliveriesDays: enforcement.webhookDeliveriesDays } : null);
 
 	function hasMinimumWarning(key: keyof typeof ENFORCEMENT_MINIMUMS, value: number): boolean {
 		return value > 0 && value < ENFORCEMENT_MINIMUMS[key];
@@ -110,39 +96,32 @@ function RetentionSettingsPage() {
 
 	async function handleCreate() {
 		await createPolicy({
-			authToken,
 			tenantSlug: TENANT,
 			name: formState.name,
 			dataType: formState.dataType as "findings",
 			retentionDays: formState.retentionDays,
 			action: formState.action as "archive",
-			enabled: formState.enabled,
-		});
+			enabled: formState.enabled });
 		setShowForm(false);
 		setFormState({
 			name: "",
 			dataType: "findings",
 			retentionDays: 90,
 			action: "archive",
-			enabled: true,
-		});
+			enabled: true });
 	}
 
 	async function handleToggle(policyId: string, currentEnabled: boolean) {
 		await updatePolicy({
-			authToken,
 			tenantSlug: TENANT,
 			policyId: policyId as any,
-			enabled: !currentEnabled,
-		});
+			enabled: !currentEnabled });
 	}
 
 	async function handleDelete(policyId: string) {
 		await deletePolicy({
-			authToken,
 			tenantSlug: TENANT,
-			policyId: policyId as any,
-		});
+			policyId: policyId as any });
 	}
 
 	async function handleSaveEnforcement() {
@@ -150,10 +129,8 @@ function RetentionSettingsPage() {
 		setSaving(true);
 		try {
 			await updateEnforcement({
-				authToken,
 				tenantSlug: TENANT,
-				...currentEnforcement,
-			});
+				...currentEnforcement });
 			setEnforcementForm(null);
 			flash("Retention periods saved.", true);
 		} catch (err) {
@@ -217,8 +194,7 @@ function RetentionSettingsPage() {
 												onChange={(e) =>
 													setEnforcementForm((prev) => ({
 														...(prev ?? currentEnforcement),
-														[key]: parseInt(e.target.value) || 0,
-													}))
+														[key]: parseInt(e.target.value) || 0 }))
 												}
 											/>
 											<span className="text-xs text-[var(--sea-ink-soft)]">days</span>
@@ -399,8 +375,7 @@ function RetentionSettingsPage() {
 										onChange={(e) =>
 											setFormState((s) => ({
 												...s,
-												retentionDays: parseInt(e.target.value) || 0,
-											}))
+												retentionDays: parseInt(e.target.value) || 0 }))
 										}
 										placeholder="90"
 									/>

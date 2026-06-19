@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useAuthToken } from "../../lib/clerk-compat";
 import { useMutation, useQuery } from "convex/react";
 import {
 	Globe,
@@ -8,8 +7,7 @@ import {
 	LogOut,
 	Monitor,
 	Smartphone,
-	Tablet,
-} from "lucide-react";
+	Tablet } from "lucide-react";
 import { useState } from "react";
 import { api } from "../../lib/convex";
 import { useTenantSlug } from "../../lib/workspace";
@@ -17,8 +15,7 @@ import QueryErrorFallback from "../../components/QueryErrorFallback";
 
 export const Route = createFileRoute("/settings/sessions")({
 	errorComponent: QueryErrorFallback,
-	component: SessionsPage,
-});
+	component: SessionsPage });
 
 function deviceIcon(os?: string, ua?: string) {
 	const str = (os ?? ua ?? "").toLowerCase();
@@ -42,14 +39,12 @@ function formatRelativeTime(ts: number) {
 
 function SessionsPage() {
 	const TENANT = useTenantSlug();
-	const authToken = useAuthToken() ?? "";
 	const [revoking, setRevoking] = useState<string | null>(null);
 	const [revokingAll, setRevokingAll] = useState(false);
 	const [msg, setMsg] = useState<{ text: string; ok: boolean } | null>(null);
 
 	const sessions = useQuery(
 		api.sessionManagement.listSessions,
-		authToken ? { authToken } : "skip",
 	);
 
 	const revokeSession = useMutation(api.sessionManagement.revokeSession);
@@ -66,9 +61,7 @@ function SessionsPage() {
 		setRevoking(id);
 		try {
 			await revokeSession({
-				authToken,
-				userSessionId: id as any,
-			});
+				userSessionId: id as any });
 			flash("Session revoked.", true);
 		} catch (err) {
 			flash(err instanceof Error ? err.message : "Failed to revoke.", false);
@@ -80,7 +73,7 @@ function SessionsPage() {
 	async function handleRevokeAll() {
 		setRevokingAll(true);
 		try {
-			const count = await revokeAllOther({ authToken });
+			const count = await revokeAllOther({});
 			flash(`${count} other session${count === 1 ? "" : "s"} revoked.`, true);
 		} catch (err) {
 			flash(

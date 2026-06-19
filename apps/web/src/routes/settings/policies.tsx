@@ -11,8 +11,7 @@ type CustomPolicy = NonNullable<FunctionReturnType<typeof api.customPolicies.lis
 
 export const Route = createFileRoute("/settings/policies")({
 	errorComponent: RouteErrorBoundary,
-	component: CustomPolicyBuilderPage,
-});
+	component: CustomPolicyBuilderPage });
 
 const CONDITION_TEMPLATES = [
 	{ label: "Severity is Critical", dsl: '{"condition":"severity","operator":"eq","value":"critical"}' },
@@ -26,8 +25,7 @@ const CONDITION_TEMPLATES = [
 function CustomPolicyBuilderPage() {
 	const TENANT = useTenantSlug();
 	const policies = useQuery(api.customPolicies.listPolicies, {
-		tenantSlug: TENANT,
-	});
+		tenantSlug: TENANT });
 
 	const createPolicy = useMutation(api.customPolicies.createPolicy);
 	const updatePolicy = useMutation(api.customPolicies.updatePolicy);
@@ -74,16 +72,14 @@ function CustomPolicyBuilderPage() {
 				name: formName,
 				description: formDescription || undefined,
 				dsl: formDsl,
-				enabled: formEnabled,
-			});
+				enabled: formEnabled });
 		} else {
 			createPolicy({
 				tenantSlug: TENANT,
 				name: formName,
 				description: formDescription || undefined,
 				dsl: formDsl,
-				enabled: formEnabled,
-			});
+				enabled: formEnabled });
 		}
 		setEditorOpen(false);
 	}

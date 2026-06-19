@@ -121,8 +121,7 @@ export function announceToScreenReader(message: string, politeness: 'polite' | '
       overflow: 'hidden',
       clip: 'rect(0, 0, 0, 0)',
       whiteSpace: 'nowrap',
-      border: '0',
-    })
+      border: '0' })
     document.body.appendChild(liveRegion)
   }
 

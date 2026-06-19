@@ -22,8 +22,7 @@ function signalKindLabel(kind: string): string {
 		model_typosquat_risk: "Typosquat",
 		remote_weight_download: "Remote weights",
 		unsafe_model_loader: "Unsafe loader",
-		none: "—",
-	};
+		none: "—" };
 	return map[kind] ?? kind.replace(/_/g, " ");
 }
 
@@ -57,8 +56,7 @@ export default function ModelSupplyChainPanel({ scan }: ModelSupplyChainPanelPro
 		flaggedComponentCount,
 		flaggedComponents,
 		summary,
-		scannedAt,
-	} = scan;
+		scannedAt } = scan;
 
 	return (
 		<div className="card">

@@ -4,8 +4,7 @@ import {
 	Store,
 	ThumbsUp,
 	ThumbsDown,
-	Filter,
-} from "lucide-react";
+	Filter } from "lucide-react";
 import { useState } from "react";
 import StatusPill from "../components/StatusPill";
 import { api } from "../lib/convex";
@@ -13,8 +12,7 @@ import RouteErrorBoundary from "../components/RouteErrorBoundary";
 
 export const Route = createFileRoute("/marketplace")({
 	errorComponent: RouteErrorBoundary,
-	component: MarketplacePage,
-});
+	component: MarketplacePage });
 
 const STATUS_OPTIONS = ["pending", "under_review", "approved", "rejected"] as const;
 
@@ -27,8 +25,7 @@ function MarketplacePage() {
 		type: typeFilter,
 		status: statusFilter as any,
 		vulnClass: vulnClassFilter,
-		limit: 50,
-	});
+		limit: 50 });
 
 	const stats = useQuery(api.communityMarketplace.getMarketplaceStats);
 	const topContributors = useQuery(api.communityMarketplace.getTopContributors, { limit: 5 });
@@ -171,8 +168,7 @@ function MarketplacePage() {
 
 function StatCard({
 	label,
-	value,
-}: {
+	value }: {
 	label: string;
 	value: number;
 }) {

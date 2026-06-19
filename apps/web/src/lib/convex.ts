@@ -3,5 +3,4 @@ export type {
 	DataModel,
 	Doc,
 	Id,
-	TableNames,
-} from "../../convex/_generated/dataModel";
+	TableNames } from "../../convex/_generated/dataModel";

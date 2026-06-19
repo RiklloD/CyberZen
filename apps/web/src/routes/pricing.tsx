@@ -6,8 +6,7 @@ import RouteErrorBoundary from "../components/RouteErrorBoundary";
 
 export const Route = createFileRoute("/pricing")({
 	errorComponent: RouteErrorBoundary,
-	component: PricingPage,
-});
+	component: PricingPage });
 
 function PricingPage() {
 	const plans = useQuery(api.plans.listPlans);
@@ -86,8 +85,7 @@ const FLAG_LABELS: Record<string, string> = {
 	mssp_portal: "MSSP partner portal",
 	compliance_attestation: "Compliance attestation",
 	custom_policies: "Custom policy builder",
-	dedicated_support: "Dedicated support",
-};
+	dedicated_support: "Dedicated support" };
 
 function PlanCard({ plan }: { plan: Plan }) {
 	const highlighted = plan.slug === "team";

@@ -32,8 +32,7 @@ export default function MemoryCreatePatternModal({
   open,
   repositoryId,
   onClose,
-  onSuccess,
-}: MemoryCreatePatternModalProps) {
+  onSuccess }: MemoryCreatePatternModalProps) {
   const [patternType, setPatternType] = useState<
     "recurring_vulnerability" | "recurring_fix" | "developer_pattern" | "temporal_pattern" | "dependency_risk" | "code_path_risk" | "false_positive_signal"
   >("recurring_vulnerability");
@@ -80,9 +79,7 @@ export default function MemoryCreatePatternModal({
             name: name.trim(),
             description: description.trim(),
             severity,
-            attributes: parsedAttributes,
-          },
-        });
+            attributes: parsedAttributes } });
 
         setResult("Pattern created successfully!");
         setName("");
@@ -126,16 +123,14 @@ export default function MemoryCreatePatternModal({
         alignItems: "center",
         justifyContent: "center",
         background: "rgba(0, 0, 0, 0.44)",
-        backdropFilter: "blur(2px)",
-      }}
+        backdropFilter: "blur(2px)" }}
     >
       <div
         className="card"
         style={{
           width: "min(560px, 92vw)",
           maxHeight: "90vh",
-          overflowY: "auto",
-        }}
+          overflowY: "auto" }}
       >
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">

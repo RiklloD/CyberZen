@@ -9,8 +9,7 @@ import { track } from "../../lib/analytics";
 
 export const Route = createFileRoute("/connect/github")({
 	errorComponent: RouteErrorBoundary,
-	component: GitHubConnectWizard,
-});
+	component: GitHubConnectWizard });
 
 type WizardStep = "install" | "select-repos" | "initial-scan" | "complete";
 
@@ -117,8 +116,7 @@ function GitHubConnectWizard() {
 		if (selectedRepos.size === 0) return;
 		track("repo.connected", {
 			provider: "github",
-			repositoryCount: selectedRepos.size,
-		});
+			repositoryCount: selectedRepos.size });
 		setStep("initial-scan");
 	}
 
@@ -128,15 +126,13 @@ function GitHubConnectWizard() {
 		setScanTriggered(true);
 		track("scan.triggered", {
 			scannerSlug: "initial-onboarding-scan",
-			triggerType: "manual",
-		});
+			triggerType: "manual" });
 		try {
 			for (const repoName of selectedRepos) {
 				await dispatchScan({
 					tenantSlug: TENANT,
 					repositoryFullName: repoName,
-					scannerType: "full_scan",
-				});
+					scannerType: "full_scan" });
 			}
 			setStep("complete");
 		} catch (err) {

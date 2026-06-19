@@ -11,8 +11,7 @@ import {
 	RefreshCw,
 	AlertCircle,
 	CheckCircle2,
-	Clock,
-} from "lucide-react";
+	Clock } from "lucide-react";
 import { useMutation, useQuery, useAction } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { useState } from "react";
@@ -51,25 +50,20 @@ type Delivery = NonNullable<
 
 export const Route = createFileRoute("/settings/webhooks")({
 	errorComponent: RouteErrorBoundary,
-	component: WebhooksSettingsPage,
-});
+	component: WebhooksSettingsPage });
 
 function WebhooksSettingsPage() {
 	const TENANT = useTenantSlug();
 
 	const endpoints = useQuery(api.webhooks.listEndpoints, {
-		tenantSlug: TENANT,
-	});
+		tenantSlug: TENANT });
 	const deliveries = useQuery(api.webhooks.listRecentDeliveries, {
 		tenantSlug: TENANT,
-		limit: 50,
-	});
+		limit: 50 });
 	const dlq = useQuery(api.webhooks.listDeadLetterQueue, {
-		tenantSlug: TENANT,
-	});
+		tenantSlug: TENANT });
 	const retryStats = useQuery(api.webhooks.listRetryStats, {
-		tenantSlug: TENANT,
-	});
+		tenantSlug: TENANT });
 
 	const registerEndpoint = useMutation(api.webhooks.registerEndpoint);
 	const updateEndpoint = useMutation(api.webhooks.updateEndpoint);
@@ -127,16 +121,14 @@ function WebhooksSettingsPage() {
 				url: formUrl,
 				events: formEvents,
 				description: formDescription || undefined,
-				...(formChangeSecret && formSecret ? { secret: formSecret } : {}),
-			});
+				...(formChangeSecret && formSecret ? { secret: formSecret } : {}) });
 		} else {
 			await registerEndpoint({
 				tenantSlug: TENANT,
 				url: formUrl,
 				secret: formSecret,
 				events: formEvents,
-				description: formDescription || undefined,
-			});
+				description: formDescription || undefined });
 		}
 		setEditorOpen(false);
 	}

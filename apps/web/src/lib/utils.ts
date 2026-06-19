@@ -4,8 +4,7 @@ export function formatTimestamp(timestamp?: number) {
 		month: "short",
 		day: "2-digit",
 		hour: "2-digit",
-		minute: "2-digit",
-	}).format(timestamp);
+		minute: "2-digit" }).format(timestamp);
 }
 
 export function formatDate(timestamp?: number) {
@@ -13,8 +12,7 @@ export function formatDate(timestamp?: number) {
 	return new Intl.DateTimeFormat("en-CH", {
 		year: "numeric",
 		month: "short",
-		day: "2-digit",
-	}).format(timestamp);
+		day: "2-digit" }).format(timestamp);
 }
 
 export type Tone = "neutral" | "success" | "warning" | "danger" | "info";

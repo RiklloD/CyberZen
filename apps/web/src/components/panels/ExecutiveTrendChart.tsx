@@ -20,8 +20,7 @@ function Sparkline({
 	points,
 	color,
 	width = 220,
-	height = 40,
-}: {
+	height = 40 }: {
 	points: number[];
 	color: string;
 	width?: number;
@@ -98,8 +97,7 @@ export default function ExecutiveTrendChart({
 	driftPostureAvg,
 	supplyChainAvg,
 	complianceAvg,
-	history = [],
-}: ExecutiveTrendChartProps) {
+	history = [] }: ExecutiveTrendChartProps) {
 	const series: DomainSeries[] = [
 		{ label: "Health", value: healthAvg, color: "#16a34a" },
 		{ label: "Drift Posture", value: driftPostureAvg, color: "#0ea5e9" },

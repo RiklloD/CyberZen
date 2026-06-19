@@ -12,8 +12,7 @@ type LicenseScan = NonNullable<
 
 export default function LicenseCompliancePanel({
 	licenseCompliance,
-	licenseScan,
-}: {
+	licenseScan }: {
 	licenseCompliance?: LicenseCompliance;
 	licenseScan?: LicenseScan;
 }) {

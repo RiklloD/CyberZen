@@ -44,8 +44,7 @@ import {
 	Users,
 	Webhook,
 	Wrench,
-	X,
-} from "lucide-react";
+	X } from "lucide-react";
 import { useState } from "react";
 import { useFeatureFlag } from "../lib/featureFlags";
 import ThemeToggle from "./ThemeToggle";
@@ -71,8 +70,7 @@ const navGroups: NavGroup[] = [
 			{ to: "/", label: "Dashboard", icon: LayoutDashboard },
 			{ to: "/dashboards", label: "Dashboard Builder", icon: BarChart3 },
 			{ to: "/onboarding", label: "Onboarding", icon: Rocket },
-		],
-	},
+		] },
 	{
 		label: "Security",
 		items: [
@@ -85,16 +83,14 @@ const navGroups: NavGroup[] = [
 			{ to: "/zero-day", label: "Zero-Day Detection", icon: Eye },
 			{ to: "/exploit-validation", label: "Exploit Validation", icon: FlaskConical },
 			{ to: "/audit-log", label: "Audit Log", icon: ScrollText },
-		],
-	},
+		] },
 	{
 		label: "Inventory",
 		items: [
 			{ to: "/repositories", label: "Repositories", icon: GitBranch },
 			{ to: "/connect/github", label: "Connect GitHub", icon: Github },
 			{ to: "/sbom", label: "SBOM", icon: Boxes },
-		],
-	},
+		] },
 	{
 		label: "Operations",
 		items: [
@@ -102,16 +98,14 @@ const navGroups: NavGroup[] = [
 			{ to: "/drift-posture", label: "Drift Posture", icon: Activity },
 			{ to: "/remediation", label: "Remediation", icon: Wrench },
 			{ to: "/compliance", label: "Compliance", icon: FileCheck2 },
-		],
-	},
+		] },
 	{
 		label: "Intelligence",
 		items: [
 			{ to: "/agents", label: "Agents & Learning", icon: Bot },
 			{ to: "/agent-activity", label: "AI Agent System", icon: Cpu },
 			{ to: "/neural-memory", label: "Neural Memory", icon: Brain },
-		],
-	},
+		] },
 	{
 		label: "Reports",
 		items: [
@@ -119,15 +113,13 @@ const navGroups: NavGroup[] = [
 			{ to: "/executive-report", label: "Executive Report", icon: BarChart3 },
 			{ to: "/maturity", label: "Maturity Assessment", icon: Trophy },
 			{ to: "/business-impact", label: "Business Impact", icon: Briefcase },
-		],
-	},
+		] },
 	{
 		label: "Resources",
 		items: [
 			{ to: "/docs/api", label: "API Docs", icon: BookOpen },
 			{ to: "/docs/github-integration", label: "GitHub Action", icon: Github },
-		],
-	},
+		] },
 	{
 		label: "System",
 		items: [
@@ -159,8 +151,7 @@ const navGroups: NavGroup[] = [
 			{ to: "/settings/access-review", label: "Access Review", icon: ClipboardCheck },
 			{ to: "/settings/mssp-keys", label: "MSSP Keys", icon: Key },
 			{ to: "/settings/ip-allowlist", label: "IP Allowlist", icon: Globe },
-		],
-	},
+		] },
 ];
 
 export default function Sidebar() {
@@ -251,8 +242,7 @@ export default function Sidebar() {
 function SidebarItem({
 	item,
 	isActive,
-	onNavigate,
-}: {
+	onNavigate }: {
 	item: NavItem;
 	isActive: boolean;
 	onNavigate: () => void;

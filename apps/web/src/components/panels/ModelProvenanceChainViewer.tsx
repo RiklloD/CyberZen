@@ -8,8 +8,7 @@ import {
 	CheckCircle2,
 	AlertTriangle,
 	XCircle,
-	ArrowRight,
-} from "lucide-react";
+	ArrowRight } from "lucide-react";
 import StatusPill from "../StatusPill";
 import type { api } from "../../lib/convex";
 
@@ -73,24 +72,19 @@ const STAGE_CONFIG = {
 	"training-data": {
 		label: "Training Data",
 		icon: Database,
-		color: "var(--signal)",
-	},
+		color: "var(--signal)" },
 	"fine-tune": {
 		label: "Fine-tune",
 		icon: Cpu,
-		color: "var(--warning)",
-	},
+		color: "var(--warning)" },
 	deploy: {
 		label: "Deploy",
 		icon: Rocket,
-		color: "var(--success)",
-	},
-} as const;
+		color: "var(--success)" } } as const;
 
 function ChainNode({
 	component,
-	isLast,
-}: {
+	isLast }: {
 	component: ModelComponent;
 	isLast: boolean;
 }) {
@@ -111,8 +105,7 @@ function ChainNode({
 					className="shrink-0 w-[30px] h-[30px] rounded-full flex items-center justify-center border"
 					style={{
 						borderColor: config.color,
-						backgroundColor: `color-mix(in srgb, ${config.color} 10%, transparent)`,
-					}}
+						backgroundColor: `color-mix(in srgb, ${config.color} 10%, transparent)` }}
 				>
 					<Icon size={14} style={{ color: config.color }} />
 				</div>
@@ -170,8 +163,7 @@ function ChainNode({
 }
 
 export default function ModelProvenanceChainViewer({
-	scan,
-}: {
+	scan }: {
 	scan: ProvenanceScan;
 }) {
 	// Group components by inferred lineage stage

@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { useAuthToken } from "../lib/clerk-compat";
 import { useAction } from "convex/react";
 import { Download, ChevronDown, FileText, FileSpreadsheet, Loader2 } from "lucide-react";
 import { api } from "../lib/convex";
@@ -21,7 +20,6 @@ export default function ExportMenu({ tenantSlug, variant, severity }: ExportMenu
   const [exporting, setExporting] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
-  const authToken = useAuthToken() ?? ""; // FIX: C3 — auth token for export authorization
 
   const exportFindingsCsv = useAction(api.exports.exportFindingsCsv);
   const exportExecReportPdf = useAction(api.exports.exportExecReportPdf);
@@ -57,15 +55,12 @@ export default function ExportMenu({ tenantSlug, variant, severity }: ExportMenu
     setError(null);
     try {
       const result = await exportFindingsCsv({
-        tenantSlug,
-        authToken, // FIX: C3 — pass auth token
-        severity: severity as any,
-      });
+        tenantSlug, // FIX: C3 — pass auth token
+        severity: severity as any });
       triggerDownload(result.csv, result.filename, "text/csv");
       track("export.run", {
         format: "csv",
-        scope: `findings:${variant}`,
-      });
+        scope: `findings:${variant}` });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Export failed");
     } finally {
@@ -82,8 +77,7 @@ export default function ExportMenu({ tenantSlug, variant, severity }: ExportMenu
       triggerDownload(result.html, result.filename, "text/html");
       track("export.run", {
         format: "pdf",
-        scope: "executive-report",
-      });
+        scope: "executive-report" });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Export failed");
     } finally {
@@ -100,8 +94,7 @@ export default function ExportMenu({ tenantSlug, variant, severity }: ExportMenu
       triggerDownload(result.html, result.filename, "text/html");
       track("export.run", {
         format: "pdf",
-        scope: "compliance-evidence",
-      });
+        scope: "compliance-evidence" });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Export failed");
     } finally {
@@ -138,8 +131,7 @@ export default function ExportMenu({ tenantSlug, variant, severity }: ExportMenu
             right: 0,
             marginTop: 4,
             zIndex: 40,
-            minWidth: 220,
-          }}
+            minWidth: 220 }}
           className="card"
         >
           <div className="py-1">

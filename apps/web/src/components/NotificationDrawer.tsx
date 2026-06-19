@@ -31,8 +31,7 @@ const TYPE_LABELS: Record<string, string> = {
 	scan_completed: "Scan Completed",
 	sla_breach: "SLA Breach",
 	member_invited: "Member Invited",
-	system: "System",
-};
+	system: "System" };
 
 const TYPE_COLORS: Record<string, string> = {
 	finding_critical: "bg-red-100 text-red-700",
@@ -45,16 +44,14 @@ const TYPE_COLORS: Record<string, string> = {
 	scan_completed: "bg-green-100 text-green-700",
 	sla_breach: "bg-red-100 text-red-700",
 	member_invited: "bg-blue-100 text-blue-700",
-	system: "bg-gray-100 text-gray-700",
-};
+	system: "bg-gray-100 text-gray-700" };
 
 export default function NotificationDrawer({
 	open,
 	onClose,
 	notifications,
 	onMarkRead,
-	onMarkAllRead,
-}: Props) {
+	onMarkAllRead }: Props) {
 	const unread = notifications.filter((n) => !n.readAt);
 
 	if (!open) return null;

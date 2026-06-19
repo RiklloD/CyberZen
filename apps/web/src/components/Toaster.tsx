@@ -1,4 +1,3 @@
-import { useAuthToken } from "../lib/clerk-compat";
 import { useQuery } from "convex/react";
 import { useEffect, useRef, useState } from "react";
 import { X, AlertTriangle, CheckCircle, Info, AlertOctagon } from "lucide-react";
@@ -24,8 +23,7 @@ const SEVERITY_MAP: Record<string, Toast["severity"]> = {
 	pr_generated: "success",
 	scan_completed: "success",
 	member_invited: "info",
-	system: "info",
-};
+	system: "info" };
 
 const SEVERITY_STYLES: Record<
 	Toast["severity"],
@@ -35,27 +33,22 @@ const SEVERITY_STYLES: Record<
 		bg: "bg-red-50 dark:bg-red-950/40",
 		border: "border-red-300 dark:border-red-800",
 		icon: AlertOctagon,
-		iconColor: "text-red-500",
-	},
+		iconColor: "text-red-500" },
 	warning: {
 		bg: "bg-orange-50 dark:bg-orange-950/40",
 		border: "border-orange-300 dark:border-orange-800",
 		icon: AlertTriangle,
-		iconColor: "text-orange-500",
-	},
+		iconColor: "text-orange-500" },
 	info: {
 		bg: "bg-blue-50 dark:bg-blue-950/40",
 		border: "border-blue-300 dark:border-blue-800",
 		icon: Info,
-		iconColor: "text-blue-500",
-	},
+		iconColor: "text-blue-500" },
 	success: {
 		bg: "bg-green-50 dark:bg-green-950/40",
 		border: "border-green-300 dark:border-green-800",
 		icon: CheckCircle,
-		iconColor: "text-green-500",
-	},
-};
+		iconColor: "text-green-500" } };
 
 const TOAST_DURATION_MS = 6000;
 const MAX_TOASTS = 5;
@@ -68,11 +61,8 @@ const MAX_TOASTS = 5;
  */
 export default function Toaster() {
 	const TENANT = useTenantSlug();
-	const authToken = useAuthToken();
-
 	const notifications = useQuery(api.notifications.listForUser, {
-		tenantSlug: TENANT,
-	});
+		tenantSlug: TENANT });
 
 	const [toasts, setToasts] = useState<Toast[]>([]);
 	const seenIds = useRef<Set<string>>(new Set());
@@ -114,8 +104,7 @@ export default function Toaster() {
 				type: n.type,
 				message,
 				severity,
-				createdAt: n.createdAt,
-			};
+				createdAt: n.createdAt };
 
 			setToasts((prev) => {
 				const next = [toast, ...prev].slice(0, MAX_TOASTS);

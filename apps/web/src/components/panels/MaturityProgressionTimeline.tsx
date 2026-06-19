@@ -19,8 +19,7 @@ function levelTone(
 }
 
 export default function MaturityProgressionTimeline({
-	history,
-}: {
+	history }: {
 	history: HistoryEntry[];
 }) {
 	if (history.length === 0) {

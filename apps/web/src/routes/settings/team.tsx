@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useAuthToken } from "../../lib/clerk-compat";
 import { useMutation, useQuery } from "convex/react";
 import { Plus, Users, Trash2, Clock, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
 import { useState, useTransition } from "react";
@@ -12,22 +11,18 @@ import RouteErrorBoundary from "../../components/RouteErrorBoundary";
 
 export const Route = createFileRoute("/settings/team")({
 	errorComponent: RouteErrorBoundary,
-	component: TeamManagementPage,
-});
+	component: TeamManagementPage });
 
 function TeamManagementPage() {
 	const TENANT = useTenantSlug();
-	const authToken = useAuthToken() ?? "";
 	const [inviteOpen, setInviteOpen] = useState(false);
 
 	const members = useQuery(
 		api.workspaceAuth.listMembers,
-		authToken ? { authToken, tenantSlug: TENANT } : "skip",
+		{ tenantSlug: TENANT },
 	);
 
-	const currentUser = useQuery(api.workspaceAuth.currentWorkspace, {
-		authToken,
-	});
+	const currentUser = useQuery(api.workspaceAuth.currentWorkspace);
 
 	const currentWorkspace = currentUser?.workspaces?.find(
 		(w: { tenantSlug: string; role: string }) => w.tenantSlug === TENANT,
@@ -75,7 +70,6 @@ function TeamManagementPage() {
 				{members ? (
 					<MemberListTable
 						members={members}
-						authToken={authToken}
 						tenantSlug={TENANT}
 						currentUserCanAdmin={currentUserCanAdmin ?? false}
 					/>
@@ -90,14 +84,12 @@ function TeamManagementPage() {
 
 			{currentUserIsOwner && (
 				<DeletionQueuePanel
-					authToken={authToken}
 					tenantSlug={TENANT}
 				/>
 			)}
 
 			<InviteMemberModal
 				open={inviteOpen}
-				authToken={authToken}
 				tenantSlug={TENANT}
 				onClose={() => setInviteOpen(false)}
 			/>
@@ -133,22 +125,21 @@ type DeletionEntry = {
 };
 
 interface DeletionQueuePanelProps {
-	authToken: string;
 	tenantSlug: string;
 }
 
-function DeletionQueuePanel({ authToken, tenantSlug }: DeletionQueuePanelProps) {
+function DeletionQueuePanel({ tenantSlug }: DeletionQueuePanelProps) {
 	const [isPending, startTransition] = useTransition();
 	const queue = useQuery(
 		api.deletionPipeline.listDeletionQueue,
-		authToken ? { authToken, tenantSlug } : "skip",
+		{ tenantSlug },
 	) as DeletionEntry[] | undefined;
 	const cancelDeletion = useMutation(api.deletionPipeline.cancelDeletion);
 
 	function handleCancel(queueId: string) {
 		if (!confirm("Cancel this scheduled deletion? The data will be retained.")) return;
 		startTransition(async () => {
-			await cancelDeletion({ authToken, tenantSlug, queueId: queueId as any });
+			await cancelDeletion({ tenantSlug, queueId: queueId as any });
 		});
 	}
 

@@ -29,8 +29,7 @@ function riskTone(
 
 function LeaderboardTable({
 	repos,
-	emptyLabel,
-}: {
+	emptyLabel }: {
 	repos: RepoSummary[];
 	emptyLabel: string;
 }) {
@@ -93,8 +92,7 @@ function LeaderboardTable({
 
 export default function ExecutiveRepoLeaderboard({
 	worstRepos,
-	bestRepos,
-}: {
+	bestRepos }: {
 	worstRepos: RepoSummary[];
 	bestRepos: RepoSummary[];
 }) {

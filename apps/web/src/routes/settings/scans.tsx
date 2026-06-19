@@ -11,8 +11,7 @@ type ScanSchedule = NonNullable<FunctionReturnType<typeof api.scanScheduling.lis
 
 export const Route = createFileRoute("/settings/scans")({
 	errorComponent: RouteErrorBoundary,
-	component: ScanSchedulingPage,
-});
+	component: ScanSchedulingPage });
 
 const SCANNER_SLUGS = [
 	"sast",
@@ -30,8 +29,7 @@ const SCANNER_SLUGS = [
 function ScanSchedulingPage() {
 	const TENANT = useTenantSlug();
 	const schedules = useQuery(api.scanScheduling.listSchedules, {
-		tenantSlug: TENANT,
-	});
+		tenantSlug: TENANT });
 
 	const createSchedule = useMutation(api.scanScheduling.createSchedule);
 	const updateSchedule = useMutation(api.scanScheduling.updateSchedule);
@@ -79,8 +77,7 @@ function ScanSchedulingPage() {
 				scannerSlug: formScanner,
 				cronExpression: formCron,
 				description: formDescription || undefined,
-				enabled: formEnabled,
-			});
+				enabled: formEnabled });
 		} else {
 			createSchedule({
 				tenantSlug: TENANT,
@@ -88,8 +85,7 @@ function ScanSchedulingPage() {
 				cronExpression: formCron,
 				repositoryIds: [],
 				description: formDescription || undefined,
-				enabled: formEnabled,
-			});
+				enabled: formEnabled });
 		}
 		setEditorOpen(false);
 	}

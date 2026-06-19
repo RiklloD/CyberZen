@@ -11,8 +11,7 @@ import {
 	Rocket,
 	ShieldCheck,
 	Sparkles,
-	Waypoints,
-} from "lucide-react";
+	Waypoints } from "lucide-react";
 import StatusPill from "../components/StatusPill";
 import { api } from "../lib/convex";
 import { formatTimestamp, severityTone, workflowTone } from "../lib/utils";
@@ -35,11 +34,9 @@ const SKELETONS = ["a", "b", "c", "d", "e"];
 function DashboardPage() {
 	const TENANT = useTenantSlug();
 	const overview = useQuery(api.dashboard.overview, {
-		tenantSlug: TENANT,
-	});
+		tenantSlug: TENANT });
 	const eduStats = useQuery(api.securityEducation.getEducationStats, {
-		tenantSlug: TENANT,
-	});
+		tenantSlug: TENANT });
 
 	if (overview === undefined) {
 		return (
@@ -89,8 +86,7 @@ function DashboardPage() {
 		findings,
 		workflows,
 		ciGateEnforcement,
-		repositories,
-	} = overview;
+		repositories } = overview;
 
 	return (
 		<main>
@@ -112,32 +108,27 @@ function DashboardPage() {
 							label: "Open findings",
 							value: stats.openFindings,
 							hint: "Unresolved risk",
-							icon: AlertTriangle,
-						},
+							icon: AlertTriangle },
 						{
 							label: "Critical / High",
 							value: stats.criticalFindings,
 							hint: "Merge blockers",
-							icon: ShieldCheck,
-						},
+							icon: ShieldCheck },
 						{
 							label: "Active workflows",
 							value: stats.activeWorkflows,
 							hint: "Queued or running",
-							icon: Waypoints,
-						},
+							icon: Waypoints },
 						{
 							label: "SBOM components",
 							value: stats.sbomComponents,
 							hint: "Known inventory",
-							icon: Boxes,
-						},
+							icon: Boxes },
 						{
 							label: "Validated",
 							value: stats.validatedFindings,
 							hint: "Exploit-confirmed",
-							icon: Sparkles,
-						},
+							icon: Sparkles },
 					].map(({ label, value, hint, icon: Icon }) => (
 						<div key={label} className="stat-card rise-in">
 							<div className="flex items-center justify-between">
@@ -488,57 +479,48 @@ function DashboardPage() {
 							to: "/findings",
 							label: "Findings",
 							description: "Triage and review all security findings",
-							icon: AlertTriangle,
-						},
+							icon: AlertTriangle },
 						{
 							to: "/sbom",
 							label: "SBOM Explorer",
 							description: "Browse software bill of materials snapshots",
-							icon: Boxes,
-						},
+							icon: Boxes },
 						{
 							to: "/breach-intel",
 							label: "Breach Intel",
 							description: "Advisory aggregator and disclosure watchlist",
-							icon: ShieldCheck,
-						},
+							icon: ShieldCheck },
 						{
 							to: "/supply-chain",
 							label: "Supply Chain",
 							description: "Supply chain posture and injection risk",
-							icon: Waypoints,
-						},
+							icon: Waypoints },
 						{
 							to: "/compliance",
 							label: "Compliance",
 							description: "Regulatory drift across SOC 2, GDPR, HIPAA",
-							icon: ShieldCheck,
-						},
+							icon: ShieldCheck },
 						{
 							to: "/remediation",
 							label: "Remediation",
 							description: "P0–P3 priority queue and auto-fix history",
-							icon: Sparkles,
-						},
+							icon: Sparkles },
 						{
 							to: "/agents",
 							label: "Agents",
 							description: "Red/Blue adversarial rounds and learning profiles",
-							icon: FlaskConical,
-						},
+							icon: FlaskConical },
 						{
 							to: "/integrations",
 							label: "Integrations",
 							description: "Vendor trust, webhooks, and external tools",
-							icon: Waypoints,
-						},
+							icon: Waypoints },
 						{
 							to: "/onboarding",
 							label: "Onboarding",
 							description:
 								"Create a company workspace, import live manifests, and connect repos",
-							icon: Rocket,
-						},
+							icon: Rocket },
 					].map(({ to, label, description, icon: Icon }) => (
 						<Link
 							key={to}

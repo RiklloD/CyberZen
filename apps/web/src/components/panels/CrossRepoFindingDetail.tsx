@@ -32,8 +32,7 @@ function severityCellTone(severity: string) {
 }
 
 export default function CrossRepoFindingDetail({
-	event,
-}: {
+	event }: {
 	event: CrossRepoEvent;
 }) {
 	const {
@@ -45,8 +44,7 @@ export default function CrossRepoFindingDetail({
 		affectedRepositoryNames,
 		impacts,
 		summary,
-		computedAt,
-	} = event;
+		computedAt } = event;
 
 	return (
 		<div className="card">

@@ -1,15 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Bell } from "lucide-react";
 import { useMutation, useQuery } from "convex/react";
-import { useAuthToken } from "../../lib/clerk-compat";
 import { api } from "../../lib/convex";
 import { useTenantSlug } from "../../lib/workspace";
 import RouteErrorBoundary from "../../components/RouteErrorBoundary";
 
 export const Route = createFileRoute("/settings/notifications")({
 	errorComponent: RouteErrorBoundary,
-	component: NotificationSettingsPage,
-});
+	component: NotificationSettingsPage });
 
 const EVENT_TYPES = [
 	{ type: "finding_critical", label: "Critical Findings" },
@@ -33,11 +31,8 @@ const CHANNELS = [
 
 function NotificationSettingsPage() {
 	const TENANT = useTenantSlug();
-	const authToken = useAuthToken();
-
 	const preferences = useQuery(api.notifications.getPreferences, {
-		tenantSlug: TENANT,
-	});
+		tenantSlug: TENANT });
 
 	const upsertPreference = useMutation(api.notifications.upsertPreference);
 
@@ -54,8 +49,7 @@ function NotificationSettingsPage() {
 			tenantSlug: TENANT,
 			channel: channel as "in_app" | "email" | "slack",
 			type,
-			enabled: !current,
-		});
+			enabled: !current });
 	}
 
 	return (
