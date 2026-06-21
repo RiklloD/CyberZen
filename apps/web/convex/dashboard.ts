@@ -712,6 +712,30 @@ export const escalations = query({
           }),
         ),
       }),
+      disclosures: v.array(
+        v.object({
+          _id: v.id('breachDisclosures'),
+          packageName: v.string(),
+          sourceType: v.string(),
+          sourceTier: v.string(),
+          sourceName: v.string(),
+          sourceRef: v.string(),
+          aliases: v.array(v.string()),
+          repositoryName: v.optional(v.string()),
+          severity,
+          matchStatus: v.string(),
+          versionMatchStatus: v.string(),
+          matchedComponentCount: v.number(),
+          affectedComponentCount: v.number(),
+          matchedVersions: v.array(v.string()),
+          affectedMatchedVersions: v.array(v.string()),
+          affectedVersions: v.array(v.string()),
+          fixVersion: v.optional(v.string()),
+          matchSummary: v.string(),
+          publishedAt: v.number(),
+          exploitAvailable: v.boolean(),
+        }),
+      ),
       exploitValidation: v.object({
         recentRuns: v.array(
           v.object({
@@ -826,6 +850,30 @@ export const escalations = query({
       sourceCoverageMap.set(key, existing)
     }
 
+    const repoNameById = new Map(repositories.map((r: any) => [r._id, r.name]))
+    const disclosures = recentDisclosureRows.map((d: any) => ({
+      _id: d._id,
+      packageName: d.packageName,
+      sourceType: d.sourceType,
+      sourceTier: d.sourceTier,
+      sourceName: d.sourceName,
+      sourceRef: d.sourceRef,
+      aliases: d.aliases,
+      repositoryName: d.repositoryId ? repoNameById.get(d.repositoryId) : undefined,
+      severity: d.severity,
+      matchStatus: d.matchStatus,
+      versionMatchStatus: d.versionMatchStatus,
+      matchedComponentCount: d.matchedComponentCount,
+      affectedComponentCount: d.affectedComponentCount,
+      matchedVersions: d.matchedVersions,
+      affectedMatchedVersions: d.affectedMatchedVersions,
+      affectedVersions: d.affectedVersions,
+      fixVersion: d.fixVersion,
+      matchSummary: d.matchSummary,
+      publishedAt: d.publishedAt,
+      exploitAvailable: d.exploitAvailable,
+    }))
+
     const exploitValidationRuns = await ctx.db
       .query('exploitValidationRuns')
       .withIndex('by_tenant_and_started_at', (q) => q.eq('tenantId', tenant._id))
@@ -873,6 +921,7 @@ export const escalations = query({
           return b.disclosureCount - a.disclosureCount
         }),
       },
+      disclosures,
       exploitValidation: {
         recentRuns: validationRuns,
       },

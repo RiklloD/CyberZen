@@ -6,10 +6,10 @@ import StatusPill from "../StatusPill";
 import { api } from "../../lib/convex";
 import { disclosureTone, formatTimestamp } from "../../lib/utils";
 
-type OverviewData = NonNullable<
-	FunctionReturnType<typeof api.dashboard.overview>
+type EscalationsData = NonNullable<
+	FunctionReturnType<typeof api.dashboard.escalations>
 >;
-type OverviewDisclosure = OverviewData["disclosures"][number];
+type OverviewDisclosure = EscalationsData["disclosures"][number];
 
 export default function BreachIntelFeedPanel({
 	disclosures,

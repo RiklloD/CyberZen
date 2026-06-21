@@ -16,21 +16,21 @@ export const Route = createFileRoute("/breach-intel")({
 	errorComponent: QueryErrorFallback,
 	component: BreachIntelPage });
 
-type OverviewData = NonNullable<
-	FunctionReturnType<typeof api.dashboard.overview>
+type EscalationsData = NonNullable<
+	FunctionReturnType<typeof api.dashboard.escalations>
 >;
 type OverviewAdvisoryRun =
-	OverviewData["advisoryAggregator"]["recentRuns"][number];
+	EscalationsData["advisoryAggregator"]["recentRuns"][number];
 type OverviewAdvisorySource =
-	OverviewData["advisoryAggregator"]["sourceCoverage"][number];
+	EscalationsData["advisoryAggregator"]["sourceCoverage"][number];
 
 function BreachIntelPage() {
 	const TENANT = useTenantSlug();
-	const overview = useQuery(api.dashboard.overview, { tenantSlug: TENANT });
+	const escalations = useQuery(api.dashboard.escalations, { tenantSlug: TENANT });
 	const epss = useQuery(api.epssIntel.getLatestEpssSnapshot);
 	const tier3 = useQuery(api.tier3Intel.getRecentTier3Signals, { limit: 10 });
 
-	if (!overview) {
+	if (!escalations) {
 		return (
 			<main className="page-body-padded">
 				<PanelSkeleton count={3} />
@@ -38,7 +38,7 @@ function BreachIntelPage() {
 		);
 	}
 
-	const { disclosures, advisoryAggregator } = overview;
+	const { disclosures, advisoryAggregator } = escalations;
 
 	return (
 		<main>
