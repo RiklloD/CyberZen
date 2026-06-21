@@ -266,17 +266,20 @@ export const getLatestCertificationReport = query({
   },
 })
 
-/** Lean history for sparklines — last 10 reports, no domainResults payload. */
+/** Lean history for sparklines — last N reports, no domainResults payload. */
 export const getCertificationHistory = query({
-  args: { repositoryId: v.id('repositories') },
-  handler: async (ctx, { repositoryId }) => {
+  args: {
+    repositoryId: v.id('repositories'),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, { repositoryId, limit }) => {
     const rows = await ctx.db
       .query('llmCertificationReports')
       .withIndex('by_repository_and_computed_at', (q) =>
         q.eq('repositoryId', repositoryId),
       )
       .order('desc')
-      .take(10)
+      .take(limit ?? 10)
     return rows.map(({ domainResults: _dr, ...rest }) => rest)
   },
 })
