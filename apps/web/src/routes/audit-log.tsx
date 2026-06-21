@@ -59,7 +59,7 @@ function AuditLogPage() {
 
 	const integrityResult = useQuery(
 		api.auditLog.verifyAuditIntegrity,
-		shouldVerify && { tenantSlug: TENANT },
+		shouldVerify ? { tenantSlug: TENANT } : "skip",
 	);
 
 	return (
