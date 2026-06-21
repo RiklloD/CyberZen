@@ -23,18 +23,24 @@ import RouteErrorBoundary from "../components/RouteErrorBoundary";
 
 export const Route = createFileRoute("/agents")({ errorComponent: RouteErrorBoundary, component: AgentsPage });
 
-type OverviewData = NonNullable<
-	FunctionReturnType<typeof api.dashboard.overview>
+type RecentFindingsData = NonNullable<
+	FunctionReturnType<typeof api.dashboard.recentFindings>
 >;
-type OverviewRepository = OverviewData["repositories"][number];
+type EscalationsData = NonNullable<
+	FunctionReturnType<typeof api.dashboard.escalations>
+>;
+type OverviewRepository =
+	NonNullable<FunctionReturnType<typeof api.dashboard.overview>>["repositories"][number];
 type OverviewSemanticFinding =
-	OverviewData["semanticFingerprint"]["recentFindings"][number];
+	RecentFindingsData["semanticFingerprint"]["recentFindings"][number];
 type OverviewExploitRun =
-	OverviewData["exploitValidation"]["recentRuns"][number];
+	EscalationsData["exploitValidation"]["recentRuns"][number];
 
 function AgentsPage() {
 	const TENANT = useTenantSlug();
 	const overview = useQuery(api.dashboard.overview, { tenantSlug: TENANT });
+	const recentFindings = useQuery(api.dashboard.recentFindings, { tenantSlug: TENANT });
+	const escalations = useQuery(api.dashboard.escalations, { tenantSlug: TENANT });
 	const [selectedRepo, setSelectedRepo] = useState<string | null>(null);
 	const [activeTab, setActiveTab] = useState<"overview" | "repo" | "certification" | "provenance">("overview");
 
@@ -50,7 +56,9 @@ function AgentsPage() {
 		);
 	}
 
-	const { repositories, semanticFingerprint, exploitValidation } = overview;
+	const { repositories } = overview;
+	const semanticFingerprint = recentFindings?.semanticFingerprint;
+	const exploitValidation = escalations?.exploitValidation;
 	const activeRepo = selectedRepo
 		? repositories.find((r: OverviewRepository) => r._id === selectedRepo)
 		: repositories[0];

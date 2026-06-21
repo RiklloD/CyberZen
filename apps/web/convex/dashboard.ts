@@ -971,6 +971,10 @@ export const overview = query({
           status: v.string(),
           confidence: v.number(),
           source: v.string(),
+          repositoryId: v.id('repositories'),
+          repositoryFullName: v.string(),
+          vulnClass: v.string(),
+          affectedPackages: v.array(v.string()),
           createdAt: v.number(),
         }),
       ),
@@ -1275,6 +1279,12 @@ export const overview = query({
         status: f.status,
         confidence: f.confidence,
         source: f.source,
+        repositoryId: f.repositoryId,
+        repositoryFullName:
+          repositories.find((r: any) => r._id === f.repositoryId)?.fullName ??
+          '',
+        vulnClass: f.vulnClass,
+        affectedPackages: f.affectedPackages,
         createdAt: f.createdAt,
       })),
       workflows: workflowRows.map((w: any) => ({

@@ -175,9 +175,10 @@ export default {
 
 The `domain` must be the issuer URL of the JWT provider. Convex fetches `{domain}/.well-known/openid-configuration` to discover the JWKS endpoint. The `applicationID` is checked against the JWT `aud` (audience) claim.
 
-- Use `ctx.auth.getUserIdentity()` to get the authenticated user's identity in any query, mutation, or action. This returns `null` if the user is not authenticated, or a `UserIdentity` object with fields like `subject`, `issuer`, `name`, `email`, etc. The `subject` field is the unique user identifier.
-- In Convex `UserIdentity`, `tokenIdentifier` is guaranteed and is the canonical stable identifier for the authenticated identity. For any auth-linked database lookup or ownership check, prefer `identity.tokenIdentifier` over `identity.subject`. Do NOT use `identity.subject` alone as a global identity key.
-- NEVER accept a `userId` or any user identifier as a function argument for authorization purposes. Always derive the user identity server-side via `ctx.auth.getUserIdentity()`.
+- Use `ctx.auth.getUserIdentity()` to get the authenticated user's identity in any query, mutation, or action. This returns `null` if the user is not authenticated, or a `UserIdentity` object with fields like `subject`, `issuer`, `name`, `email`, etc.
+- **This project uses Clerk auth (NOT @convex-dev/auth).** Under Clerk, `identity.tokenIdentifier` is null/empty and `identity.subject` is a Clerk user ID (e.g. `user_3FM...`), NOT a Convex `Id<"users">`. NEVER use `identity.tokenIdentifier` or cast `identity.subject` as `Id<"users">`.
+- **ALWAYS resolve the authenticated user via `requireSessionAuth(ctx)` from `./lib/sessionAuth`.** This helper reads `identity.email` from the Clerk session and looks up the user via the `email` index on the `users` table. It returns `{ userId: Id<"users"> }`. For tenant membership checks, use the `verifyTenantMembership` pattern (call `requireSessionAuth` then check `tenantMembers` by tenant + user).
+- NEVER accept a `userId` or any user identifier as a function argument for authorization purposes. Always derive the user identity server-side via `requireSessionAuth(ctx)`.
 - When using an external auth provider with Convex on the client, use `ConvexProviderWithAuth` instead of `ConvexProvider`:
 
 ```tsx
