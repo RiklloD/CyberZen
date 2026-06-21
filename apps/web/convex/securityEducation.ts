@@ -1,5 +1,6 @@
 import { ConvexError, v } from 'convex/values'
 import { internalMutation, mutation, query } from './_generated/server'
+import { requireSessionAuth } from './lib/sessionAuth'
 
 // ─── Seed Data ────────────────────────────────────────────────────────────────
 
@@ -270,16 +271,13 @@ export const trackEducationView = mutation({
     tenantSlug: v.string(),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity()
-    if (!identity) return null
+    const { userId } = await requireSessionAuth(ctx)
 
     const tenant = await ctx.db
       .query('tenants')
       .withIndex('by_slug', (q) => q.eq('slug', args.tenantSlug))
       .unique()
     if (!tenant) return null
-
-    const userId = identity.tokenIdentifier
 
     const existing = await ctx.db
       .query('educationViews')

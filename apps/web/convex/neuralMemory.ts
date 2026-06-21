@@ -3,16 +3,13 @@ import { query, mutation, internalQuery, internalMutation, internalAction } from
 import type { QueryCtx, MutationCtx, ActionCtx } from './_generated/server'
 import { api, internal } from './_generated/api'
 import type { Doc, Id } from './_generated/dataModel'
+import { requireSessionAuth } from './lib/sessionAuth'
 
-// Helper to verify tenant membership and get user
+// Helper to verify tenant membership and get user (Clerk-compliant via email index)
 async function verifyTenantMembership(ctx: QueryCtx | MutationCtx, tenantId: Id<'tenants'>) {
-  const identity = await ctx.auth.getUserIdentity()
-  if (!identity) throw new Error('Not authenticated')
+  const { userId } = await requireSessionAuth(ctx)
 
-  const user = await ctx.db
-    .query('users')
-    .withIndex('by_token_identifier', (q) => q.eq('tokenIdentifier', identity.tokenIdentifier))
-    .unique()
+  const user = await ctx.db.get(userId)
   if (!user) throw new Error('User not found')
 
   const membership = await ctx.db
