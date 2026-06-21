@@ -9,7 +9,7 @@
 import { v } from 'convex/values'
 import { query, mutation, internalAction, internalMutation } from './_generated/server'
 import { internal } from './_generated/api'
-import { requireSessionAuth } from './lib/sessionAuth'
+import { requireTenantAccess } from './lib/sessionAuth'
 
 const DATA_TYPES = v.union(
   v.literal('findings'),
@@ -30,7 +30,7 @@ export const listPolicies = query({
     tenantSlug: v.string(),
   },
   handler: async (ctx, args) => {
-    const { tenant } = await requireSessionAuth(ctx, args.authToken, args.tenantSlug)
+    const { tenant } = await requireTenantAccess(ctx, args.authToken, args.tenantSlug)
 
     const policies = await ctx.db
       .query('retentionPolicies')
@@ -56,7 +56,7 @@ export const createPolicy = mutation({
     enabled: v.boolean(),
   },
   handler: async (ctx, args) => {
-    const { tenant } = await requireSessionAuth(ctx, args.authToken, args.tenantSlug)
+    const { tenant } = await requireTenantAccess(ctx, args.authToken, args.tenantSlug)
     const now = Date.now()
 
     return ctx.db.insert('retentionPolicies', {
@@ -84,7 +84,7 @@ export const updatePolicy = mutation({
     enabled: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const { tenant } = await requireSessionAuth(ctx, args.authToken, args.tenantSlug)
+    const { tenant } = await requireTenantAccess(ctx, args.authToken, args.tenantSlug)
     const existing = await ctx.db.get(args.policyId)
     if (!existing || existing.tenantId.toHexString() !== tenant._id.toHexString()) {
       throw new Error('Retention policy not found')
@@ -108,7 +108,7 @@ export const deletePolicy = mutation({
     policyId: v.id('retentionPolicies'),
   },
   handler: async (ctx, args) => {
-    const { tenant } = await requireSessionAuth(ctx, args.authToken, args.tenantSlug)
+    const { tenant } = await requireTenantAccess(ctx, args.authToken, args.tenantSlug)
     const existing = await ctx.db.get(args.policyId)
     if (!existing || existing.tenantId.toHexString() !== tenant._id.toHexString()) {
       throw new Error('Retention policy not found')

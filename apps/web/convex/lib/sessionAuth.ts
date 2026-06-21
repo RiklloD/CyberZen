@@ -70,3 +70,46 @@ export async function requireSessionAuth(
 	// a mutation to create the user, then re-query.
 	throw new Error(`No CyberZen user found for ${normalizedEmail}. Please sign in again to create your account.`);
 }
+
+/**
+ * Resolve the authenticated user AND the tenant from a slug, with membership
+ * verification. Returns the tenant doc, userId, and membership doc.
+ *
+ * Use this in queries/mutations that need both auth and tenant scoping:
+ *   const { tenant } = await requireTenantAccess(ctx, args.authToken, args.tenantSlug)
+ */
+export async function requireTenantAccess(
+	ctx: AuthCtx,
+	_authToken?: string | undefined,
+	tenantSlug?: string | undefined,
+): Promise<{
+	tenant: NonNullable<Awaited<ReturnType<AuthCtx["db"]["query"]>["first"]>>;
+	userId: Id<"users">;
+	membership: NonNullable<Awaited<ReturnType<AuthCtx["db"]["query"]>["first"]>>;
+}> {
+	const { userId } = await requireSessionAuth(ctx, _authToken);
+
+	if (!tenantSlug) {
+		throw new Error("Tenant slug is required");
+	}
+
+	const tenant = await ctx.db
+		.query("tenants")
+		.withIndex("by_slug", (q) => q.eq("slug", tenantSlug))
+		.first();
+	if (!tenant) {
+		throw new Error(`Tenant "${tenantSlug}" not found`);
+	}
+
+	const membership = await ctx.db
+		.query("tenantMembers")
+		.withIndex("by_tenant_and_user", (q) =>
+			q.eq("tenantId", tenant._id).eq("userId", userId),
+		)
+		.unique();
+	if (!membership) {
+		throw new Error("Not authorized for this tenant");
+	}
+
+	return { tenant, userId, membership };
+}

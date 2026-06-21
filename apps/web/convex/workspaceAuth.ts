@@ -1,7 +1,7 @@
 import type { Id } from './_generated/dataModel'
 import { mutation, query, type MutationCtx, type QueryCtx } from './_generated/server'
 import { v } from 'convex/values'
-import { requireSessionAuth } from './lib/sessionAuth'
+import { requireSessionAuth, requireTenantAccess } from './lib/sessionAuth'
 
 const workspaceRole = v.union(
   v.literal('owner'),
@@ -534,5 +534,42 @@ export const acceptWorkspaceInvite = mutation({
     }
 
     return await loadCurrentWorkspace(ctx, userId)
+  },
+})
+
+// §3.13 — Workspace General Settings
+
+export const getWorkspaceSettings = query({
+  args: {
+    authToken: v.optional(v.string()),
+    tenantSlug: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { tenant } = await requireTenantAccess(ctx, args.authToken, args.tenantSlug)
+    return {
+      name: tenant.name,
+      defaultPolicy: (tenant as Record<string, unknown>).defaultPolicy as string | undefined,
+      deploymentMode: tenant.deploymentMode,
+    }
+  },
+})
+
+export const updateWorkspaceSettings = mutation({
+  args: {
+    authToken: v.optional(v.string()),
+    tenantSlug: v.string(),
+    name: v.string(),
+    defaultPolicy: v.optional(v.string()),
+    deploymentMode: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { tenant } = await requireTenantAccess(ctx, args.authToken, args.tenantSlug)
+
+    const patch: Record<string, unknown> = {}
+    if (args.name) patch.name = args.name
+    if (args.deploymentMode) patch.deploymentMode = args.deploymentMode
+
+    await ctx.db.patch(tenant._id, patch)
+    return null
   },
 })

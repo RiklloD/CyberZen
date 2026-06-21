@@ -11,7 +11,7 @@
 
 import { v } from 'convex/values'
 import { query, mutation } from './_generated/server'
-import { requireSessionAuth } from './lib/sessionAuth'
+import { requireTenantAccess } from './lib/sessionAuth'
 
 const ROTATION_TYPES = v.union(
   v.literal('daily'),
@@ -43,7 +43,7 @@ export const listSchedules = query({
     tenantSlug: v.string(),
   },
   handler: async (ctx, args) => {
-    const { tenant } = await requireSessionAuth(ctx, args.authToken, args.tenantSlug)
+    const { tenant } = await requireTenantAccess(ctx, args.authToken, args.tenantSlug)
 
     const schedules = await ctx.db
       .query('onCallSchedules')
@@ -87,7 +87,7 @@ export const createSchedule = mutation({
     enabled: v.boolean(),
   },
   handler: async (ctx, args) => {
-    const { tenant } = await requireSessionAuth(ctx, args.authToken, args.tenantSlug)
+    const { tenant } = await requireTenantAccess(ctx, args.authToken, args.tenantSlug)
     const now = Date.now()
 
     if (args.memberIds.length === 0) {
@@ -123,7 +123,7 @@ export const updateSchedule = mutation({
     enabled: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const { tenant } = await requireSessionAuth(ctx, args.authToken, args.tenantSlug)
+    const { tenant } = await requireTenantAccess(ctx, args.authToken, args.tenantSlug)
     const existing = await ctx.db.get(args.scheduleId)
     if (!existing || existing.tenantId.toHexString() !== tenant._id.toHexString()) {
       throw new Error('On-call schedule not found')
@@ -151,7 +151,7 @@ export const deleteSchedule = mutation({
     scheduleId: v.id('onCallSchedules'),
   },
   handler: async (ctx, args) => {
-    const { tenant } = await requireSessionAuth(ctx, args.authToken, args.tenantSlug)
+    const { tenant } = await requireTenantAccess(ctx, args.authToken, args.tenantSlug)
     const existing = await ctx.db.get(args.scheduleId)
     if (!existing || existing.tenantId.toHexString() !== tenant._id.toHexString()) {
       throw new Error('On-call schedule not found')
@@ -183,7 +183,7 @@ export const listEscalationPolicies = query({
     tenantSlug: v.string(),
   },
   handler: async (ctx, args) => {
-    const { tenant } = await requireSessionAuth(ctx, args.authToken, args.tenantSlug)
+    const { tenant } = await requireTenantAccess(ctx, args.authToken, args.tenantSlug)
 
     const policies = await ctx.db
       .query('escalationPolicies')
@@ -228,7 +228,7 @@ export const createEscalationPolicy = mutation({
     enabled: v.boolean(),
   },
   handler: async (ctx, args) => {
-    const { tenant } = await requireSessionAuth(ctx, args.authToken, args.tenantSlug)
+    const { tenant } = await requireTenantAccess(ctx, args.authToken, args.tenantSlug)
 
     // Verify the schedule belongs to the tenant
     const schedule = await ctx.db.get(args.onCallScheduleId)
@@ -277,7 +277,7 @@ export const updateEscalationPolicy = mutation({
     enabled: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const { tenant } = await requireSessionAuth(ctx, args.authToken, args.tenantSlug)
+    const { tenant } = await requireTenantAccess(ctx, args.authToken, args.tenantSlug)
     const existing = await ctx.db.get(args.policyId)
     if (!existing || existing.tenantId.toHexString() !== tenant._id.toHexString()) {
       throw new Error('Escalation policy not found')
@@ -311,7 +311,7 @@ export const deleteEscalationPolicy = mutation({
     policyId: v.id('escalationPolicies'),
   },
   handler: async (ctx, args) => {
-    const { tenant } = await requireSessionAuth(ctx, args.authToken, args.tenantSlug)
+    const { tenant } = await requireTenantAccess(ctx, args.authToken, args.tenantSlug)
     const existing = await ctx.db.get(args.policyId)
     if (!existing || existing.tenantId.toHexString() !== tenant._id.toHexString()) {
       throw new Error('Escalation policy not found')
