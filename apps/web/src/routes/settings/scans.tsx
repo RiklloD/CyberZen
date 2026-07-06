@@ -43,6 +43,7 @@ function ScanSchedulingPage() {
 	const [formDescription, setFormDescription] = useState("");
 	const [formEnabled, setFormEnabled] = useState(true);
 	const [runningId, setRunningId] = useState<string | null>(null);
+	const [cronError, setCronError] = useState<string | null>(null);
 
 	function openCreate() {
 		setEditingId(null);
@@ -70,6 +71,18 @@ function ScanSchedulingPage() {
 
 	function handleSave() {
 		if (!formCron) return;
+
+		const parts = formCron.trim().split(/\s+/);
+		if (parts.length !== 5) {
+			setCronError("Cron expression must have exactly 5 fields: minute hour day-of-month month day-of-week");
+			return;
+		}
+		const cronPattern = /^[\d*/\-,\s]+$/;
+		if (!cronPattern.test(formCron)) {
+			setCronError("Cron expression contains invalid characters. Only digits, *, /, -, and commas are allowed.");
+			return;
+		}
+		setCronError(null);
 
 		if (editingId) {
 			updateSchedule({
@@ -293,12 +306,15 @@ function ScanSchedulingPage() {
 									className="input-field w-full font-mono"
 									placeholder="0 * * * *"
 									value={formCron}
-									onChange={(e) => setFormCron(e.target.value)}
-								/>
-								<p className="mt-1 text-[0.65rem] text-[var(--sea-ink-soft)]">
+									onChange={(e) => { setFormCron(e.target.value); setCronError(null); }}
+									/>
+									<p className="mt-1 text-[0.65rem] text-[var(--sea-ink-soft)]">
 									Standard 5-field cron: minute hour day-of-month month day-of-week
-								</p>
-							</div>
+									</p>
+									{cronError && (
+									<p className="mt-1 text-xs text-red-600">{cronError}</p>
+									)}
+									</div>
 
 							<div>
 								<label className="mb-1 block text-xs font-semibold text-[var(--sea-ink-soft)]">

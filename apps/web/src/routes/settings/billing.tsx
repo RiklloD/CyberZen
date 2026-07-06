@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "convex/react";
+import { useQuery, useAction } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import {
 	CreditCard,
@@ -7,6 +7,7 @@ import {
 	ArrowUpRight,
 	Download,
 	Sparkles } from "lucide-react";
+import { useState } from "react";
 import StatusPill from "../../components/StatusPill";
 import UpgradeButton from "../../components/UpgradeButton";
 import { api } from "../../lib/convex";
@@ -160,6 +161,21 @@ function BillingSummaryCard({
 	usage: BillingUsage | null | undefined;
 	plans: BillingPlans | null | undefined;
 }) {
+	const TENANT = useTenantSlug();
+	const createPortalSession = useAction(api.billingPortal.createPortalSession);
+	const [portalLoading, setPortalLoading] = useState(false);
+
+	async function handleManage() {
+		setPortalLoading(true);
+		try {
+			const result = await createPortalSession({ tenantSlug: TENANT });
+			if (result?.url) {
+				window.location.href = result.url;
+			}
+		} catch {
+			setPortalLoading(false);
+		}
+	}
 	if (!current) {
 		return (
 			<div className="card">
@@ -225,9 +241,11 @@ function BillingSummaryCard({
 						type="button"
 						className="signal-button secondary-button"
 						style={{ padding: "0.4rem 0.8rem", fontSize: "0.75rem" }}
+						onClick={handleManage}
+						disabled={portalLoading}
 					>
 						<ArrowUpRight size={12} className="mr-1" />
-						Manage
+						{portalLoading ? "Loading..." : "Manage"}
 					</button>
 				)}
 			</div>
@@ -331,13 +349,10 @@ function PlanComparisonTable({
 								Up to {plan.maxRepositories} repos · {plan.maxMembers} members
 							</p>
 							{!isCurrent && (
-								<button
-									type="button"
-									className="signal-button mt-3 w-full"
-									style={{ padding: "0.4rem 0.6rem", fontSize: "0.75rem" }}
-								>
-									Upgrade
-								</button>
+								<UpgradeButton
+									targetPlanSlug={plan.slug}
+									label="Upgrade"
+								/>
 							)}
 						</div>
 					);

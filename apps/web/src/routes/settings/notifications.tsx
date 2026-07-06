@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Bell } from "lucide-react";
 import { useMutation, useQuery } from "convex/react";
+import { useState } from "react";
 import { api } from "../../lib/convex";
 import { useTenantSlug } from "../../lib/workspace";
 import RouteErrorBoundary from "../../components/RouteErrorBoundary";
@@ -35,6 +36,7 @@ function NotificationSettingsPage() {
 		tenantSlug: TENANT });
 
 	const upsertPreference = useMutation(api.notifications.upsertPreference);
+	const [flash, setFlash] = useState<{ message: string; tone: "success" | "error" } | null>(null);
 
 	function isEnabled(channel: string, type: string): boolean {
 		const pref = preferences?.find(
@@ -49,7 +51,15 @@ function NotificationSettingsPage() {
 			tenantSlug: TENANT,
 			channel: channel as "in_app" | "email" | "slack",
 			type,
-			enabled: !current });
+			enabled: !current })
+			.then(() => {
+				setFlash({ message: "Preference saved", tone: "success" });
+				setTimeout(() => setFlash(null), 3000);
+			})
+			.catch(() => {
+				setFlash({ message: "Failed to save preference", tone: "error" });
+				setTimeout(() => setFlash(null), 4000);
+			});
 	}
 
 	return (
@@ -128,6 +138,18 @@ function NotificationSettingsPage() {
 									))}
 								</tbody>
 							</table>
+						</div>
+					)}
+
+					{flash && (
+						<div
+							className={`mt-4 px-4 py-2 rounded-lg text-xs font-medium ${
+								flash.tone === "success"
+									? "bg-green-50 text-green-700 border border-green-200"
+									: "bg-red-50 text-red-700 border border-red-200"
+							}`}
+						>
+							{flash.message}
 						</div>
 					)}
 				</div>

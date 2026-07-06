@@ -89,16 +89,24 @@ export const submitContribution = mutation({
 export const voteOnContribution = mutation({
   args: {
     contributionId: v.id('communityContributions'),
-    voterTenantId: v.id('tenants'),
+    voterTenantSlug: v.string(),
     voteType: v.union(v.literal('upvote'), v.literal('downvote')),
   },
-  handler: async (ctx, { contributionId, voterTenantId, voteType }) => {
+  handler: async (ctx, { contributionId, voterTenantSlug, voteType }) => {
     const contribution = await ctx.db.get(contributionId)
     if (!contribution) throw new Error('Contribution not found.')
     if (contribution.status === 'rejected') {
       throw new Error('Cannot vote on a rejected contribution.')
     }
-    if (contribution.contributorTenantId === voterTenantId) {
+
+    // Resolve tenant from slug
+    const tenant = await ctx.db
+      .query('tenants')
+      .withIndex('slug', (q: any) => q.eq('slug', voterTenantSlug))
+      .first()
+    if (!tenant) throw new Error('Tenant not found.')
+
+    if (contribution.contributorTenantId === tenant._id) {
       throw new Error('Cannot vote on your own contribution.')
     }
 
@@ -106,7 +114,7 @@ export const voteOnContribution = mutation({
     const existing = await ctx.db
       .query('contributionVotes')
       .withIndex('by_voter_and_contribution', (q) =>
-        q.eq('voterTenantId', voterTenantId).eq('contributionId', contributionId),
+        q.eq('voterTenantId', tenant._id).eq('contributionId', contributionId),
       )
       .unique()
 
@@ -132,7 +140,7 @@ export const voteOnContribution = mutation({
     // First vote from this tenant.
     await ctx.db.insert('contributionVotes', {
       contributionId,
-      voterTenantId,
+      voterTenantId: tenant._id,
       voteType,
       createdAt: Date.now(),
     })

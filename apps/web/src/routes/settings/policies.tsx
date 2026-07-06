@@ -38,6 +38,7 @@ function CustomPolicyBuilderPage() {
 	const [formDsl, setFormDsl] = useState("");
 	const [formEnabled, setFormEnabled] = useState(true);
 	const [showTemplates, setShowTemplates] = useState(false);
+	const [dslError, setDslError] = useState<string | null>(null);
 
 	function openCreate() {
 		setEditingId(null);
@@ -65,6 +66,14 @@ function CustomPolicyBuilderPage() {
 
 	function handleSave() {
 		if (!formName || !formDsl) return;
+
+		try {
+			JSON.parse(formDsl);
+		} catch {
+			setDslError("Invalid JSON — fix syntax errors before saving.");
+			return;
+		}
+		setDslError(null);
 
 		if (editingId) {
 			updatePolicy({
@@ -313,10 +322,13 @@ function CustomPolicyBuilderPage() {
 								<textarea
 									className="input-field w-full font-mono text-xs min-h-[200px] resize-y"
 									value={formDsl}
-									onChange={(e) => setFormDsl(e.target.value)}
+									onChange={(e) => { setFormDsl(e.target.value); setDslError(null); }}
 									spellCheck={false}
 								/>
-							</div>
+								{dslError && (
+									<p className="mt-1 text-xs text-red-600">{dslError}</p>
+								)}
+								</div>
 
 							<div className="flex items-center gap-2">
 								<input

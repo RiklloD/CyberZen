@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import {
 	Store,
 	ThumbsUp,
@@ -8,6 +8,7 @@ import {
 import { useState } from "react";
 import StatusPill from "../components/StatusPill";
 import { api } from "../lib/convex";
+import { useTenantSlug } from "../lib/workspace";
 import RouteErrorBoundary from "../components/RouteErrorBoundary";
 
 export const Route = createFileRoute("/marketplace")({
@@ -181,6 +182,8 @@ function StatCard({
 }
 
 function ContributionCard({ contribution: c }: { contribution: any }) {
+	const TENANT = useTenantSlug();
+	const voteOnContribution = useMutation(api.communityMarketplace.voteOnContribution);
 	const netScore = (c.upvoteCount ?? 0) - (c.downvoteCount ?? 0);
 
 	const severityTone = (sev: string) => {
@@ -216,12 +219,28 @@ function ContributionCard({ contribution: c }: { contribution: any }) {
 					<div className="flex items-center gap-3 text-xs text-[var(--sea-ink-soft)]">
 						<span className="font-medium text-[var(--signal)]">{c.vulnClass}</span>
 						<span>•</span>
-						<span className="flex items-center gap-1">
+						<button
+							type="button"
+							className="flex items-center gap-1 hover:text-[var(--signal)] transition-colors"
+							onClick={() => voteOnContribution({
+								contributionId: c._id,
+								voterTenantSlug: TENANT,
+								voteType: "upvote" as const,
+							})}
+						>
 							<ThumbsUp size={10} /> {c.upvoteCount ?? 0}
-						</span>
-						<span className="flex items-center gap-1">
+						</button>
+						<button
+							type="button"
+							className="flex items-center gap-1 hover:text-[var(--signal)] transition-colors"
+							onClick={() => voteOnContribution({
+								contributionId: c._id,
+								voterTenantSlug: TENANT,
+								voteType: "downvote" as const,
+							})}
+						>
 							<ThumbsDown size={10} /> {c.downvoteCount ?? 0}
-						</span>
+						</button>
 						<span>•</span>
 						<span>Net: {netScore > 0 ? "+" : ""}{netScore}</span>
 						<span>•</span>

@@ -2972,7 +2972,7 @@ http.route({
 // POST /api/marketplace/contributions/vote
 //
 // Cast or switch a vote on a community contribution.
-// Body: { contributionId, voterTenantId, voteType: 'upvote'|'downvote' }
+// Body: { contributionId, voterTenantSlug, voteType: 'upvote'|'downvote' }
 // Spec §10 Phase 4 — Community Rule/Fingerprint Marketplace.
 // ---------------------------------------------------------------------------
 
@@ -2990,9 +2990,9 @@ http.route({
       return jsonResponse({ error: 'Invalid JSON body.' }, 400)
     }
 
-    if (!body.contributionId || !body.voterTenantId || !body.voteType) {
+    if (!body.contributionId || !body.voterTenantSlug || !body.voteType) {
       return jsonResponse(
-        { error: 'contributionId, voterTenantId, and voteType are required.' },
+        { error: 'contributionId, voterTenantSlug, and voteType are required.' },
         400,
       )
     }
@@ -3002,7 +3002,7 @@ http.route({
         api.communityMarketplace.voteOnContribution,
         {
           contributionId: body.contributionId as Id<'communityContributions'>,
-          voterTenantId: body.voterTenantId as Id<'tenants'>,
+          voterTenantSlug: body.voterTenantSlug as string,
           voteType: body.voteType as 'upvote' | 'downvote',
         },
       )

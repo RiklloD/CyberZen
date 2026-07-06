@@ -83,10 +83,11 @@ const SETTINGS_CARDS: SettingsCard[] = [
 		icon: Globe,
 		badge: "External" },
 	{
-		to: "/settings/agents",
+		to: "/agents",
 		label: "Agent Configuration",
 		description: "Configure learning agents, red/blue team behavior",
-		icon: Bot },
+		icon: Bot,
+		badge: "External" },
 	{
 		to: "/settings/retention",
 		label: "Data Retention",
@@ -129,6 +130,31 @@ const SETTINGS_CARDS: SettingsCard[] = [
 		label: "IP Allowlist",
 		description: "Restrict API access to approved IP ranges",
 		icon: Globe },
+	{
+		to: "/settings/sso",
+		label: "SSO / SAML",
+		description: "SAML and OIDC identity provider configuration",
+		icon: Shield },
+	{
+		to: "/settings/two-factor",
+		label: "Two-Factor Auth",
+		description: "TOTP enrollment and organization 2FA policy",
+		icon: Shield },
+	{
+		to: "/settings/suppression",
+		label: "Suppression Rules",
+		description: "Regex-based finding suppression and noise filtering",
+		icon: Settings },
+	{
+		to: "/settings/policies",
+		label: "Policy Builder",
+		description: "Custom DSL security policy rules and enforcement",
+		icon: Shield },
+	{
+		to: "/settings/deployment",
+		label: "Deployment Mode",
+		description: "Switch between Cloud SaaS, Hybrid VPC, and On-Prem",
+		icon: Settings },
 ];
 
 function SettingsHubPage() {

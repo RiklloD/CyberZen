@@ -19,6 +19,7 @@ function GitHubConnectWizard() {
 	const [selectedRepos, setSelectedRepos] = useState<Set<string>>(new Set());
 	const [repoFilter, setRepoFilter] = useState("");
 	const [scanTriggered, setScanTriggered] = useState(false);
+	const [scanError, setScanError] = useState<string | null>(null);
 
 	// GitHub repos are fetched via action (external API call, not reactive)
 	const fetchGithubRepos = useAction(api.githubIntegration.listGithubRepos);
@@ -124,6 +125,7 @@ function GitHubConnectWizard() {
 
 	async function handleStartScan() {
 		setScanTriggered(true);
+		setScanError(null);
 		track("scan.triggered", {
 			scannerSlug: "initial-onboarding-scan",
 			triggerType: "manual" });
@@ -137,6 +139,11 @@ function GitHubConnectWizard() {
 			setStep("complete");
 		} catch (err) {
 			console.error("Scan dispatch failed:", err);
+			setScanError(
+				err instanceof Error
+					? err.message
+					: "Failed to dispatch scan. Check your connection and try again.",
+			);
 			setScanTriggered(false);
 		}
 	}
@@ -386,14 +393,22 @@ function GitHubConnectWizard() {
 								</div>
 
 								{!scanTriggered ? (
-									<button
-										type="button"
-										className="signal-button"
-										onClick={handleStartScan}
-									>
-										Start Initial Scan
-										<ArrowRight size={14} />
-									</button>
+									<>
+										{scanError && (
+											<div className="mb-4 rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
+												<strong className="font-semibold">Scan failed: </strong>
+												{scanError}
+											</div>
+										)}
+										<button
+											type="button"
+											className="signal-button"
+											onClick={handleStartScan}
+										>
+											Start Initial Scan
+											<ArrowRight size={14} />
+										</button>
+									</>
 								) : (
 									<div className="flex items-center justify-center gap-2 text-sm text-[var(--signal)]">
 										<Loader2 size={16} className="animate-spin" />

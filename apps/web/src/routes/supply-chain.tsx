@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { useState } from "react";
+import { ShieldCheck } from "lucide-react";
 import ModelSupplyChainPanel from "../components/panels/ModelSupplyChainPanel";
 import PromptInjectionRecentScansPanel from "../components/panels/PromptInjectionRecentScansPanel";
 import PromptInjectionSupplyChainPanel from "../components/panels/PromptInjectionSupplyChainPanel";
@@ -183,9 +184,22 @@ function RepoSupplyChainIntelligence({
 			</div>
 
 			{/* Model Supply Chain panel */}
-			{modelSupplyChain && (
-				<ModelSupplyChainPanel scan={modelSupplyChain} />
-			)}
-		</div>
+				{modelSupplyChain && (
+					<ModelSupplyChainPanel scan={modelSupplyChain} />
+				)}
+
+				{/* Empty state — no scan data for this repo yet */}
+				{!supplyChainPosture && !supplyChainAnalysis && (!promptScans || promptScans.length === 0) &&
+					!confusionAttack && !maliciousPackage && !abandonment && !eolDetection &&
+					!cryptoWeakness && !trafficAnomaly && !secretDetection && !modelSupplyChain && (
+					<div className="empty-state">
+						<ShieldCheck size={20} className="mb-2 opacity-30" />
+						<p>No supply chain intelligence available yet.</p>
+						<p className="text-xs mt-1">
+							Supply chain panels appear after the repository completes its first scan cycle.
+						</p>
+					</div>
+				)}
+			</div>
 	);
 }

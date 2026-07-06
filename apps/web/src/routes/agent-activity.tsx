@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery } from "convex/react";
 import { Bot, Brain, Shield, Crosshair, Eye, Zap, Activity, DollarSign, ChevronDown, ChevronRight, Code2, FileJson, Cpu } from "lucide-react";
 import { useState } from "react";
 import StatusPill from "../components/StatusPill";

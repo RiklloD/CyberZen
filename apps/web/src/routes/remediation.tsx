@@ -113,8 +113,10 @@ function RepoRemediationView({
 
 	const dispatchRemediationMutation = useMutation(api.autoRemediationIntel.dispatchRemediation);
 	const [isDispatchPending, setIsDispatchPending] = useState(false);
+	const [dispatchError, setDispatchError] = useState<string | null>(null);
 	async function dispatchRemediation(args: Parameters<typeof dispatchRemediationMutation>[0]) {
 		setIsDispatchPending(true);
+		setDispatchError(null);
 		try {
 			return await dispatchRemediationMutation(args);
 		} finally {
@@ -558,9 +560,14 @@ function RepoRemediationView({
 						based on the configured policy.
 					</p>
 					<div className="flex justify-end gap-2">
+						{dispatchError && (
+							<span className="text-xs text-red-600 mr-auto self-center">
+								{dispatchError}
+							</span>
+						)}
 						<button
 							type="button"
-							onClick={() => setDispatchTarget(null)}
+							onClick={() => { setDispatchTarget(null); setDispatchError(null); }}
 							className="signal-button secondary-button"
 							style={{ padding: "0.5rem 0.9rem", fontSize: "0.78rem" }}
 						>
@@ -570,11 +577,19 @@ function RepoRemediationView({
 							type="button"
 							disabled={isDispatchPending}
 							onClick={async () => {
-								await dispatchRemediation({ repositoryId: dispatchTarget });
-								track("pr.generated", {
-									repositoryName: repositoryFullName,
-									fixType: "auto-remediation-batch" });
-								setDispatchTarget(null);
+								try {
+									await dispatchRemediation({ repositoryId: dispatchTarget });
+									track("pr.generated", {
+										repositoryName: repositoryFullName,
+										fixType: "auto-remediation-batch" });
+									setDispatchTarget(null);
+								} catch (err) {
+									setDispatchError(
+										err instanceof Error
+											? err.message
+											: "Failed to dispatch remediation. Please try again.",
+									);
+								}
 							}}
 							className="signal-button"
 							style={{ padding: "0.5rem 0.9rem", fontSize: "0.78rem" }}
