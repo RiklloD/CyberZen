@@ -301,6 +301,7 @@ import type * as sbom from "../sbom.js";
 import type * as sbomAttestationIntel from "../sbomAttestationIntel.js";
 import type * as sbomQualityIntel from "../sbomQualityIntel.js";
 import type * as scanScheduling from "../scanScheduling.js";
+import type * as scannerEngine from "../scannerEngine.js";
 import type * as search from "../search.js";
 import type * as secretDetectionIntel from "../secretDetectionIntel.js";
 import type * as secretMgmtDriftIntel from "../secretMgmtDriftIntel.js";
@@ -649,6 +650,7 @@ declare const fullApi: ApiFromModules<{
   sbomAttestationIntel: typeof sbomAttestationIntel;
   sbomQualityIntel: typeof sbomQualityIntel;
   scanScheduling: typeof scanScheduling;
+  scannerEngine: typeof scannerEngine;
   search: typeof search;
   secretDetectionIntel: typeof secretDetectionIntel;
   secretMgmtDriftIntel: typeof secretMgmtDriftIntel;

@@ -1,5 +1,5 @@
 import { ConvexError, v } from 'convex/values'
-import { mutation, query } from './_generated/server'
+import { internalMutation, mutation, query } from './_generated/server'
 import { internal } from './_generated/api'
 import { normalizePackageName } from './lib/breachMatching'
 import { compareSnapshotComponents } from './lib/sbomDiff'
@@ -447,6 +447,117 @@ export const ingestRepositoryInventory = mutation({
     } catch (e) {
       console.error('[dependency-updates] failed to schedule update recommendations', e)
     }
+
+    return { snapshotId, componentCount }
+  },
+})
+
+/**
+ * Internal version of ingestRepositoryInventory — callable from the scanner
+ * engine action via ctx.runMutation(internal.sbom.ingestRepositoryInventory).
+ * Same logic as the public mutation, just registered as internal.
+ */
+export const ingestRepositoryInventoryInternal = internalMutation({
+  args: {
+    tenantSlug: v.string(),
+    repositoryFullName: v.string(),
+    branch: v.string(),
+    commitSha: v.string(),
+    sourceFiles: v.array(v.string()),
+    components: v.array(incomingInventoryComponent),
+  },
+  returns: v.object({
+    snapshotId: v.id('sbomSnapshots'),
+    componentCount: v.number(),
+  }),
+  handler: async (ctx, args) => {
+    const tenant = await ctx.db
+      .query('tenants')
+      .withIndex('by_slug', (q) => q.eq('slug', args.tenantSlug))
+      .unique()
+
+    if (!tenant) {
+      throw new ConvexError('Tenant not found')
+    }
+
+    const repository = await ctx.db
+      .query('repositories')
+      .withIndex('by_tenant_and_full_name', (q) =>
+        q.eq('tenantId', tenant._id).eq('fullName', args.repositoryFullName),
+      )
+      .unique()
+
+    if (!repository) {
+      throw new ConvexError('Repository not found')
+    }
+
+    // Reuse existing snapshot for same commit
+    const previousSnapshot = await ctx.db
+      .query('sbomSnapshots')
+      .withIndex('by_repository_and_commit', (q) =>
+        q.eq('repositoryId', repository._id).eq('commitSha', args.commitSha),
+      )
+      .unique()
+
+    if (previousSnapshot) {
+      return {
+        snapshotId: previousSnapshot._id,
+        componentCount: previousSnapshot.totalComponents,
+      }
+    }
+
+    const latestSnapshot = await ctx.db
+      .query('sbomSnapshots')
+      .withIndex('by_repository_and_captured_at', (q) =>
+        q.eq('repositoryId', repository._id),
+      )
+      .order('desc')
+      .first()
+
+    const componentCount = args.components.length
+    const snapshotId = await ctx.db.insert('sbomSnapshots', {
+      tenantId: tenant._id,
+      repositoryId: repository._id,
+      commitSha: args.commitSha,
+      branch: args.branch,
+      capturedAt: Date.now(),
+      sourceFiles: args.sourceFiles,
+      directDependencyCount: countByLayer(args.components, 'direct'),
+      transitiveDependencyCount: countByLayer(args.components, 'transitive'),
+      buildDependencyCount: countByLayer(args.components, 'build'),
+      containerDependencyCount: countByLayer(args.components, 'container'),
+      runtimeDependencyCount: countByLayer(args.components, 'runtime'),
+      aiModelDependencyCount: countByLayer(args.components, 'ai_model'),
+      totalComponents: componentCount,
+      riskDelta: latestSnapshot
+        ? componentCount - latestSnapshot.totalComponents
+        : componentCount,
+      exportFormats: ['sentinel_json'],
+    })
+
+    for (const component of args.components) {
+      await ctx.db.insert('sbomComponents', {
+        tenantId: tenant._id,
+        repositoryId: repository._id,
+        snapshotId,
+        name: component.name,
+        normalizedName: normalizePackageName(component.name),
+        version: component.version,
+        ecosystem: component.ecosystem,
+        layer: component.layer,
+        isDirect: component.isDirect,
+        sourceFile: component.sourceFile,
+        trustScore: 50,
+        hasKnownVulnerabilities: false,
+        license: component.license,
+        dependents: component.dependents,
+      })
+    }
+
+    await ctx.db.patch('repositories', repository._id, {
+      latestCommitSha: args.commitSha,
+      lastScannedAt: Date.now(),
+    })
 
     return { snapshotId, componentCount }
   },

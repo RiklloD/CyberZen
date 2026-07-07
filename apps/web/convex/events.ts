@@ -3021,9 +3021,6 @@ export const dispatchScannerForRepository = mutation({
     deduped: v.boolean(),
   }),
   handler: async (ctx, args) => {
-    // Re-use the existing push-ingest path.  A re-scan is equivalent to
-    // re-dispatching a push event against the repo's latest commit with
-    // an empty changed-file list so *every* scanner is eligible to run.
     const repoContext = await getRepositoryContext(
       ctx,
       args.tenantSlug,
@@ -3032,19 +3029,41 @@ export const dispatchScannerForRepository = mutation({
 
     const repository = repoContext.repository
 
-    // Build a synthetic changed-file list for drift scanners.  Use a
-    // deterministic marker so the dedupe key stays unique per scanner-type
-    // invocation (avoiding collisions with real push events).
+    // Use a unique commit SHA per rescan so the dedupe key doesn't block
+    // repeated manual scans. Falls back to the real latestCommitSha only if
+    // this is the first scan (no prior SHA stored).
+    const rescanSha = repository.latestCommitSha?.startsWith('onboarding-')
+      ? `rescan-${Date.now()}`
+      : repository.latestCommitSha ?? `rescan-${Date.now()}`
+
     const syntheticFiles = [
       `__rescan__:${args.scannerType}:${Date.now()}`,
     ]
 
-    return ingestGithubPushForRepository(ctx, repoContext, {
+    const result = await ingestGithubPushForRepository(ctx, repoContext, {
       branch: repository.defaultBranch,
-      commitSha: repository.latestCommitSha ?? `rescan-${Date.now()}`,
+      commitSha: rescanSha,
       changedFiles: syntheticFiles,
       commitMessages: [`[rescan] ${args.scannerType}`],
     })
+
+    // ── Schedule the REAL scanner engine ──────────────────────────────────
+    // Fetch actual repo content from GitHub, generate SBOM, and dispatch all
+    // security scanners with real file content.
+    if (!result.deduped) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.scannerEngine.runRealScan,
+        {
+          tenantId: repoContext.tenant._id,
+          repositoryId: repository._id,
+          workflowRunId: result.workflowRunId,
+          commitSha: rescanSha,
+        },
+      )
+    }
+
+    return result
   },
 })
 
