@@ -3029,12 +3029,11 @@ export const dispatchScannerForRepository = mutation({
 
     const repository = repoContext.repository
 
-    // Use a unique commit SHA per rescan so the dedupe key doesn't block
-    // repeated manual scans. Falls back to the real latestCommitSha only if
-    // this is the first scan (no prior SHA stored).
-    const rescanSha = repository.latestCommitSha?.startsWith('onboarding-')
-      ? `rescan-${Date.now()}`
-      : repository.latestCommitSha ?? `rescan-${Date.now()}`
+    // Always use a unique commit SHA per manual rescan so the dedupe key
+    // doesn't block repeated scans. The dedupe key is derived from
+    // tenant:repo:branch:commitSha, so a stale latestCommitSha would
+    // cause every rescan to silently dedupe and never schedule the scan.
+    const rescanSha = `rescan-${Date.now()}`
 
     const syntheticFiles = [
       `__rescan__:${args.scannerType}:${Date.now()}`,

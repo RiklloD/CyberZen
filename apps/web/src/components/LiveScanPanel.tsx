@@ -11,7 +11,7 @@ import {
 	Terminal,
 	Zap,
 } from "lucide-react";
-import { api } from "../lib/convex";
+import { api, type Id } from "../lib/convex";
 import { useTenantSlug } from "../lib/workspace";
 
 // ── Types ─────────────────────────────────────────────────────────────────
@@ -28,12 +28,12 @@ interface ScanLog {
 }
 
 interface ActiveScan {
-	_id: string;
+	_id: Id<"workflowRuns">;
 	workflowType: string;
 	status: string;
 	summary: string;
 	startedAt: number;
-	repositoryId: string;
+	repositoryId: Id<"repositories">;
 	repositoryName: string;
 	repositoryFullName: string;
 	completedTaskCount: number;
@@ -117,7 +117,7 @@ function LogLine({ log }: { log: ScanLog }) {
 function ActiveScanCard({ scan }: { scan: ActiveScan }) {
 	const [expanded, setExpanded] = useState(true);
 	const logs = useQuery(api.scanLogs.getScanLogs, {
-		workflowRunId: scan._id as never,
+		workflowRunId: scan._id,
 		limit: 50,
 	});
 	const scrollRef = useRef<HTMLDivElement>(null);
