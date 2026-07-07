@@ -12,6 +12,7 @@ import {
 	ShieldCheck,
 	Sparkles,
 	Waypoints } from "lucide-react";
+import LiveScanPanel from "../components/LiveScanPanel";
 import StatusPill from "../components/StatusPill";
 import { api } from "../lib/convex";
 import { formatTimestamp, severityTone, workflowTone } from "../lib/utils";
@@ -142,6 +143,9 @@ function DashboardPage() {
 						</div>
 					))}
 				</div>
+
+				{/* Live Scan Activity Panel — the dashboard's scan visibility hub */}
+				<LiveScanPanel />
 
 				{/* Repositories */}
 				{repositories.length > 0 && (

@@ -300,6 +300,7 @@ import type * as sandboxValidation from "../sandboxValidation.js";
 import type * as sbom from "../sbom.js";
 import type * as sbomAttestationIntel from "../sbomAttestationIntel.js";
 import type * as sbomQualityIntel from "../sbomQualityIntel.js";
+import type * as scanLogs from "../scanLogs.js";
 import type * as scanScheduling from "../scanScheduling.js";
 import type * as scannerEngine from "../scannerEngine.js";
 import type * as search from "../search.js";
@@ -649,6 +650,7 @@ declare const fullApi: ApiFromModules<{
   sbom: typeof sbom;
   sbomAttestationIntel: typeof sbomAttestationIntel;
   sbomQualityIntel: typeof sbomQualityIntel;
+  scanLogs: typeof scanLogs;
   scanScheduling: typeof scanScheduling;
   scannerEngine: typeof scannerEngine;
   search: typeof search;

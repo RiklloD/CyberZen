@@ -560,12 +560,32 @@ export const runRealScan = internalAction({
     const errors: string[] = []
     const scannersDispatched: string[] = []
 
+    // Helper: write a log entry to the scanLogs table (live-streamed to UI)
+    const log = (
+      phase: string,
+      level: 'info' | 'success' | 'warning' | 'error',
+      message: string,
+      detail?: string,
+    ) =>
+      ctx.runMutation(internal.scanLogs.appendScanLog, {
+        tenantId: args.tenantId,
+        repositoryId: args.repositoryId,
+        workflowRunId: args.workflowRunId,
+        phase,
+        level,
+        message,
+        detail,
+      })
+
+    await log('scan_start', 'info', 'Scan initialized', `commit: ${args.commitSha}`)
+
     // 1. Get scan context (tenant slug, repo name, branch)
     const scanCtx = await ctx.runQuery(internal.scannerEngine.getScanContext, {
       tenantId: args.tenantId,
       repositoryId: args.repositoryId,
     })
     if (!scanCtx) {
+      await log('scan_error', 'error', 'Could not resolve scan context (tenant/repo missing)')
       return {
         filesFetched: 0,
         componentsDetected: 0,
@@ -574,12 +594,15 @@ export const runRealScan = internalAction({
       }
     }
 
+    await log('scan_start', 'info', `Scanning ${scanCtx.repositoryFullName}`, `branch: ${scanCtx.defaultBranch}`)
+
     // 2. Get GitHub token
     const token = await ctx.runQuery(
       internal.scannerEngine.getGithubTokenForTenant,
       { tenantId: args.tenantId },
     )
     if (!token) {
+      await log('scan_error', 'error', 'No GitHub token found', 'Connect GitHub first via /connect/github')
       return {
         filesFetched: 0,
         componentsDetected: 0,
@@ -593,6 +616,7 @@ export const runRealScan = internalAction({
     // 3. Parse owner/repo from full name
     const [owner, repoName] = scanCtx.repositoryFullName.split('/')
     if (!owner || !repoName) {
+      await log('scan_error', 'error', `Invalid repo full name: ${scanCtx.repositoryFullName}`)
       return {
         filesFetched: 0,
         componentsDetected: 0,
@@ -608,6 +632,8 @@ export const runRealScan = internalAction({
         ? scanCtx.defaultBranch
         : args.commitSha
 
+    await log('fetch_tree', 'info', `Fetching repository tree from GitHub`, `${owner}/${repoName}:${ref}`)
+
     let treeEntries: GitTreeEntry[]
     try {
       treeEntries = await fetchRepoTree(
@@ -617,6 +643,7 @@ export const runRealScan = internalAction({
         token,
       )
     } catch (e: any) {
+      await log('fetch_tree', 'error', `Failed to fetch repo tree: ${e.message}`)
       return {
         filesFetched: 0,
         componentsDetected: 0,
@@ -626,6 +653,7 @@ export const runRealScan = internalAction({
     }
 
     const allPaths = treeEntries.map((e) => e.path)
+    await log('fetch_tree', 'success', `Repository tree fetched`, `${allPaths.length} files found`)
 
     // 5. Classify files and determine what to fetch
     const manifestPaths = allPaths.filter(isManifestFile)
@@ -636,12 +664,21 @@ export const runRealScan = internalAction({
     const cicdPaths = allPaths.filter(isCicdFile).slice(0, 10)
     const sensitivePaths = allPaths.filter(isSensitiveFile)
 
+    await log('classify', 'info', `File classification complete`, [
+      `${manifestPaths.length} manifests`,
+      `${sourcePaths.length} source files`,
+      `${iacPaths.length} IaC files`,
+      `${cicdPaths.length} CI/CD files`,
+      `${sensitivePaths.length} sensitive file paths`,
+    ].join(' · '))
+
     // Merge unique paths to fetch (manifests first, then scanners)
     const pathsToFetch = Array.from(
       new Set([...manifestPaths, ...sourcePaths, ...iacPaths, ...cicdPaths]),
     )
 
     // 6. Batch-fetch file contents (ref already computed above)
+    await log('fetch_files', 'info', `Fetching ${pathsToFetch.length} file contents from GitHub API`)
 
     let fetchedFiles: FileContent[]
     try {
@@ -655,7 +692,9 @@ export const runRealScan = internalAction({
     } catch (e: any) {
       errors.push(`Batch file fetch failed: ${e.message}`)
       fetchedFiles = []
+      await log('fetch_files', 'error', `File fetch failed: ${e.message}`)
     }
+    await log('fetch_files', 'success', `Fetched ${fetchedFiles.length} files from GitHub`)
 
     // 7. Parse dependency manifests → build SBOM
     let componentsDetected = 0
@@ -679,6 +718,7 @@ export const runRealScan = internalAction({
 
     if (uniqueDeps.length > 0) {
       componentsDetected = uniqueDeps.length
+      await log('sbom', 'info', `Generating SBOM from ${manifestPaths.length} manifest files`, `Parsing ${uniqueDeps.length} unique components`)
       try {
         await ctx.runMutation(internal.sbom.ingestRepositoryInventoryInternal, {
           tenantSlug: scanCtx.tenantSlug,
@@ -698,15 +738,21 @@ export const runRealScan = internalAction({
           })),
         })
         scannersDispatched.push('sbom_generation')
+        await log('sbom', 'success', `SBOM snapshot created`, `${componentsDetected} components ingested`)
       } catch (e: any) {
         errors.push(`SBOM ingestion failed: ${e.message}`)
+        await log('sbom', 'error', `SBOM ingestion failed: ${e.message}`)
       }
+    } else {
+      await log('sbom', 'info', `No dependency manifests found — skipping SBOM generation`)
     }
 
     // 8. Dispatch scanners with REAL file content
     const branch = ref
     const tenantId = args.tenantId
     const repositoryId = args.repositoryId
+
+    await log('scanner_dispatch', 'info', `Dispatching security scanners`, '6 scanners queued')
 
     // Secret detection — scan source file contents
     {
@@ -715,6 +761,7 @@ export const runRealScan = internalAction({
         .map((f) => ({ content: f.content, filename: f.path }))
 
       if (contentItems.length > 0) {
+        await log('scanner_dispatch', 'info', `Running secret detection scanner`, `${contentItems.length} files`)
         try {
           await ctx.runMutation(internal.secretDetectionIntel.recordSecretScan, {
             tenantId,
@@ -724,8 +771,10 @@ export const runRealScan = internalAction({
             contentItems: contentItems.slice(0, MAX_FILES_TO_FETCH),
           })
           scannersDispatched.push('secret_detection')
+          await log('scanner_result', 'success', `Secret detection complete`, `${contentItems.length} files scanned`)
         } catch (e: any) {
           errors.push(`Secret scan failed: ${e.message}`)
+          await log('scanner_result', 'error', `Secret detection failed: ${e.message}`)
         }
       }
     }
@@ -737,6 +786,7 @@ export const runRealScan = internalAction({
         .map((f) => ({ filename: f.path, content: f.content }))
 
       if (iacFiles.length > 0) {
+        await log('scanner_dispatch', 'info', `Running IaC misconfiguration scanner`, `${iacFiles.length} files`)
         try {
           await ctx.runMutation(internal.iacScanIntel.recordIacScan, {
             tenantId,
@@ -746,8 +796,10 @@ export const runRealScan = internalAction({
             fileItems: iacFiles,
           })
           scannersDispatched.push('iac_scan')
+          await log('scanner_result', 'success', `IaC scan complete`, `${iacFiles.length} files scanned`)
         } catch (e: any) {
           errors.push(`IaC scan failed: ${e.message}`)
+          await log('scanner_result', 'error', `IaC scan failed: ${e.message}`)
         }
       }
     }
@@ -759,6 +811,7 @@ export const runRealScan = internalAction({
         .map((f) => ({ filename: f.path, content: f.content }))
 
       if (cicdFiles.length > 0) {
+        await log('scanner_dispatch', 'info', `Running CI/CD pipeline scanner`, `${cicdFiles.length} files`)
         try {
           await ctx.runMutation(internal.cicdScanIntel.recordCicdScan, {
             tenantId,
@@ -768,8 +821,10 @@ export const runRealScan = internalAction({
             fileItems: cicdFiles,
           })
           scannersDispatched.push('cicd_scan')
+          await log('scanner_result', 'success', `CI/CD scan complete`, `${cicdFiles.length} files scanned`)
         } catch (e: any) {
           errors.push(`CI/CD scan failed: ${e.message}`)
+          await log('scanner_result', 'error', `CI/CD scan failed: ${e.message}`)
         }
       }
     }
@@ -781,6 +836,7 @@ export const runRealScan = internalAction({
         .map((f) => ({ filename: f.path, content: f.content }))
 
       if (sourceFiles.length > 0) {
+        await log('scanner_dispatch', 'info', `Running crypto weakness scanner`, `${sourceFiles.length} files`)
         try {
           await ctx.runMutation(
             internal.cryptoWeaknessIntel.recordCryptoWeaknessScan,
@@ -793,14 +849,17 @@ export const runRealScan = internalAction({
             },
           )
           scannersDispatched.push('crypto_weakness')
+          await log('scanner_result', 'success', `Crypto weakness scan complete`, `${sourceFiles.length} files scanned`)
         } catch (e: any) {
           errors.push(`Crypto weakness scan failed: ${e.message}`)
+          await log('scanner_result', 'error', `Crypto weakness scan failed: ${e.message}`)
         }
       }
     }
 
     // Sensitive file detection — uses file paths, not content
     if (sensitivePaths.length > 0 || allPaths.length > 0) {
+      await log('scanner_dispatch', 'info', `Running sensitive file detection`, `${allPaths.length} paths to check`)
       try {
         await ctx.runMutation(
           internal.sensitiveFileIntel.recordSensitiveFileScan,
@@ -813,14 +872,17 @@ export const runRealScan = internalAction({
           },
         )
         scannersDispatched.push('sensitive_file')
+        await log('scanner_result', 'success', `Sensitive file detection complete`, `${sensitivePaths.length} matches found`)
       } catch (e: any) {
         errors.push(`Sensitive file scan failed: ${e.message}`)
+        await log('scanner_result', 'error', `Sensitive file scan failed: ${e.message}`)
       }
     }
 
     // Commit message analysis — we don't have the real commit, so scan
     // the commitSha string and rescan marker as a best-effort
     {
+      await log('scanner_dispatch', 'info', `Running commit message analysis`)
       try {
         await ctx.runMutation(
           internal.commitMessageIntel.recordCommitMessageScan,
@@ -833,8 +895,10 @@ export const runRealScan = internalAction({
           },
         )
         scannersDispatched.push('commit_message')
+        await log('scanner_result', 'success', `Commit message analysis complete`)
       } catch (e: any) {
         // commit_message scanner may not exist or may fail — non-fatal
+        await log('scanner_result', 'warning', `Commit message scanner skipped (non-fatal)`)
       }
     }
 
@@ -851,6 +915,13 @@ export const runRealScan = internalAction({
       })
     } catch {
       // Non-fatal — the scan already ran
+    }
+
+    // Final log line
+    if (errors.length > 0) {
+      await log('scan_complete', 'warning', `Scan completed with ${errors.length} warnings`, `${scannersDispatched.length} scanners ran · ${errors.length} errors`)
+    } else {
+      await log('scan_complete', 'success', `Scan complete`, `${fetchedFiles.length} files · ${componentsDetected} components · ${scannersDispatched.length} scanners`)
     }
 
     return {

@@ -308,6 +308,28 @@ export default defineSchema({
     completedAt: v.optional(v.number()),
   }).index('by_workflow_run_and_order', ['workflowRunId', 'order']),
 
+  // ── Live Scan Logs ─────────────────────────────────────────────────────
+  // Written by runRealScan during each phase. Convex reactivity streams
+  // these to the dashboard live so users can watch the scan progress.
+  scanLogs: defineTable({
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    workflowRunId: v.id('workflowRuns'),
+    phase: v.string(),       // fetch_tree, fetch_files, parse_manifests, sbom, scanner_dispatch, scanner_result, scan_complete, scan_error
+    level: v.union(
+      v.literal('info'),
+      v.literal('success'),
+      v.literal('warning'),
+      v.literal('error'),
+    ),
+    message: v.string(),
+    detail: v.optional(v.string()),  // structured data, e.g. file count, component count
+    createdAt: v.number(),
+  })
+    .index('by_workflow_run_and_created_at', ['workflowRunId', 'createdAt'])
+    .index('by_tenant_and_created_at', ['tenantId', 'createdAt'])
+    .index('by_repository_and_created_at', ['repositoryId', 'createdAt']),
+
   sbomSnapshots: defineTable({
     tenantId: v.id('tenants'),
     repositoryId: v.id('repositories'),
