@@ -10,6 +10,7 @@ import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { useMutation, useQuery } from "convex/react";
 import { useEffect, useState } from "react";
 import AnalyticsConsentBanner from "../components/AnalyticsConsentBanner";
+import Breadcrumbs from "../components/Breadcrumbs";
 import CommandPalette from "../components/CommandPalette";
 import RouteErrorBoundary from "../components/RouteErrorBoundary";
 import ShortcutsModal from "../components/ShortcutsModal";
@@ -225,13 +226,14 @@ function RootGate() {
 					}}
 				/>
 				<div className="app-shell">
-					<Sidebar />
-					<div className="app-content">
-						<RouteErrorBoundary>
-							<Outlet />
-						</RouteErrorBoundary>
+						<Sidebar />
+						<div className="app-content">
+							<Breadcrumbs />
+							<RouteErrorBoundary>
+								<Outlet />
+							</RouteErrorBoundary>
+						</div>
 					</div>
-				</div>
 				<TanStackDevtools
 					config={{ position: "bottom-right" }}
 					plugins={[

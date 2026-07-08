@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
-import { Bot, Brain, Shield, Crosshair, Eye, Zap, Activity, DollarSign, ChevronDown, ChevronRight, Code2, FileJson, Cpu } from "lucide-react";
+import { Bot, Brain, Shield, Crosshair, Eye, Zap, Activity, DollarSign, ChevronDown, ChevronRight, Code2, FileJson, Cpu, GraduationCap } from "lucide-react";
 import { useState } from "react";
+import HubTabs from "../components/HubTabs";
 import StatusPill from "../components/StatusPill";
 import { api } from "../lib/convex";
 import type { Id } from "../lib/convex";
@@ -12,6 +13,12 @@ import RouteErrorBoundary from "../components/RouteErrorBoundary";
 export const Route = createFileRoute("/agent-activity")({
 	errorComponent: RouteErrorBoundary,
 	component: AgentsPage });
+
+const AGENTS_TABS = [
+	{ key: "agents", label: "AI Agent System", icon: Cpu, to: "/agent-activity" },
+	{ key: "neural-memory", label: "Neural Memory", icon: Brain, to: "/neural-memory" },
+	{ key: "learning", label: "Agents & Learning", icon: Bot, to: "/agents" },
+];
 
 function AgentsPage() {
 	const TENANT = useTenantSlug();
@@ -39,6 +46,8 @@ function AgentsPage() {
 					</div>
 				</div>
 			</div>
+
+			<HubTabs tabs={AGENTS_TABS} activeKey="agents" />
 
 			<div className="page-body">
 				{/* Stats Row */}

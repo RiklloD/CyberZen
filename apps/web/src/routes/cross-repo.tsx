@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
-import { GitCompare } from "lucide-react";
+import { Boxes, Eye, FlaskConical, GitCompare, ShieldCheck } from "lucide-react";
+import HubTabs from "../components/HubTabs";
 import TenantCrossRepoPanel from "../components/panels/TenantCrossRepoPanel";
 import { api } from "../lib/convex";
 import { useTenantSlug } from "../lib/workspace";
@@ -9,6 +10,14 @@ import RouteErrorBoundary from "../components/RouteErrorBoundary";
 export const Route = createFileRoute("/cross-repo")({
 	errorComponent: RouteErrorBoundary,
 	component: CrossRepoPage });
+
+const SUPPLY_CHAIN_TABS = [
+	{ key: "overview", label: "Supply Chain", icon: ShieldCheck, to: "/supply-chain" },
+	{ key: "sbom", label: "SBOM", icon: Boxes, to: "/sbom" },
+	{ key: "cross-repo", label: "Cross-Repo", icon: GitCompare, to: "/cross-repo" },
+	{ key: "zero-day", label: "Zero-Day", icon: Eye, to: "/zero-day" },
+	{ key: "exploit", label: "Exploit Validation", icon: FlaskConical, to: "/exploit-validation" },
+];
 
 function CrossRepoPage() {
 	const TENANT = useTenantSlug();
@@ -42,6 +51,7 @@ function CrossRepoPage() {
 					</div>
 				</div>
 			</div>
+			<HubTabs tabs={SUPPLY_CHAIN_TABS} activeKey="cross-repo" />
 
 			<div className="page-body">
 				<TenantCrossRepoPanel summary={summary} />

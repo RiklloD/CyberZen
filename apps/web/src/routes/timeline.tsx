@@ -1,7 +1,7 @@
 import { createFileRoute, useSearch } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
-import { Clock } from "lucide-react";
+import { AlertTriangle, Clock } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import SecurityTimelinePanel from "../components/panels/SecurityTimelinePanel";
 import StatusPill from "../components/StatusPill";
@@ -52,6 +52,11 @@ function TimelinePage() {
             </p>
           </div>
         </div>
+      </div>
+
+      <div className="hub-tabs">
+        <a href="/findings" className="hub-tab"><AlertTriangle size={14} /><span>Findings</span></a>
+        <span className="hub-tab is-active"><Clock size={14} /><span>Timeline</span></span>
       </div>
 
       <div className="page-body">

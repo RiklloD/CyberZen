@@ -3,16 +3,16 @@ import { useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import {
 	AlertTriangle,
+	ArrowRight,
 	BookOpen,
 	Boxes,
-	FlaskConical,
 	GitMerge,
 	Plus,
-	Rocket,
 	ShieldCheck,
 	Sparkles,
 	Waypoints } from "lucide-react";
 import LiveScanPanel from "../components/LiveScanPanel";
+import SetupChecklist from "../components/SetupChecklist";
 import StatusPill from "../components/StatusPill";
 import { api } from "../lib/convex";
 import { formatTimestamp, severityTone, workflowTone } from "../lib/utils";
@@ -102,7 +102,53 @@ function DashboardPage() {
 			</div>
 
 			<div className="page-body">
-				{/* Stats */}
+					{/* Setup checklist — shown only when setup is incomplete */}
+					<SetupChecklist
+						hasRepos={repositories.length > 0}
+						hasGithub={repositories.length > 0}
+						hasFindings={findings.length > 0}
+						hasGatePolicy={ciGateEnforcement.blockedCount > 0 || ciGateEnforcement.approvedCount > 0}
+						hasTeamMembers={false}
+						hasApiKey={false}
+					/>
+
+					{/* Needs Attention — surfaces what requires immediate action */}
+					{(stats.criticalFindings > 0 || ciGateEnforcement.blockedCount > 0 || stats.activeWorkflows > 0) && (
+						<div className="needs-attention">
+							{stats.criticalFindings > 0 && (
+								<Link to="/findings" className="needs-attention-card">
+									<div className="needs-attention-count is-critical">{stats.criticalFindings}</div>
+									<div>
+										<div className="needs-attention-label">Critical findings</div>
+										<div className="text-[11px] text-[var(--sea-ink-dim)]">Need triage</div>
+									</div>
+									<ArrowRight size={14} className="ml-auto text-[var(--sea-ink-dim)]" />
+								</Link>
+							)}
+							{ciGateEnforcement.blockedCount > 0 && (
+								<Link to="/ci-cd" className="needs-attention-card">
+									<div className="needs-attention-count is-warning">{ciGateEnforcement.blockedCount}</div>
+									<div>
+										<div className="needs-attention-label">Gates blocked</div>
+										<div className="text-[11px] text-[var(--sea-ink-dim)]">PRs waiting</div>
+									</div>
+									<ArrowRight size={14} className="ml-auto text-[var(--sea-ink-dim)]" />
+								</Link>
+							)}
+							{stats.activeWorkflows > 0 && (
+								<Link to="/repositories" className="needs-attention-card">
+									<div className="needs-attention-count is-info">{stats.activeWorkflows}</div>
+									<div>
+										<div className="needs-attention-label">Active scans</div>
+										<div className="text-[11px] text-[var(--sea-ink-dim)]">In progress</div>
+									</div>
+									<ArrowRight size={14} className="ml-auto text-[var(--sea-ink-dim)]" />
+								</Link>
+							)}
+						</div>
+					)}
+
+					{/* Stats */}
 				<div className="stats-grid">
 					{[
 						{
@@ -475,77 +521,8 @@ function DashboardPage() {
 						</div>
 					</div>
 				)}
-
-				{/* Navigation cards */}
-				<div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-					{[
-						{
-							to: "/findings",
-							label: "Findings",
-							description: "Triage and review all security findings",
-							icon: AlertTriangle },
-						{
-							to: "/sbom",
-							label: "SBOM Explorer",
-							description: "Browse software bill of materials snapshots",
-							icon: Boxes },
-						{
-							to: "/breach-intel",
-							label: "Breach Intel",
-							description: "Advisory aggregator and disclosure watchlist",
-							icon: ShieldCheck },
-						{
-							to: "/supply-chain",
-							label: "Supply Chain",
-							description: "Supply chain posture and injection risk",
-							icon: Waypoints },
-						{
-							to: "/compliance",
-							label: "Compliance",
-							description: "Regulatory drift across SOC 2, GDPR, HIPAA",
-							icon: ShieldCheck },
-						{
-							to: "/remediation",
-							label: "Remediation",
-							description: "P0–P3 priority queue and auto-fix history",
-							icon: Sparkles },
-						{
-							to: "/agents",
-							label: "Agents",
-							description: "Red/Blue adversarial rounds and learning profiles",
-							icon: FlaskConical },
-						{
-							to: "/integrations",
-							label: "Integrations",
-							description: "Vendor trust, webhooks, and external tools",
-							icon: Waypoints },
-						{
-							to: "/onboarding",
-							label: "Onboarding",
-							description:
-								"Create a company workspace, import live manifests, and connect repos",
-							icon: Rocket },
-					].map(({ to, label, description, icon: Icon }) => (
-						<Link
-							key={to}
-							to={to as "/findings"}
-							className="card card-sm block no-underline group"
-						>
-							<div className="flex items-center gap-2 mb-1.5">
-								<span className="metric-icon">
-									<Icon size={14} />
-								</span>
-								<span className="text-sm font-semibold text-[var(--sea-ink)]">
-									{label}
-								</span>
-							</div>
-							<p className="text-xs text-[var(--sea-ink-soft)]">
-								{description}
-							</p>
-						</Link>
-					))}
+				{/* Navigation cards removed — sidebar + dashboard panels handle navigation */}
 				</div>
-			</div>
-		</main>
-	);
-}
+				</main>
+				);
+				}

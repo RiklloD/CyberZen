@@ -1,7 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
-import { Briefcase } from "lucide-react";
+import { BarChart3, Briefcase, ClipboardCheck, ShieldCheck, Trophy } from "lucide-react";
+import HubTabs from "../components/HubTabs";
+
+const REPORTS_TABS = [
+	{ key: "posture", label: "Security Posture", icon: ShieldCheck, to: "/posture" },
+	{ key: "executive", label: "Executive Report", icon: BarChart3, to: "/executive-report" },
+	{ key: "maturity", label: "Maturity Assessment", icon: Trophy, to: "/maturity" },
+	{ key: "business-impact", label: "Business Impact", icon: Briefcase, to: "/business-impact" },
+	{ key: "compliance", label: "Compliance", icon: ClipboardCheck, to: "/compliance" },
+];
 import { useState } from "react";
 import RepositoryBusinessImpactPanel from "../components/panels/RepositoryBusinessImpactPanel";
 import TenantBusinessImpactSummary from "../components/panels/TenantBusinessImpactSummary";
@@ -54,6 +63,8 @@ function BusinessImpactPage() {
 					</div>
 				</div>
 			</div>
+
+			<HubTabs tabs={REPORTS_TABS} activeKey="business-impact" />
 
 			<div className="page-body space-y-6">
 				{tenantId && <TenantBusinessImpactSummaryView tenantId={tenantId} />}

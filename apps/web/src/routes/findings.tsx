@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation } from "convex/react";
-import { AlertTriangle, X, Download, UserCheck, ShieldAlert, EyeOff } from "lucide-react";
+import { AlertTriangle, Clock, X, Download, UserCheck, ShieldAlert, EyeOff } from "lucide-react";
 import { useState, useCallback } from "react";
 import type { Id } from "../lib/convex";
 import { api } from "../lib/convex";
@@ -135,7 +135,12 @@ function FindingsPage() {
 				</div>
 			</div>
 
-			<div className="page-body">
+				<div className="hub-tabs">
+					<span className="hub-tab is-active"><AlertTriangle size={14} /><span>Findings</span></span>
+					<a href="/timeline" className="hub-tab"><Clock size={14} /><span>Timeline</span></a>
+				</div>
+
+				<div className="page-body">
 				<FindingsSeverityFilterChips
 					findings={overview.findings}
 					severityFilter={severityFilter}

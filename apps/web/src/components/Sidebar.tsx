@@ -1,51 +1,22 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
-	Activity,
 	AlertTriangle,
 	BarChart3,
-	Bell,
-	BookOpen,
 	Bot,
-	Boxes,
-	Brain,
-	Briefcase,
-	Building2,
-	CalendarClock,
-	ClipboardCheck,
-	Clock,
-	Cpu,
-	CreditCard,
-	Database,
-	Eye,
-	FileCheck2,
-	FilterX,
-	FlaskConical,
 	GitBranch,
-	GitCompare,
-	Github,
 	GitMerge,
-	Globe,
-	Key,
-	Laptop,
-	LayoutDashboard,
 	Link2,
 	Lock,
+	LayoutDashboard,
 	Menu,
-	Plug,
-	Rocket,
-	ScrollText,
-	Server,
 	Settings,
 	Shield,
 	ShieldCheck,
-	ShieldQuestion,
-	Store,
-	Trophy,
-	Users,
-	Webhook,
 	Wrench,
-	X } from "lucide-react";
-import { useState } from "react";
+	X,
+	ChevronRight,
+} from "lucide-react";
+import { useEffect, useState } from "react";
 import { useFeatureFlag } from "../lib/featureFlags";
 import ThemeToggle from "./ThemeToggle";
 import UserProfileButton from "./UserProfileButton";
@@ -61,108 +32,109 @@ type NavItem = {
 type NavGroup = {
 	label: string;
 	items: NavItem[];
+	/** When true, this group sits in the footer area below a divider. */
+	isFooter?: boolean;
 };
 
+/**
+ * Progressive-disclosure navigation.
+ *
+ * Only daily-use destinations appear at the top level. Everything else
+ * (settings, reports, hub pages) is reachable from those pages or from
+ * the footer links. This keeps the sidebar scannable and the mental model
+ * clear: the 5 top items are "what needs my attention", the rest is
+ * deeper analysis and configuration.
+ */
 const navGroups: NavGroup[] = [
 	{
-		label: "Overview",
+		label: "Main",
 		items: [
 			{ to: "/", label: "Dashboard", icon: LayoutDashboard },
-			{ to: "/dashboards", label: "Dashboard Builder", icon: BarChart3 },
-			{ to: "/onboarding", label: "Onboarding", icon: Rocket },
-		] },
-	{
-		label: "Security",
-		items: [
 			{ to: "/findings", label: "Findings", icon: AlertTriangle },
-			{ to: "/timeline", label: "Timeline", icon: Clock },
+			{ to: "/repositories", label: "Repositories", icon: GitBranch },
 			{ to: "/breach-intel", label: "Breach Intel", icon: Shield },
+		],
+	},
+	{
+		label: "Analysis",
+		items: [
 			{ to: "/attack-paths", label: "Attack Paths", icon: ShieldCheck },
 			{ to: "/supply-chain", label: "Supply Chain", icon: Link2 },
-			{ to: "/cross-repo", label: "Cross-Repo Exposure", icon: GitCompare },
-			{ to: "/zero-day", label: "Zero-Day Detection", icon: Eye },
-			{ to: "/exploit-validation", label: "Exploit Validation", icon: FlaskConical },
-			{ to: "/audit-log", label: "Audit Log", icon: ScrollText },
-		] },
+		],
+	},
 	{
-		label: "Inventory",
-		items: [
-			{ to: "/repositories", label: "Repositories", icon: GitBranch },
-			{ to: "/connect/github", label: "Connect GitHub", icon: Github },
-			{ to: "/sbom", label: "SBOM", icon: Boxes },
-		] },
-	{
-		label: "Operations",
+		label: "Automation",
 		items: [
 			{ to: "/ci-cd", label: "CI / CD Gates", icon: GitMerge },
-			{ to: "/drift-posture", label: "Drift Posture", icon: Activity },
 			{ to: "/remediation", label: "Remediation", icon: Wrench },
-			{ to: "/compliance", label: "Compliance", icon: FileCheck2 },
-		] },
+		],
+	},
 	{
 		label: "Intelligence",
 		items: [
-			{ to: "/agents", label: "Agents & Learning", icon: Bot },
-			{ to: "/agent-activity", label: "AI Agent System", icon: Cpu },
-			{ to: "/neural-memory", label: "Neural Memory", icon: Brain },
-		] },
+			{ to: "/agent-activity", label: "Agents", icon: Bot },
+		],
+	},
+	// ── Footer links (below a divider) ────────────────────────────────────
 	{
-		label: "Reports",
+		label: "More",
+		isFooter: true,
 		items: [
-			{ to: "/posture", label: "Security Posture", icon: ShieldCheck },
-			{ to: "/executive-report", label: "Executive Report", icon: BarChart3 },
-			{ to: "/maturity", label: "Maturity Assessment", icon: Trophy },
-			{ to: "/business-impact", label: "Business Impact", icon: Briefcase },
-		] },
-	{
-		label: "Resources",
-		items: [
-			{ to: "/docs/api", label: "API Docs", icon: BookOpen },
-			{ to: "/docs/github-integration", label: "GitHub Action", icon: Github },
-		] },
-	{
-		label: "System",
-		items: [
-			{ to: "/integrations", label: "Integrations", icon: Plug },
-			{ to: "/marketplace", label: "Marketplace", icon: Store },
-			{ to: "/mssp", label: "MSSP Portal", icon: Building2, featureFlag: "mssp_portal" },
-			{ to: "/status", label: "Status", icon: Activity },
-			{ to: "/pricing", label: "Pricing", icon: CreditCard },
+			{ to: "/reports", label: "Reports", icon: BarChart3 },
 			{ to: "/settings", label: "Settings", icon: Settings },
-			{ to: "/settings/roles", label: "Roles", icon: Users },
-			{ to: "/settings/sso", label: "SSO / SAML", icon: ShieldCheck, featureFlag: "sso" },
-			{ to: "/settings/deployment", label: "Deployment Mode", icon: Server, featureFlag: "deployment_toggle" },
-			{ to: "/settings/api-keys", label: "API Keys", icon: Key },
-			{ to: "/settings/webhooks", label: "Webhooks", icon: Webhook },
-			{ to: "/settings/scans", label: "Scan Schedules", icon: CalendarClock },
-			{ to: "/settings/suppression", label: "Suppression Rules", icon: FilterX },
-			{ to: "/settings/policies", label: "Policy Builder", icon: ShieldQuestion },
-			{ to: "/settings/notifications", label: "Notifications", icon: Bell },
-			{ to: "/settings/retention", label: "Data Retention", icon: Database },
-			{ to: "/settings/on-call", label: "On-Call", icon: CalendarClock },
-			{ to: "/settings/billing", label: "Billing", icon: CreditCard }, // FIX: W2 — missing settings routes
-			{ to: "/settings/general", label: "General", icon: Settings },
-			{ to: "/settings/jobs", label: "Background Jobs", icon: Activity },
-			{ to: "/settings/sla", label: "SLA Policies", icon: Clock },
-			{ to: "/settings/team", label: "Team", icon: Users },
-			{ to: "/settings/two-factor", label: "Two-Factor Auth", icon: ShieldCheck },
-			{ to: "/settings/sessions", label: "Sessions", icon: Laptop },
-			{ to: "/settings/data-privacy", label: "Data Privacy", icon: Shield },
-			{ to: "/settings/access-review", label: "Access Review", icon: ClipboardCheck },
-			{ to: "/settings/mssp-keys", label: "MSSP Keys", icon: Key },
-			{ to: "/settings/ip-allowlist", label: "IP Allowlist", icon: Globe },
-		] },
+		],
+	},
 ];
+
+// ── Collapsible group state ───────────────────────────────────────────────
+
+const COLLAPSED_KEY = "cyberzen.sidebar.collapsed";
+
+function useCollapsedGroups() {
+	const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+
+	// Load persisted state on mount
+	useEffect(() => {
+		try {
+			const raw = localStorage.getItem(COLLAPSED_KEY);
+			if (raw) setCollapsed(new Set(JSON.parse(raw)));
+		} catch { /* ignore parse errors */ }
+	}, []);
+
+	const toggle = (label: string) => {
+		setCollapsed((prev) => {
+			const next = new Set(prev);
+			if (next.has(label)) next.delete(label);
+			else next.add(label);
+			try { localStorage.setItem(COLLAPSED_KEY, JSON.stringify([...next])); } catch { /* ignore */ }
+			return next;
+		});
+	};
+
+	return { collapsed, toggle };
+}
+
+// ── Component ─────────────────────────────────────────────────────────────
 
 export default function Sidebar() {
 	const [mobileOpen, setMobileOpen] = useState(false);
 	const routerState = useRouterState();
 	const currentPath = routerState.location.pathname;
+	const { collapsed, toggle } = useCollapsedGroups();
 
 	function isActive(to: string) {
 		if (to === "/") return currentPath === "/";
 		return currentPath === to || currentPath.startsWith(`${to}/`);
 	}
+
+	/** Auto-expand a group if any of its items is active. */
+	function isGroupAutoExpanded(group: NavGroup) {
+		return group.items.some((item) => isActive(item.to));
+	}
+
+	// Split into main groups and footer links
+	const mainGroups = navGroups.filter((g) => !g.isFooter);
+	const footerGroup = navGroups.find((g) => g.isFooter);
 
 	const nav = (
 		<div className="sidebar-inner">
@@ -181,19 +153,55 @@ export default function Sidebar() {
 			</div>
 
 			<nav className="sidebar-nav">
-				{navGroups.map((group) => (
-					<div key={group.label} className="sidebar-group">
-						<div className="sidebar-group-label">{group.label}</div>
-						{group.items.map((item) => (
-							<SidebarItem
-								key={item.to}
-								item={item}
-								isActive={isActive(item.to)}
-								onNavigate={() => setMobileOpen(false)}
-							/>
-						))}
-					</div>
-				))}
+				{mainGroups.map((group) => {
+					const isCollapsed = collapsed.has(group.label) && !isGroupAutoExpanded(group);
+					return (
+						<div key={group.label} className="sidebar-group">
+							<button
+								type="button"
+								className="sidebar-group-label"
+								onClick={() => toggle(group.label)}
+								aria-expanded={!isCollapsed}
+								aria-label={`Toggle ${group.label} section`}
+							>
+								<span>{group.label}</span>
+								<ChevronRight
+									size={12}
+									className="sidebar-group-chevron"
+									style={{ transform: isCollapsed ? "rotate(0deg)" : "rotate(90deg)", transition: "transform 160ms ease" }}
+								/>
+							</button>
+							{!isCollapsed && (
+								<div className="sidebar-group-items">
+									{group.items.map((item) => (
+										<SidebarItem
+											key={item.to}
+											item={item}
+											isActive={isActive(item.to)}
+											onNavigate={() => setMobileOpen(false)}
+										/>
+									))}
+								</div>
+							)}
+						</div>
+					);
+				})}
+
+				{footerGroup && (
+					<>
+						<div className="sidebar-divider" />
+						<div className="sidebar-group-items">
+							{footerGroup.items.map((item) => (
+								<SidebarItem
+									key={item.to}
+									item={item}
+									isActive={isActive(item.to)}
+									onNavigate={() => setMobileOpen(false)}
+								/>
+							))}
+						</div>
+					</>
+				)}
 			</nav>
 
 			<div className="sidebar-footer">

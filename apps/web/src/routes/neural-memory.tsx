@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type { FunctionReturnType } from "convex/server";
 import { useQuery } from "convex/react";
-import { Brain } from "lucide-react";
+import { Bot, Brain, Cpu } from "lucide-react";
 import { useState } from "react";
+import HubTabs from "../components/HubTabs";
 import QueryErrorFallback from "../components/QueryErrorFallback";
 import NeuralMemoryDashboard from "../components/panels/NeuralMemoryDashboard";
 import MemoryPatternList from "../components/panels/MemoryPatternList";
@@ -17,6 +18,12 @@ import { useTenantSlug } from "../lib/workspace";
 export const Route = createFileRoute("/neural-memory")({
   errorComponent: QueryErrorFallback,
   component: NeuralMemoryPage });
+
+const AGENTS_TABS = [
+	{ key: "agents", label: "AI Agent System", icon: Cpu, to: "/agent-activity" },
+	{ key: "neural-memory", label: "Neural Memory", icon: Brain, to: "/neural-memory" },
+	{ key: "learning", label: "Agents & Learning", icon: Bot, to: "/agents" },
+];
 
 type Tab = "dashboard" | "patterns" | "predictions" | "episodes" | "insights" | "settings";
 type OverviewData = NonNullable<FunctionReturnType<typeof api.dashboard.overview>>;
@@ -69,6 +76,8 @@ function NeuralMemoryPage() {
           </div>
         </div>
       </div>
+
+      <HubTabs tabs={AGENTS_TABS} activeKey="neural-memory" />
 
       <div className="page-body">
         <div className="tab-bar mb-4">

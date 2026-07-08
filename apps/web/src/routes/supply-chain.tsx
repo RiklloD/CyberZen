@@ -2,7 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { useState } from "react";
-import { ShieldCheck } from "lucide-react";
+import { Boxes, Eye, FlaskConical, GitCompare, ShieldCheck } from "lucide-react";
+import HubTabs from "../components/HubTabs";
 import ModelSupplyChainPanel from "../components/panels/ModelSupplyChainPanel";
 import PromptInjectionRecentScansPanel from "../components/panels/PromptInjectionRecentScansPanel";
 import PromptInjectionSupplyChainPanel from "../components/panels/PromptInjectionSupplyChainPanel";
@@ -22,6 +23,14 @@ import RouteErrorBoundary from "../components/RouteErrorBoundary";
 export const Route = createFileRoute("/supply-chain")({
 	errorComponent: RouteErrorBoundary,
 	component: SupplyChainPage });
+
+const SUPPLY_CHAIN_TABS = [
+	{ key: "overview", label: "Supply Chain", icon: ShieldCheck, to: "/supply-chain" },
+	{ key: "sbom", label: "SBOM", icon: Boxes, to: "/sbom" },
+	{ key: "cross-repo", label: "Cross-Repo", icon: GitCompare, to: "/cross-repo" },
+	{ key: "zero-day", label: "Zero-Day", icon: Eye, to: "/zero-day" },
+	{ key: "exploit", label: "Exploit Validation", icon: FlaskConical, to: "/exploit-validation" },
+];
 
 type OverviewData = NonNullable<
 	FunctionReturnType<typeof api.dashboard.overview>
@@ -53,6 +62,7 @@ function SupplyChainPage() {
 	return (
 		<main>
 			<SupplyChainOverviewHeader />
+			<HubTabs tabs={SUPPLY_CHAIN_TABS} activeKey="overview" />
 
 			<div className="page-body">
 				{repositories.length > 1 && (

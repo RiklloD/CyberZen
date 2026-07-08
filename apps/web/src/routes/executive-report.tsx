@@ -1,7 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useAction, useMutation, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
-import { BarChart3, Calendar, Download, FileText, Loader2, RefreshCw } from "lucide-react";
+import { BarChart3, Briefcase, Calendar, ClipboardCheck, Download, FileText, Loader2, RefreshCw, ShieldCheck, Trophy } from "lucide-react";
+import HubTabs from "../components/HubTabs";
+
+const REPORTS_TABS = [
+	{ key: "posture", label: "Security Posture", icon: ShieldCheck, to: "/posture" },
+	{ key: "executive", label: "Executive Report", icon: BarChart3, to: "/executive-report" },
+	{ key: "maturity", label: "Maturity Assessment", icon: Trophy, to: "/maturity" },
+	{ key: "business-impact", label: "Business Impact", icon: Briefcase, to: "/business-impact" },
+	{ key: "compliance", label: "Compliance", icon: ClipboardCheck, to: "/compliance" },
+];
 import { useState } from "react";
 import ExecutiveRepoLeaderboard from "../components/panels/ExecutiveRepoLeaderboard";
 import ExecutiveTrendChart from "../components/panels/ExecutiveTrendChart";
@@ -72,6 +81,8 @@ function ExecutiveReportPage() {
 					</div>
 				</div>
 			</div>
+
+			<HubTabs tabs={REPORTS_TABS} activeKey="executive" />
 
 			<div className="page-body space-y-6">
 				<TenantExecutiveReportPanel report={report} />

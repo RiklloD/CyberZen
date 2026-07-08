@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
-import { Eye } from "lucide-react";
+import { Boxes, Eye, FlaskConical, GitCompare, ShieldCheck } from "lucide-react";
+import HubTabs from "../components/HubTabs";
 import { useState } from "react";
 import RepositoryZeroDayDetectionPanel from "../components/panels/RepositoryZeroDayDetectionPanel";
 import ZeroDaySignalGraph from "../components/panels/ZeroDaySignalGraph";
@@ -13,6 +14,14 @@ import RouteErrorBoundary from "../components/RouteErrorBoundary";
 export const Route = createFileRoute("/zero-day")({
 	errorComponent: RouteErrorBoundary,
 	component: ZeroDayPage });
+
+const SUPPLY_CHAIN_TABS = [
+	{ key: "overview", label: "Supply Chain", icon: ShieldCheck, to: "/supply-chain" },
+	{ key: "sbom", label: "SBOM", icon: Boxes, to: "/sbom" },
+	{ key: "cross-repo", label: "Cross-Repo", icon: GitCompare, to: "/cross-repo" },
+	{ key: "zero-day", label: "Zero-Day", icon: Eye, to: "/zero-day" },
+	{ key: "exploit", label: "Exploit Validation", icon: FlaskConical, to: "/exploit-validation" },
+];
 
 type SummaryData = NonNullable<
 	FunctionReturnType<
@@ -61,6 +70,8 @@ function ZeroDayPage() {
 					</div>
 				</div>
 			</div>
+
+			<HubTabs tabs={SUPPLY_CHAIN_TABS} activeKey="zero-day" />
 
 			{/* Tenant-wide summary pills */}
 			<div className="page-body">

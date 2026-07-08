@@ -13,8 +13,10 @@ import { Route as ZeroDayRouteImport } from './routes/zero-day'
 import { Route as TimelineRouteImport } from './routes/timeline'
 import { Route as SupplyChainRouteImport } from './routes/supply-chain'
 import { Route as StatusRouteImport } from './routes/status'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SbomRouteImport } from './routes/sbom'
 import { Route as RepositoriesRouteImport } from './routes/repositories'
+import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as RemediationRouteImport } from './routes/remediation'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as PostureRouteImport } from './routes/posture'
@@ -90,6 +92,11 @@ const StatusRoute = StatusRouteImport.update({
   path: '/status',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SbomRoute = SbomRouteImport.update({
   id: '/sbom',
   path: '/sbom',
@@ -98,6 +105,11 @@ const SbomRoute = SbomRouteImport.update({
 const RepositoriesRoute = RepositoriesRouteImport.update({
   id: '/repositories',
   path: '/repositories',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportsRoute = ReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RemediationRoute = RemediationRouteImport.update({
@@ -221,9 +233,9 @@ const IndexRoute = IndexRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsIndexRoute = SettingsIndexRouteImport.update({
-  id: '/settings/',
-  path: '/settings/',
-  getParentRoute: () => rootRouteImport,
+  id: '/',
+  path: '/',
+  getParentRoute: () => SettingsRoute,
 } as any)
 const DashboardsIndexRoute = DashboardsIndexRouteImport.update({
   id: '/dashboards/',
@@ -241,114 +253,114 @@ const SignInSplatRoute = SignInSplatRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsWebhooksRoute = SettingsWebhooksRouteImport.update({
-  id: '/settings/webhooks',
-  path: '/settings/webhooks',
-  getParentRoute: () => rootRouteImport,
+  id: '/webhooks',
+  path: '/webhooks',
+  getParentRoute: () => SettingsRoute,
 } as any)
 const SettingsTwoFactorRoute = SettingsTwoFactorRouteImport.update({
-  id: '/settings/two-factor',
-  path: '/settings/two-factor',
-  getParentRoute: () => rootRouteImport,
+  id: '/two-factor',
+  path: '/two-factor',
+  getParentRoute: () => SettingsRoute,
 } as any)
 const SettingsTeamRoute = SettingsTeamRouteImport.update({
-  id: '/settings/team',
-  path: '/settings/team',
-  getParentRoute: () => rootRouteImport,
+  id: '/team',
+  path: '/team',
+  getParentRoute: () => SettingsRoute,
 } as any)
 const SettingsSuppressionRoute = SettingsSuppressionRouteImport.update({
-  id: '/settings/suppression',
-  path: '/settings/suppression',
-  getParentRoute: () => rootRouteImport,
+  id: '/suppression',
+  path: '/suppression',
+  getParentRoute: () => SettingsRoute,
 } as any)
 const SettingsSsoRoute = SettingsSsoRouteImport.update({
-  id: '/settings/sso',
-  path: '/settings/sso',
-  getParentRoute: () => rootRouteImport,
+  id: '/sso',
+  path: '/sso',
+  getParentRoute: () => SettingsRoute,
 } as any)
 const SettingsSlaRoute = SettingsSlaRouteImport.update({
-  id: '/settings/sla',
-  path: '/settings/sla',
-  getParentRoute: () => rootRouteImport,
+  id: '/sla',
+  path: '/sla',
+  getParentRoute: () => SettingsRoute,
 } as any)
 const SettingsSessionsRoute = SettingsSessionsRouteImport.update({
-  id: '/settings/sessions',
-  path: '/settings/sessions',
-  getParentRoute: () => rootRouteImport,
+  id: '/sessions',
+  path: '/sessions',
+  getParentRoute: () => SettingsRoute,
 } as any)
 const SettingsScansRoute = SettingsScansRouteImport.update({
-  id: '/settings/scans',
-  path: '/settings/scans',
-  getParentRoute: () => rootRouteImport,
+  id: '/scans',
+  path: '/scans',
+  getParentRoute: () => SettingsRoute,
 } as any)
 const SettingsRolesRoute = SettingsRolesRouteImport.update({
-  id: '/settings/roles',
-  path: '/settings/roles',
-  getParentRoute: () => rootRouteImport,
+  id: '/roles',
+  path: '/roles',
+  getParentRoute: () => SettingsRoute,
 } as any)
 const SettingsRetentionRoute = SettingsRetentionRouteImport.update({
-  id: '/settings/retention',
-  path: '/settings/retention',
-  getParentRoute: () => rootRouteImport,
+  id: '/retention',
+  path: '/retention',
+  getParentRoute: () => SettingsRoute,
 } as any)
 const SettingsPoliciesRoute = SettingsPoliciesRouteImport.update({
-  id: '/settings/policies',
-  path: '/settings/policies',
-  getParentRoute: () => rootRouteImport,
+  id: '/policies',
+  path: '/policies',
+  getParentRoute: () => SettingsRoute,
 } as any)
 const SettingsOnCallRoute = SettingsOnCallRouteImport.update({
-  id: '/settings/on-call',
-  path: '/settings/on-call',
-  getParentRoute: () => rootRouteImport,
+  id: '/on-call',
+  path: '/on-call',
+  getParentRoute: () => SettingsRoute,
 } as any)
 const SettingsNotificationsRoute = SettingsNotificationsRouteImport.update({
-  id: '/settings/notifications',
-  path: '/settings/notifications',
-  getParentRoute: () => rootRouteImport,
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => SettingsRoute,
 } as any)
 const SettingsMsspKeysRoute = SettingsMsspKeysRouteImport.update({
-  id: '/settings/mssp-keys',
-  path: '/settings/mssp-keys',
-  getParentRoute: () => rootRouteImport,
+  id: '/mssp-keys',
+  path: '/mssp-keys',
+  getParentRoute: () => SettingsRoute,
 } as any)
 const SettingsJobsRoute = SettingsJobsRouteImport.update({
-  id: '/settings/jobs',
-  path: '/settings/jobs',
-  getParentRoute: () => rootRouteImport,
+  id: '/jobs',
+  path: '/jobs',
+  getParentRoute: () => SettingsRoute,
 } as any)
 const SettingsIpAllowlistRoute = SettingsIpAllowlistRouteImport.update({
-  id: '/settings/ip-allowlist',
-  path: '/settings/ip-allowlist',
-  getParentRoute: () => rootRouteImport,
+  id: '/ip-allowlist',
+  path: '/ip-allowlist',
+  getParentRoute: () => SettingsRoute,
 } as any)
 const SettingsGeneralRoute = SettingsGeneralRouteImport.update({
-  id: '/settings/general',
-  path: '/settings/general',
-  getParentRoute: () => rootRouteImport,
+  id: '/general',
+  path: '/general',
+  getParentRoute: () => SettingsRoute,
 } as any)
 const SettingsDeploymentRoute = SettingsDeploymentRouteImport.update({
-  id: '/settings/deployment',
-  path: '/settings/deployment',
-  getParentRoute: () => rootRouteImport,
+  id: '/deployment',
+  path: '/deployment',
+  getParentRoute: () => SettingsRoute,
 } as any)
 const SettingsDataPrivacyRoute = SettingsDataPrivacyRouteImport.update({
-  id: '/settings/data-privacy',
-  path: '/settings/data-privacy',
-  getParentRoute: () => rootRouteImport,
+  id: '/data-privacy',
+  path: '/data-privacy',
+  getParentRoute: () => SettingsRoute,
 } as any)
 const SettingsBillingRoute = SettingsBillingRouteImport.update({
-  id: '/settings/billing',
-  path: '/settings/billing',
-  getParentRoute: () => rootRouteImport,
+  id: '/billing',
+  path: '/billing',
+  getParentRoute: () => SettingsRoute,
 } as any)
 const SettingsApiKeysRoute = SettingsApiKeysRouteImport.update({
-  id: '/settings/api-keys',
-  path: '/settings/api-keys',
-  getParentRoute: () => rootRouteImport,
+  id: '/api-keys',
+  path: '/api-keys',
+  getParentRoute: () => SettingsRoute,
 } as any)
 const SettingsAccessReviewRoute = SettingsAccessReviewRouteImport.update({
-  id: '/settings/access-review',
-  path: '/settings/access-review',
-  getParentRoute: () => rootRouteImport,
+  id: '/access-review',
+  path: '/access-review',
+  getParentRoute: () => SettingsRoute,
 } as any)
 const DocsGithubIntegrationRoute = DocsGithubIntegrationRouteImport.update({
   id: '/docs/github-integration',
@@ -396,8 +408,10 @@ export interface FileRoutesByFullPath {
   '/posture': typeof PostureRoute
   '/pricing': typeof PricingRoute
   '/remediation': typeof RemediationRoute
+  '/reports': typeof ReportsRoute
   '/repositories': typeof RepositoriesRoute
   '/sbom': typeof SbomRoute
+  '/settings': typeof SettingsRouteWithChildren
   '/status': typeof StatusRoute
   '/supply-chain': typeof SupplyChainRoute
   '/timeline': typeof TimelineRoute
@@ -458,6 +472,7 @@ export interface FileRoutesByTo {
   '/posture': typeof PostureRoute
   '/pricing': typeof PricingRoute
   '/remediation': typeof RemediationRoute
+  '/reports': typeof ReportsRoute
   '/repositories': typeof RepositoriesRoute
   '/sbom': typeof SbomRoute
   '/status': typeof StatusRoute
@@ -521,8 +536,10 @@ export interface FileRoutesById {
   '/posture': typeof PostureRoute
   '/pricing': typeof PricingRoute
   '/remediation': typeof RemediationRoute
+  '/reports': typeof ReportsRoute
   '/repositories': typeof RepositoriesRoute
   '/sbom': typeof SbomRoute
+  '/settings': typeof SettingsRouteWithChildren
   '/status': typeof StatusRoute
   '/supply-chain': typeof SupplyChainRoute
   '/timeline': typeof TimelineRoute
@@ -585,8 +602,10 @@ export interface FileRouteTypes {
     | '/posture'
     | '/pricing'
     | '/remediation'
+    | '/reports'
     | '/repositories'
     | '/sbom'
+    | '/settings'
     | '/status'
     | '/supply-chain'
     | '/timeline'
@@ -647,6 +666,7 @@ export interface FileRouteTypes {
     | '/posture'
     | '/pricing'
     | '/remediation'
+    | '/reports'
     | '/repositories'
     | '/sbom'
     | '/status'
@@ -709,8 +729,10 @@ export interface FileRouteTypes {
     | '/posture'
     | '/pricing'
     | '/remediation'
+    | '/reports'
     | '/repositories'
     | '/sbom'
+    | '/settings'
     | '/status'
     | '/supply-chain'
     | '/timeline'
@@ -772,8 +794,10 @@ export interface RootRouteChildren {
   PostureRoute: typeof PostureRoute
   PricingRoute: typeof PricingRoute
   RemediationRoute: typeof RemediationRoute
+  ReportsRoute: typeof ReportsRoute
   RepositoriesRoute: typeof RepositoriesRoute
   SbomRoute: typeof SbomRoute
+  SettingsRoute: typeof SettingsRouteWithChildren
   StatusRoute: typeof StatusRoute
   SupplyChainRoute: typeof SupplyChainRoute
   TimelineRoute: typeof TimelineRoute
@@ -782,32 +806,9 @@ export interface RootRouteChildren {
   DashboardsIdRoute: typeof DashboardsIdRoute
   DocsApiRoute: typeof DocsApiRoute
   DocsGithubIntegrationRoute: typeof DocsGithubIntegrationRoute
-  SettingsAccessReviewRoute: typeof SettingsAccessReviewRoute
-  SettingsApiKeysRoute: typeof SettingsApiKeysRoute
-  SettingsBillingRoute: typeof SettingsBillingRoute
-  SettingsDataPrivacyRoute: typeof SettingsDataPrivacyRoute
-  SettingsDeploymentRoute: typeof SettingsDeploymentRoute
-  SettingsGeneralRoute: typeof SettingsGeneralRoute
-  SettingsIpAllowlistRoute: typeof SettingsIpAllowlistRoute
-  SettingsJobsRoute: typeof SettingsJobsRoute
-  SettingsMsspKeysRoute: typeof SettingsMsspKeysRoute
-  SettingsNotificationsRoute: typeof SettingsNotificationsRoute
-  SettingsOnCallRoute: typeof SettingsOnCallRoute
-  SettingsPoliciesRoute: typeof SettingsPoliciesRoute
-  SettingsRetentionRoute: typeof SettingsRetentionRoute
-  SettingsRolesRoute: typeof SettingsRolesRoute
-  SettingsScansRoute: typeof SettingsScansRoute
-  SettingsSessionsRoute: typeof SettingsSessionsRoute
-  SettingsSlaRoute: typeof SettingsSlaRoute
-  SettingsSsoRoute: typeof SettingsSsoRoute
-  SettingsSuppressionRoute: typeof SettingsSuppressionRoute
-  SettingsTeamRoute: typeof SettingsTeamRoute
-  SettingsTwoFactorRoute: typeof SettingsTwoFactorRoute
-  SettingsWebhooksRoute: typeof SettingsWebhooksRoute
   SignInSplatRoute: typeof SignInSplatRoute
   SignUpSplatRoute: typeof SignUpSplatRoute
   DashboardsIndexRoute: typeof DashboardsIndexRoute
-  SettingsIndexRoute: typeof SettingsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -840,6 +841,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StatusRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sbom': {
       id: '/sbom'
       path: '/sbom'
@@ -852,6 +860,13 @@ declare module '@tanstack/react-router' {
       path: '/repositories'
       fullPath: '/repositories'
       preLoaderRoute: typeof RepositoriesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports': {
+      id: '/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof ReportsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/remediation': {
@@ -1024,10 +1039,10 @@ declare module '@tanstack/react-router' {
     }
     '/settings/': {
       id: '/settings/'
-      path: '/settings'
+      path: '/'
       fullPath: '/settings/'
       preLoaderRoute: typeof SettingsIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof SettingsRoute
     }
     '/dashboards/': {
       id: '/dashboards/'
@@ -1052,157 +1067,157 @@ declare module '@tanstack/react-router' {
     }
     '/settings/webhooks': {
       id: '/settings/webhooks'
-      path: '/settings/webhooks'
+      path: '/webhooks'
       fullPath: '/settings/webhooks'
       preLoaderRoute: typeof SettingsWebhooksRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof SettingsRoute
     }
     '/settings/two-factor': {
       id: '/settings/two-factor'
-      path: '/settings/two-factor'
+      path: '/two-factor'
       fullPath: '/settings/two-factor'
       preLoaderRoute: typeof SettingsTwoFactorRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof SettingsRoute
     }
     '/settings/team': {
       id: '/settings/team'
-      path: '/settings/team'
+      path: '/team'
       fullPath: '/settings/team'
       preLoaderRoute: typeof SettingsTeamRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof SettingsRoute
     }
     '/settings/suppression': {
       id: '/settings/suppression'
-      path: '/settings/suppression'
+      path: '/suppression'
       fullPath: '/settings/suppression'
       preLoaderRoute: typeof SettingsSuppressionRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof SettingsRoute
     }
     '/settings/sso': {
       id: '/settings/sso'
-      path: '/settings/sso'
+      path: '/sso'
       fullPath: '/settings/sso'
       preLoaderRoute: typeof SettingsSsoRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof SettingsRoute
     }
     '/settings/sla': {
       id: '/settings/sla'
-      path: '/settings/sla'
+      path: '/sla'
       fullPath: '/settings/sla'
       preLoaderRoute: typeof SettingsSlaRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof SettingsRoute
     }
     '/settings/sessions': {
       id: '/settings/sessions'
-      path: '/settings/sessions'
+      path: '/sessions'
       fullPath: '/settings/sessions'
       preLoaderRoute: typeof SettingsSessionsRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof SettingsRoute
     }
     '/settings/scans': {
       id: '/settings/scans'
-      path: '/settings/scans'
+      path: '/scans'
       fullPath: '/settings/scans'
       preLoaderRoute: typeof SettingsScansRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof SettingsRoute
     }
     '/settings/roles': {
       id: '/settings/roles'
-      path: '/settings/roles'
+      path: '/roles'
       fullPath: '/settings/roles'
       preLoaderRoute: typeof SettingsRolesRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof SettingsRoute
     }
     '/settings/retention': {
       id: '/settings/retention'
-      path: '/settings/retention'
+      path: '/retention'
       fullPath: '/settings/retention'
       preLoaderRoute: typeof SettingsRetentionRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof SettingsRoute
     }
     '/settings/policies': {
       id: '/settings/policies'
-      path: '/settings/policies'
+      path: '/policies'
       fullPath: '/settings/policies'
       preLoaderRoute: typeof SettingsPoliciesRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof SettingsRoute
     }
     '/settings/on-call': {
       id: '/settings/on-call'
-      path: '/settings/on-call'
+      path: '/on-call'
       fullPath: '/settings/on-call'
       preLoaderRoute: typeof SettingsOnCallRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof SettingsRoute
     }
     '/settings/notifications': {
       id: '/settings/notifications'
-      path: '/settings/notifications'
+      path: '/notifications'
       fullPath: '/settings/notifications'
       preLoaderRoute: typeof SettingsNotificationsRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof SettingsRoute
     }
     '/settings/mssp-keys': {
       id: '/settings/mssp-keys'
-      path: '/settings/mssp-keys'
+      path: '/mssp-keys'
       fullPath: '/settings/mssp-keys'
       preLoaderRoute: typeof SettingsMsspKeysRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof SettingsRoute
     }
     '/settings/jobs': {
       id: '/settings/jobs'
-      path: '/settings/jobs'
+      path: '/jobs'
       fullPath: '/settings/jobs'
       preLoaderRoute: typeof SettingsJobsRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof SettingsRoute
     }
     '/settings/ip-allowlist': {
       id: '/settings/ip-allowlist'
-      path: '/settings/ip-allowlist'
+      path: '/ip-allowlist'
       fullPath: '/settings/ip-allowlist'
       preLoaderRoute: typeof SettingsIpAllowlistRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof SettingsRoute
     }
     '/settings/general': {
       id: '/settings/general'
-      path: '/settings/general'
+      path: '/general'
       fullPath: '/settings/general'
       preLoaderRoute: typeof SettingsGeneralRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof SettingsRoute
     }
     '/settings/deployment': {
       id: '/settings/deployment'
-      path: '/settings/deployment'
+      path: '/deployment'
       fullPath: '/settings/deployment'
       preLoaderRoute: typeof SettingsDeploymentRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof SettingsRoute
     }
     '/settings/data-privacy': {
       id: '/settings/data-privacy'
-      path: '/settings/data-privacy'
+      path: '/data-privacy'
       fullPath: '/settings/data-privacy'
       preLoaderRoute: typeof SettingsDataPrivacyRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof SettingsRoute
     }
     '/settings/billing': {
       id: '/settings/billing'
-      path: '/settings/billing'
+      path: '/billing'
       fullPath: '/settings/billing'
       preLoaderRoute: typeof SettingsBillingRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof SettingsRoute
     }
     '/settings/api-keys': {
       id: '/settings/api-keys'
-      path: '/settings/api-keys'
+      path: '/api-keys'
       fullPath: '/settings/api-keys'
       preLoaderRoute: typeof SettingsApiKeysRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof SettingsRoute
     }
     '/settings/access-review': {
       id: '/settings/access-review'
-      path: '/settings/access-review'
+      path: '/access-review'
       fullPath: '/settings/access-review'
       preLoaderRoute: typeof SettingsAccessReviewRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof SettingsRoute
     }
     '/docs/github-integration': {
       id: '/docs/github-integration'
@@ -1235,6 +1250,62 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface SettingsRouteChildren {
+  SettingsAccessReviewRoute: typeof SettingsAccessReviewRoute
+  SettingsApiKeysRoute: typeof SettingsApiKeysRoute
+  SettingsBillingRoute: typeof SettingsBillingRoute
+  SettingsDataPrivacyRoute: typeof SettingsDataPrivacyRoute
+  SettingsDeploymentRoute: typeof SettingsDeploymentRoute
+  SettingsGeneralRoute: typeof SettingsGeneralRoute
+  SettingsIpAllowlistRoute: typeof SettingsIpAllowlistRoute
+  SettingsJobsRoute: typeof SettingsJobsRoute
+  SettingsMsspKeysRoute: typeof SettingsMsspKeysRoute
+  SettingsNotificationsRoute: typeof SettingsNotificationsRoute
+  SettingsOnCallRoute: typeof SettingsOnCallRoute
+  SettingsPoliciesRoute: typeof SettingsPoliciesRoute
+  SettingsRetentionRoute: typeof SettingsRetentionRoute
+  SettingsRolesRoute: typeof SettingsRolesRoute
+  SettingsScansRoute: typeof SettingsScansRoute
+  SettingsSessionsRoute: typeof SettingsSessionsRoute
+  SettingsSlaRoute: typeof SettingsSlaRoute
+  SettingsSsoRoute: typeof SettingsSsoRoute
+  SettingsSuppressionRoute: typeof SettingsSuppressionRoute
+  SettingsTeamRoute: typeof SettingsTeamRoute
+  SettingsTwoFactorRoute: typeof SettingsTwoFactorRoute
+  SettingsWebhooksRoute: typeof SettingsWebhooksRoute
+  SettingsIndexRoute: typeof SettingsIndexRoute
+}
+
+const SettingsRouteChildren: SettingsRouteChildren = {
+  SettingsAccessReviewRoute: SettingsAccessReviewRoute,
+  SettingsApiKeysRoute: SettingsApiKeysRoute,
+  SettingsBillingRoute: SettingsBillingRoute,
+  SettingsDataPrivacyRoute: SettingsDataPrivacyRoute,
+  SettingsDeploymentRoute: SettingsDeploymentRoute,
+  SettingsGeneralRoute: SettingsGeneralRoute,
+  SettingsIpAllowlistRoute: SettingsIpAllowlistRoute,
+  SettingsJobsRoute: SettingsJobsRoute,
+  SettingsMsspKeysRoute: SettingsMsspKeysRoute,
+  SettingsNotificationsRoute: SettingsNotificationsRoute,
+  SettingsOnCallRoute: SettingsOnCallRoute,
+  SettingsPoliciesRoute: SettingsPoliciesRoute,
+  SettingsRetentionRoute: SettingsRetentionRoute,
+  SettingsRolesRoute: SettingsRolesRoute,
+  SettingsScansRoute: SettingsScansRoute,
+  SettingsSessionsRoute: SettingsSessionsRoute,
+  SettingsSlaRoute: SettingsSlaRoute,
+  SettingsSsoRoute: SettingsSsoRoute,
+  SettingsSuppressionRoute: SettingsSuppressionRoute,
+  SettingsTeamRoute: SettingsTeamRoute,
+  SettingsTwoFactorRoute: SettingsTwoFactorRoute,
+  SettingsWebhooksRoute: SettingsWebhooksRoute,
+  SettingsIndexRoute: SettingsIndexRoute,
+}
+
+const SettingsRouteWithChildren = SettingsRoute._addFileChildren(
+  SettingsRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
@@ -1260,8 +1331,10 @@ const rootRouteChildren: RootRouteChildren = {
   PostureRoute: PostureRoute,
   PricingRoute: PricingRoute,
   RemediationRoute: RemediationRoute,
+  ReportsRoute: ReportsRoute,
   RepositoriesRoute: RepositoriesRoute,
   SbomRoute: SbomRoute,
+  SettingsRoute: SettingsRouteWithChildren,
   StatusRoute: StatusRoute,
   SupplyChainRoute: SupplyChainRoute,
   TimelineRoute: TimelineRoute,
@@ -1270,32 +1343,9 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardsIdRoute: DashboardsIdRoute,
   DocsApiRoute: DocsApiRoute,
   DocsGithubIntegrationRoute: DocsGithubIntegrationRoute,
-  SettingsAccessReviewRoute: SettingsAccessReviewRoute,
-  SettingsApiKeysRoute: SettingsApiKeysRoute,
-  SettingsBillingRoute: SettingsBillingRoute,
-  SettingsDataPrivacyRoute: SettingsDataPrivacyRoute,
-  SettingsDeploymentRoute: SettingsDeploymentRoute,
-  SettingsGeneralRoute: SettingsGeneralRoute,
-  SettingsIpAllowlistRoute: SettingsIpAllowlistRoute,
-  SettingsJobsRoute: SettingsJobsRoute,
-  SettingsMsspKeysRoute: SettingsMsspKeysRoute,
-  SettingsNotificationsRoute: SettingsNotificationsRoute,
-  SettingsOnCallRoute: SettingsOnCallRoute,
-  SettingsPoliciesRoute: SettingsPoliciesRoute,
-  SettingsRetentionRoute: SettingsRetentionRoute,
-  SettingsRolesRoute: SettingsRolesRoute,
-  SettingsScansRoute: SettingsScansRoute,
-  SettingsSessionsRoute: SettingsSessionsRoute,
-  SettingsSlaRoute: SettingsSlaRoute,
-  SettingsSsoRoute: SettingsSsoRoute,
-  SettingsSuppressionRoute: SettingsSuppressionRoute,
-  SettingsTeamRoute: SettingsTeamRoute,
-  SettingsTwoFactorRoute: SettingsTwoFactorRoute,
-  SettingsWebhooksRoute: SettingsWebhooksRoute,
   SignInSplatRoute: SignInSplatRoute,
   SignUpSplatRoute: SignUpSplatRoute,
   DashboardsIndexRoute: DashboardsIndexRoute,
-  SettingsIndexRoute: SettingsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
