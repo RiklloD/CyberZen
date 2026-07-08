@@ -5,7 +5,7 @@ type LearningProfileData = NonNullable<FunctionReturnType<typeof api.learningPro
 type VulnClassPattern = LearningProfileData["vulnClassPatterns"][number];
 type HoneypotData = NonNullable<FunctionReturnType<typeof api.honeypotIntel.getLatestHoneypotPlan>>;
 type HoneypotProposal = HoneypotData["proposals"][number];
-import { GitBranch, Loader2, Rocket, Trash2 } from "lucide-react";
+import { GitBranch, Loader2, Plus, Rocket, Trash2 } from "lucide-react";
 import { useState } from "react";
 import RepositoryAttackSurfacePanel from "../components/panels/RepositoryAttackSurfacePanel";
 import RepositoryBlastRadiusPanel from "../components/panels/RepositoryBlastRadiusPanel";
@@ -19,6 +19,7 @@ import RepositoryRiskAcceptancePanel from "../components/panels/RepositoryRiskAc
 import RepositorySlaPanel from "../components/panels/RepositorySlaPanel";
 import RescanButton from "../components/RescanButton";
 import StatusPill from "../components/StatusPill";
+import AddRepositoryModal from "../components/AddRepositoryModal";
 import type { Id } from "../lib/convex";
 import { api } from "../lib/convex";
 import {
@@ -42,6 +43,7 @@ function RepositoriesPage() {
 	const TENANT = useTenantSlug();
 	const overview = useQuery(api.dashboard.overview, { tenantSlug: TENANT });
 	const [selected, setSelected] = useState<string | null>(null);
+	const [showAddModal, setShowAddModal] = useState(false);
 
 	if (!overview) {
 		return (
@@ -63,16 +65,33 @@ function RepositoriesPage() {
 	return (
 		<main>
 			<div className="page-header">
-				<div className="flex items-center gap-3">
-					<GitBranch size={20} className="text-[var(--signal)]" />
-					<div>
-						<h1 className="page-title">Repositories</h1>
-						<p className="page-subtitle">
-							{repositories.length} repositories tracked
-						</p>
+					<div className="flex items-center justify-between gap-3">
+						<div className="flex items-center gap-3">
+							<GitBranch size={20} className="text-[var(--signal)]" />
+							<div>
+								<h1 className="page-title">Repositories</h1>
+								<p className="page-subtitle">
+									{repositories.length} repositories tracked
+								</p>
+							</div>
+						</div>
+						<button
+							type="button"
+							className="signal-button inline-flex items-center gap-1.5"
+							onClick={() => setShowAddModal(true)}
+						>
+							<Plus size={16} />
+							Add Repository
+						</button>
 					</div>
 				</div>
-			</div>
+
+				{showAddModal && (
+					<AddRepositoryModal
+						tenantSlug={TENANT}
+						onClose={() => setShowAddModal(false)}
+					/>
+				)}
 
 			<div className="page-body">
 				{/* Repository list */}

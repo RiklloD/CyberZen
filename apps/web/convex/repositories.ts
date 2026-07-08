@@ -1,5 +1,6 @@
 import { mutation, query } from './_generated/server'
 import { v } from 'convex/values'
+import type { Id } from './_generated/dataModel'
 import { aggregateTrustScore } from './lib/trustScore'
 
 export const listByTenant = query({
@@ -477,5 +478,117 @@ export const reconnect = mutation({
     })
 
     return { reconnected: true }
+  },
+})
+
+// ---------------------------------------------------------------------------
+// repositories.addRepository — link (or revive) repos directly from the
+// repositories page without going through the full onboarding wizard.
+//
+// For each repo spec:
+//   • If a row already exists and is disconnected → clear disconnectedAt (revive)
+//   • If a row already exists and is active   → skip (already tracked)
+//   • Otherwise                              → insert a new row
+//
+// Returns per-repo results so the UI can report exactly what happened.
+// ---------------------------------------------------------------------------
+
+export const addRepository = mutation({
+  args: {
+    tenantSlug: v.string(),
+    repos: v.array(
+      v.object({
+        fullName: v.string(),
+        provider: v.union(v.literal('github'), v.literal('gitlab')),
+        defaultBranch: v.string(),
+        primaryLanguage: v.string(),
+        visibility: v.union(v.literal('private'), v.literal('public')),
+      }),
+    ),
+  },
+  returns: v.object({
+    added: v.array(
+      v.object({
+        fullName: v.string(),
+        repositoryId: v.id('repositories'),
+        status: v.union(
+          v.literal('created'),
+          v.literal('revived'),
+          v.literal('already_active'),
+        ),
+      }),
+    ),
+  }),
+  handler: async (ctx, args) => {
+    const tenant = await ctx.db
+      .query('tenants')
+      .withIndex('by_slug', (q) => q.eq('slug', args.tenantSlug))
+      .unique()
+
+    if (!tenant) {
+      throw new Error(`Tenant not found: ${args.tenantSlug}`)
+    }
+
+    const added: Array<{
+      fullName: string
+      repositoryId: Id<'repositories'>
+      status: 'created' | 'revived' | 'already_active'
+    }> = []
+
+    for (const spec of args.repos) {
+      const fullName = spec.fullName.trim()
+      if (!fullName) continue
+
+      const name = fullName.split('/').at(-1) ?? fullName
+
+      const existing = await ctx.db
+        .query('repositories')
+        .withIndex('by_tenant_and_full_name', (q) =>
+          q.eq('tenantId', tenant._id).eq('fullName', fullName),
+        )
+        .unique()
+
+      if (existing) {
+        if (existing.disconnectedAt) {
+          // Revive a previously-disconnected repo
+          await ctx.db.patch(existing._id, {
+            disconnectedAt: undefined,
+            provider: spec.provider,
+            name,
+            defaultBranch: spec.defaultBranch,
+            visibility: spec.visibility,
+            primaryLanguage: spec.primaryLanguage,
+          })
+          added.push({
+            fullName,
+            repositoryId: existing._id,
+            status: 'revived',
+          })
+        } else {
+          // Already tracked and active
+          added.push({
+            fullName,
+            repositoryId: existing._id,
+            status: 'already_active',
+          })
+        }
+      } else {
+        const repositoryId: Id<'repositories'> = await ctx.db.insert(
+          'repositories',
+          {
+            tenantId: tenant._id,
+            provider: spec.provider,
+            name,
+            fullName,
+            defaultBranch: spec.defaultBranch,
+            visibility: spec.visibility,
+            primaryLanguage: spec.primaryLanguage,
+          },
+        )
+        added.push({ fullName, repositoryId, status: 'created' })
+      }
+    }
+
+    return { added }
   },
 })
