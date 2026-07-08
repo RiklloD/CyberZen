@@ -230,6 +230,9 @@ export const recentFindings = query({
       .query('repositories')
       .withIndex('by_tenant', (q) => q.eq('tenantId', tenant._id))
       .collect()
+    const activeRepositories = repositories.filter(
+      (r: any) => !r.disconnectedAt,
+    )
     const allFindings = await ctx.db
       .query('findings')
       .withIndex('by_tenant_and_created_at', (q) => q.eq('tenantId', tenant._id))
@@ -298,7 +301,7 @@ export const recentFindings = query({
           (f: any) => f.validationStatus === 'pending',
         ).length,
         recentFindings: semanticFindings.slice(0, 4).map((f: any) => {
-          const repo = repositories.find((r: any) => r._id === f.repositoryId)
+          const repo = activeRepositories.find((r: any) => r._id === f.repositoryId)
           return {
             _id: f._id,
             title: f.title,
@@ -378,7 +381,7 @@ export const repoSummaries = query({
       .collect()
 
     const reposWithSnapshots = await Promise.all(
-      repositories.map(async (repo: any) => {
+      repositories.filter((r: any) => !r.disconnectedAt).map(async (repo: any) => {
         const snapshotHistory = await ctx.db
           .query('sbomSnapshots')
           .withIndex('by_repository_and_captured_at', (q) =>
@@ -773,7 +776,9 @@ export const escalations = query({
       .query('repositories')
       .withIndex('by_tenant', (q) => q.eq('tenantId', tenant._id))
       .collect()
-    const repositoryIds = new Set(repositories.map((r: any) => r._id))
+    const activeRepositoryIds = new Set(
+      repositories.filter((r: any) => !r.disconnectedAt).map((r: any) => r._id),
+    )
 
     const advisorySyncRuns = await ctx.db
       .query('advisorySyncRuns')
@@ -788,7 +793,7 @@ export const escalations = query({
         .order('desc')
         .take(40)
     ).filter(
-      (d: any) => d.repositoryId && repositoryIds.has(d.repositoryId),
+      (d: any) => d.repositoryId && activeRepositoryIds.has(d.repositoryId),
     )
 
     const syncRepositories = await Promise.all(

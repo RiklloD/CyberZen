@@ -99,7 +99,8 @@ export const autoRemediateNewFindings = internalAction({
 export const getReposForRedTeam = internalQuery({
   args: {},
   handler: async (ctx) => {
-    return await ctx.db.query('repositories').take(10) // cap to control cost
+    const all = await ctx.db.query('repositories').take(10) // cap to control cost
+    return all.filter((r: any) => !r.disconnectedAt)
   },
 })
 

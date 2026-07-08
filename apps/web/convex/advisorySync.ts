@@ -122,7 +122,9 @@ export const listRepositoryAdvisorySyncTargets = internalQuery({
       repositoryFullName: string
     }> = []
 
-    for (const repository of repositories) {
+    for (const repository of repositories.filter(
+      (r: any) => !r.disconnectedAt,
+    )) {
       const tenant = await ctx.db.get(repository.tenantId)
 
       if (!tenant) {

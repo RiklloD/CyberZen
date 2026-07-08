@@ -178,6 +178,12 @@ async function getRepositoryContext(
     throw new ConvexError('Repository not found')
   }
 
+  if (repository.disconnectedAt) {
+    throw new ConvexError(
+      'Repository is disconnected and no longer accepts scans or events.',
+    )
+  }
+
   return {
     tenant,
     repository,
@@ -204,6 +210,12 @@ async function getRepositoryContextByProviderAndFullName(
 
   if (!tenant) {
     throw new ConvexError('Tenant not found for repository')
+  }
+
+  if (repository.disconnectedAt) {
+    throw new ConvexError(
+      'Repository is disconnected and no longer accepts scans or events.',
+    )
   }
 
   return {

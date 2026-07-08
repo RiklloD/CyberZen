@@ -137,16 +137,26 @@ export const verifyAndRouteGithubWebhook = internalAction({
       }
     }
 
-    const result: {
-      eventId: Id<'ingestionEvents'>
-      workflowRunId: Id<'workflowRuns'>
-      deduped: boolean
-    } = await ctx.runMutation(internal.events.ingestGithubPushFromWebhook, {
-      repositoryFullName: normalizedPush.repositoryFullName,
-      branch: normalizedPush.branch,
-      commitSha: normalizedPush.commitSha,
-      changedFiles: normalizedPush.changedFiles,
-    })
+    let result: { eventId: Id<'ingestionEvents'>; workflowRunId: Id<'workflowRuns'>; deduped: boolean }
+    try {
+      result = await ctx.runMutation(internal.events.ingestGithubPushFromWebhook, {
+        repositoryFullName: normalizedPush.repositoryFullName,
+        branch: normalizedPush.branch,
+        commitSha: normalizedPush.commitSha,
+        changedFiles: normalizedPush.changedFiles,
+      })
+    } catch (err: any) {
+      // Gracefully ignore webhooks for disconnected repos — the mutation
+      // throws ConvexError when the repo has been soft-deleted.
+      if (err?.message?.includes('disconnected')) {
+        return {
+          status: 'ignored' as const,
+          reason: `Repository ${normalizedPush.repositoryFullName} is disconnected.`,
+          httpStatus: 202,
+        }
+      }
+      throw err
+    }
 
     // Fire-and-forget prompt injection scan on commit messages.
     // Runs only for new (non-deduped) events so we don't re-scan identical

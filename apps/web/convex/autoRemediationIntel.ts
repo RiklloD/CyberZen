@@ -217,7 +217,7 @@ export const runAllAutoRemediationDispatches = internalMutation({
   handler: async (ctx) => {
     const repositories = await ctx.db.query('repositories').take(500)
 
-    for (const repo of repositories) {
+    for (const repo of repositories.filter((r: any) => !r.disconnectedAt)) {
       await ctx.scheduler.runAfter(
         0,
         internal.autoRemediationIntel.triggerAutoRemediationForRepository,

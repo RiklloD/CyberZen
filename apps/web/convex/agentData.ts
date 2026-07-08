@@ -392,7 +392,8 @@ export const createPromptInjectionFinding = internalMutation({
 export const getAllActiveRepositories = internalQuery({
   args: {},
   handler: async (ctx) => {
-    return await ctx.db.query('repositories').collect()
+    const all = await ctx.db.query('repositories').collect()
+    return all.filter((r: any) => !r.disconnectedAt)
   },
 })
 
