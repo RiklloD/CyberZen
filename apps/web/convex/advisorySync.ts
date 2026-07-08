@@ -1,27 +1,21 @@
 import { v } from 'convex/values'
 import { internalMutation, internalQuery, query } from './_generated/server'
+import { action } from './_generated/server'
+import { internal } from './_generated/api'
 
 // ─── §3.8 — Manual advisory sync trigger ────────────────────────────────────
 
-export const runManualSync = internalMutation({
+export const runManualSync = action({
   args: {
     tenantSlug: v.string(),
   },
   handler: async (ctx, { tenantSlug }) => {
-    // Refresh advisory disclosures for all repositories in the tenant.
-    const tenant = await ctx.db
-      .query('tenants')
-      .withIndex('by_slug', (q) => q.eq('slug', tenantSlug))
-      .unique()
-
-    if (!tenant) return { synced: 0 }
-
-    const repositories = await ctx.db
-      .query('repositories')
-      .withIndex('by_tenant', (q) => q.eq('tenantId', tenant._id))
-      .take(100)
-
-    return { synced: repositories.length }
+    return await ctx.runAction(internal.breachIngest.syncRecentAdvisoriesOnSchedule, {
+      maxRepositories: 50,
+      lookbackHours: 72,
+      githubLimit: 100,
+      osvLimit: 100,
+    })
   },
 })
 

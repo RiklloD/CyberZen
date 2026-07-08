@@ -205,7 +205,7 @@ async function fetchGithubSecurityAdvisoriesByBatch(args: {
     const params = new URLSearchParams({
       ecosystem: args.ecosystem,
       direction: 'desc',
-      modified: `>=${args.modifiedSince}`,
+      modified: args.modifiedSince,
       per_page: String(Math.min(100, args.limit - advisories.length)),
       sort: 'updated',
       type: 'reviewed',
@@ -503,6 +503,7 @@ async function syncRepositoryAdvisories(
   const lookbackHours = Math.max(args.lookbackHours, 1)
   const modifiedSince = new Date(Date.now() - lookbackHours * 60 * 60 * 1000)
     .toISOString()
+    .replace(/\.\d{3}Z$/, 'Z')
   const packages = target.packages
 
   const github = await ingestGithubAdvisoriesForRepository(
