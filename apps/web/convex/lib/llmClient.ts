@@ -20,6 +20,7 @@ export type LLMProvider =
   | 'zai_coding'
   | 'zai_token'
   | 'minimax_token'
+  | 'xiaomi_token'
   | 'openrouter'
 
 export type LLMMessage = {
@@ -88,6 +89,9 @@ const PRICING: Record<string, { input: number; output: number }> = {
   // MiniMax
   'MiniMax-M3': { input: 0.001, output: 0.004 },
   'MiniMax-M2.7': { input: 0.0008, output: 0.003 },
+  // Xiaomi MiMo (token plan — flat rate, so $0 marginal cost for estimation)
+  'mimo-v2.5-pro': { input: 0.00014, output: 0.00028 },
+  'mimo-v2-flash': { input: 0.00007, output: 0.00014 },
   // Local (free)
   'codellama': { input: 0, output: 0 },
   'deepseek-coder': { input: 0, output: 0 },
@@ -119,6 +123,8 @@ function getApiKey(provider: LLMProvider): string | null {
       return process.env.ZAI_API_KEY ?? null
     case 'minimax_token':
       return process.env.MINIMAX_API_KEY ?? null
+    case 'xiaomi_token':
+      return process.env.XIAOMI_TOKEN_PLAN_API_KEY ?? process.env.XIAOMI_API_KEY ?? null
     case 'openrouter':
       return process.env.OPENROUTER_API_KEY ?? null
     default:
@@ -142,6 +148,8 @@ function getBaseUrl(provider: LLMProvider): string {
       return process.env.ZAI_BASE_URL ?? 'https://api.z.ai/api/paas/v4'
     case 'minimax_token':
       return process.env.MINIMAX_BASE_URL ?? 'https://api.minimax.io/v1'
+    case 'xiaomi_token':
+      return process.env.XIAOMI_TOKEN_PLAN_BASE_URL ?? 'https://token-plan-cn.xiaomimimo.com/v1'
     case 'openrouter':
       return process.env.OPENROUTER_BASE_URL ?? 'https://openrouter.ai/api/v1'
     default:
@@ -433,6 +441,7 @@ export function selectProvider(taskType: AgentTaskType): LLMConfig {
   const hasZaiCoding = !!process.env.ZAI_CODING_API_KEY
   const hasZaiToken = !!process.env.ZAI_API_KEY
   const hasMinimax = !!process.env.MINIMAX_API_KEY
+  const hasXiaomi = !!process.env.XIAOMI_TOKEN_PLAN_API_KEY || !!process.env.XIAOMI_API_KEY
   const hasOpenRouter = !!process.env.OPENROUTER_API_KEY
 
   // Tier 1: Deep reasoning — prefer Anthropic Claude for long-context analysis
@@ -477,6 +486,9 @@ export function selectProvider(taskType: AgentTaskType): LLMConfig {
   if (hasMinimax) {
     return { provider: 'minimax_token', model: 'MiniMax-M3', temperature: 0.1, maxTokens: 4096 }
   }
+  if (hasXiaomi) {
+    return { provider: 'xiaomi_token', model: 'mimo-v2.5-pro', temperature: 0.1, maxTokens: 4096 }
+  }
   if (hasOpenRouter) {
     return { provider: 'openrouter', model: 'anthropic/claude-sonnet-4', temperature: 0.1, maxTokens: 4096 }
   }
@@ -486,6 +498,7 @@ export function selectProvider(taskType: AgentTaskType): LLMConfig {
 
   throw new Error(
     'No LLM provider configured. Set one of: OPENAI_API_KEY, ANTHROPIC_API_KEY, ' +
-    'ZAI_CODING_API_KEY, ZAI_API_KEY, MINIMAX_API_KEY, OPENROUTER_API_KEY, or OLLAMA_BASE_URL.',
+    'ZAI_CODING_API_KEY, ZAI_API_KEY, MINIMAX_API_KEY, XIAOMI_TOKEN_PLAN_API_KEY, ' +
+    'OPENROUTER_API_KEY, or OLLAMA_BASE_URL.',
   )
 }

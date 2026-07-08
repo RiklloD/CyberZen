@@ -69,6 +69,28 @@ export const PROVIDER_CATALOG = {
     docsUrl: "https://platform.minimax.io/docs/api-reference/text-openai-api",
     apiFormat: "openai" as const,
   },
+  xiaomi_token: {
+    label: "Xiaomi MiMo Token Plan",
+    icon: "xiaomi",
+    description: "MiMo-V2.5-Pro, MiMo-V2-Flash — flat-rate Token Plan subscription",
+    defaultBaseUrl: "https://token-plan-cn.xiaomimimo.com/v1",
+    defaultModel: "mimo-v2.5-pro",
+    keyPrefix: "tp-",
+    keyPlaceholder: "tp-...",
+    docsUrl: "https://mimo.mi.com/docs/en-US/tokenplan/Token%20Plan/quick-access",
+    apiFormat: "openai" as const,
+  },
+  anthropic: {
+    label: "Anthropic",
+    icon: "anthropic",
+    description: "Claude Sonnet 4.6, Haiku 3.5 — direct Anthropic Messages API",
+    defaultBaseUrl: "https://api.anthropic.com/v1",
+    defaultModel: "claude-sonnet-4-6",
+    keyPrefix: "sk-ant-",
+    keyPlaceholder: "sk-ant-...",
+    docsUrl: "https://console.anthropic.com/settings/keys",
+    apiFormat: "anthropic" as const,
+  },
   openrouter: {
     label: "OpenRouter",
     icon: "openrouter",
@@ -333,36 +355,62 @@ export const testProviderConnection = action({
     const baseUrl = config.baseUrl ?? catalog.defaultBaseUrl;
     const model = config.defaultModel ?? catalog.defaultModel;
 
+    // Branch on API format — Anthropic uses /messages with x-api-key,
+    // all others use OpenAI-compatible /chat/completions with Bearer auth.
+    const isAnthropicFormat = catalog.apiFormat === "anthropic";
+
     try {
-      // Send a minimal test request
-      const testBody: Record<string, unknown> = {
-        model,
-        messages: [
-          { role: "user", content: "Reply with exactly: OK" },
-        ],
-        max_tokens: 10,
-        temperature: 0,
-      };
+      let response: Response;
 
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-      };
+      if (isAnthropicFormat) {
+        // Anthropic Messages API format
+        const body = JSON.stringify({
+          model,
+          max_tokens: 10,
+          messages: [
+            { role: "user", content: "Reply with exactly: OK" },
+          ],
+        });
 
-      // OpenRouter requires extra headers for attribution
-      if (config.providerKey === "openrouter") {
-        headers["HTTP-Referer"] = "https://cyberzen.dev";
-        headers["X-Title"] = "CyberZen";
+        response = await fetch(`${baseUrl}/messages`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": config.apiKey,
+            "anthropic-version": "2023-06-01",
+          },
+          body,
+          signal: AbortSignal.timeout(30_000),
+        });
+      } else {
+        // OpenAI-compatible format
+        const testBody: Record<string, unknown> = {
+          model,
+          messages: [
+            { role: "user", content: "Reply with exactly: OK" },
+          ],
+          max_tokens: 10,
+          temperature: 0,
+        };
+
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${config.apiKey}`,
+        };
+
+        // OpenRouter requires extra headers for attribution
+        if (config.providerKey === "openrouter") {
+          headers["HTTP-Referer"] = "https://cyberzen.dev";
+          headers["X-Title"] = "CyberZen";
+        }
+
+        response = await fetch(`${baseUrl}/chat/completions`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify(testBody),
+          signal: AbortSignal.timeout(30_000),
+        });
       }
-
-      // All our providers use OpenAI-compatible format
-      headers["Authorization"] = `Bearer ${config.apiKey}`;
-
-      const response = await fetch(`${baseUrl}/chat/completions`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify(testBody),
-        signal: AbortSignal.timeout(30_000),
-      });
 
       if (!response.ok) {
         const errorBody = await response.text().catch(() => "No response body");
@@ -376,7 +424,10 @@ export const testProviderConnection = action({
       }
 
       const data = await response.json();
-      const content = data.choices?.[0]?.message?.content ?? "";
+      // Extract content from either OpenAI or Anthropic response shape
+      const content = isAnthropicFormat
+        ? (data.content?.map((c: { text?: string }) => c.text ?? "").join("") ?? "")
+        : (data.choices?.[0]?.message?.content ?? "");
 
       await ctx.runMutation(internal.llmProviders.updateTestResultInternal, {
         configId: args.configId,

@@ -760,6 +760,11 @@ function ProviderIcon({
         bg: "#10a37f20",
         color: "#10a37f",
       },
+      anthropic: {
+        text: "A",
+        bg: "#d9770620",
+        color: "#d97706",
+      },
       zai_coding: {
         text: "Z",
         bg: "#3b82f620",
@@ -774,6 +779,11 @@ function ProviderIcon({
         text: "M",
         bg: "#8b5cf620",
         color: "#8b5cf6",
+      },
+      xiaomi_token: {
+        text: "Mi",
+        bg: "#ef444420",
+        color: "#ef4444",
       },
       openrouter: {
         text: "OR",

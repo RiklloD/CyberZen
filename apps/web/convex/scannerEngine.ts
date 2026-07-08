@@ -993,3 +993,276 @@ export const recordScanOutcome = internalMutation({
     return null
   },
 })
+
+// ── Finding Synthesis ────────────────────────────────────────────────────
+//
+// The individual scanners (secret, IaC, CI/CD, crypto, sensitive file) write
+// their results to dedicated tables. This bridge reads the latest result rows
+// for the repository and converts them into unified `findings` rows so the
+// /findings page shows real scan output.
+//
+// Deduplication: each scanner source is keyed by (workflowRunId, source) in the
+// findings table — we skip sources that already have findings for this run, so
+// re-running the synthesis (e.g. from a retry) is idempotent.
+// Caps at MAX_FINDINGS_PER_SCANNER per source to avoid flooding the table.
+
+const SCANNER_SOURCE_MAP = {
+  secret_detection: 'secret_scan',
+  iac_scan: 'iac_scan',
+  cicd_scan: 'cicd_scan',
+  crypto_weakness: 'crypto_weakness_scan',
+  sensitive_file: 'sensitive_file_scan',
+} as const
+
+const MAX_FINDINGS_PER_SCANNER = 20
+
+type FindingSeverity = 'critical' | 'high' | 'medium' | 'low' | 'informational'
+
+/** Map any severity string to a schema-valid finding severity. */
+function normalizeSeverity(s: string): FindingSeverity {
+  const lower = s.toLowerCase()
+  if (lower === 'critical') return 'critical'
+  if (lower === 'high') return 'high'
+  if (lower === 'medium') return 'medium'
+  if (lower === 'low') return 'low'
+  return 'informational'
+}
+
+/** Base score 22–94 depending on severity (no exposure/exploit bonus). */
+function severityToImpactScore(severity: FindingSeverity): number {
+  switch (severity) {
+    case 'critical': return 94
+    case 'high': return 82
+    case 'medium': return 64
+    case 'low': return 41
+    default: return 22
+  }
+}
+
+function truncateSummary(text: string, maxLen = 280): string {
+  if (text.length <= maxLen) return text
+  return text.slice(0, maxLen - 3) + '...'
+}
+
+export const synthesizeFindingsFromScanResults = internalMutation({
+  args: {
+    tenantId: v.id('tenants'),
+    repositoryId: v.id('repositories'),
+    workflowRunId: v.id('workflowRuns'),
+    branch: v.string(),
+    commitSha: v.optional(v.string()),
+  },
+  returns: v.object({
+    created: v.number(),
+    skipped: v.number(),
+  }),
+  handler: async (ctx, args) => {
+    const now = Date.now()
+    let created = 0
+    let skipped = 0
+
+    // Check which sources already have findings for this workflow run.
+    const existingFindings = await ctx.db
+      .query('findings')
+      .withIndex('by_workflow_run_and_source', (q) =>
+        q.eq('workflowRunId', args.workflowRunId),
+      )
+      .collect()
+    const existingSources = new Set(existingFindings.map((f) => f.source))
+
+    // Helper: insert a single finding.
+    const insertFinding = async (params: {
+      source: string
+      vulnClass: string
+      title: string
+      summary: string
+      severity: FindingSeverity
+      affectedFiles?: string[]
+      affectedPackages?: string[]
+    }) => {
+      await ctx.db.insert('findings', {
+        tenantId: args.tenantId,
+        repositoryId: args.repositoryId,
+        workflowRunId: args.workflowRunId,
+        breachDisclosureId: undefined,
+        source: params.source,
+        vulnClass: params.vulnClass,
+        title: params.title,
+        summary: truncateSummary(params.summary),
+        confidence: 0.85,
+        severity: params.severity,
+        validationStatus: 'pending',
+        status: 'open',
+        businessImpactScore: severityToImpactScore(params.severity),
+        blastRadiusSummary: params.affectedFiles && params.affectedFiles.length > 0
+          ? `${params.affectedFiles.length} file(s) affected`
+          : 'Repository-wide',
+        prUrl: undefined,
+        reasoningLogUrl: undefined,
+        pocArtifactUrl: undefined,
+        affectedServices: [],
+        affectedFiles: params.affectedFiles ?? [],
+        affectedPackages: params.affectedPackages ?? [],
+        regulatoryImplications: [],
+        createdAt: now,
+        resolvedAt: undefined,
+      })
+      created += 1
+    }
+
+    // ── 1. Secret detection findings ─────────────────────────────────
+    if (!existingSources.has('secret_scan')) {
+      const latest = await ctx.db
+        .query('secretScanResults')
+        .withIndex('by_repository_and_computed_at', (q) =>
+          q.eq('repositoryId', args.repositoryId),
+        )
+        .order('desc')
+        .first()
+
+      if (latest && latest.totalFound > 0) {
+        for (const f of latest.findings.slice(0, MAX_FINDINGS_PER_SCANNER)) {
+          const severity = normalizeSeverity(f.severity)
+          const testHint = f.isTestFileHint ? ' [test file]' : ''
+          await insertFinding({
+            source: 'secret_scan',
+            vulnClass: `hardcoded_secret:${f.category}`,
+            title: `${f.description}${testHint}`,
+            summary: `Detected potential ${f.category} in repository content. Match: ${f.redactedMatch}. Category: ${f.category}.`,
+            severity,
+          })
+        }
+      }
+    } else {
+      skipped += 1
+    }
+
+    // ── 2. IaC misconfiguration findings ─────────────────────────────
+    if (!existingSources.has('iac_scan')) {
+      const latest = await ctx.db
+        .query('iacScanResults')
+        .withIndex('by_repository_and_computed_at', (q) =>
+          q.eq('repositoryId', args.repositoryId),
+        )
+        .order('desc')
+        .first()
+
+      if (latest && latest.totalFindings > 0) {
+        let count = 0
+        for (const fileResult of latest.fileResults) {
+          if (count >= MAX_FINDINGS_PER_SCANNER) break
+          for (const f of fileResult.findings) {
+            if (count >= MAX_FINDINGS_PER_SCANNER) break
+            const severity = normalizeSeverity(f.severity)
+            await insertFinding({
+              source: 'iac_scan',
+              vulnClass: `iac_misconfig:${f.ruleId}`,
+              title: f.title,
+              summary: `IaC misconfiguration in ${fileResult.filename} (${fileResult.fileType}). Rule: ${f.ruleId}. Remediation: ${f.remediation}`,
+              severity,
+              affectedFiles: [fileResult.filename],
+            })
+            count += 1
+          }
+        }
+      }
+    } else {
+      skipped += 1
+    }
+
+    // ── 3. CI/CD pipeline findings ───────────────────────────────────
+    if (!existingSources.has('cicd_scan')) {
+      const latest = await ctx.db
+        .query('cicdScanResults')
+        .withIndex('by_repository_and_computed_at', (q) =>
+          q.eq('repositoryId', args.repositoryId),
+        )
+        .order('desc')
+        .first()
+
+      if (latest && latest.totalFindings > 0) {
+        let count = 0
+        for (const fileResult of latest.fileResults) {
+          if (count >= MAX_FINDINGS_PER_SCANNER) break
+          for (const f of fileResult.findings) {
+            if (count >= MAX_FINDINGS_PER_SCANNER) break
+            const severity = normalizeSeverity(f.severity)
+            await insertFinding({
+              source: 'cicd_scan',
+              vulnClass: `cicd_misconfig:${f.ruleId}`,
+              title: f.title,
+              summary: `CI/CD misconfiguration in ${fileResult.filename} (${fileResult.fileType}). Rule: ${f.ruleId}. Remediation: ${f.remediation}`,
+              severity,
+              affectedFiles: [fileResult.filename],
+            })
+            count += 1
+          }
+        }
+      }
+    } else {
+      skipped += 1
+    }
+
+    // ── 4. Crypto weakness findings ──────────────────────────────────
+    if (!existingSources.has('crypto_weakness_scan')) {
+      const latest = await ctx.db
+        .query('cryptoWeaknessResults')
+        .withIndex('by_repository_and_computed_at', (q) =>
+          q.eq('repositoryId', args.repositoryId),
+        )
+        .order('desc')
+        .first()
+
+      if (latest && latest.totalFindings > 0) {
+        let count = 0
+        for (const fileResult of latest.fileResults) {
+          if (count >= MAX_FINDINGS_PER_SCANNER) break
+          for (const f of fileResult.findings) {
+            if (count >= MAX_FINDINGS_PER_SCANNER) break
+            const severity = normalizeSeverity(f.severity)
+            await insertFinding({
+              source: 'crypto_weakness_scan',
+              vulnClass: `crypto_weakness:${f.ruleId}`,
+              title: f.title,
+              summary: `Cryptographic weakness in ${fileResult.filename} (${fileResult.fileType}). ${f.description}. Remediation: ${f.remediation}`,
+              severity,
+              affectedFiles: [fileResult.filename],
+            })
+            count += 1
+          }
+        }
+      }
+    } else {
+      skipped += 1
+    }
+
+    // ── 5. Sensitive file findings ───────────────────────────────────
+    if (!existingSources.has('sensitive_file_scan')) {
+      const latest = await ctx.db
+        .query('sensitiveFileResults')
+        .withIndex('by_repository_and_scanned_at', (q) =>
+          q.eq('repositoryId', args.repositoryId),
+        )
+        .order('desc')
+        .first()
+
+      if (latest && latest.totalFindings > 0) {
+        for (const f of latest.findings.slice(0, MAX_FINDINGS_PER_SCANNER)) {
+          const severity = normalizeSeverity(f.severity)
+          await insertFinding({
+            source: 'sensitive_file_scan',
+            vulnClass: `sensitive_file:${f.category}`,
+            title: `${f.category.replace(/_/g, ' ')}: ${f.matchedPath}`,
+            summary: `Sensitive file detected: ${f.description}. Path: ${f.matchedPath}. Recommendation: ${f.recommendation}`,
+            severity,
+            affectedFiles: [f.matchedPath],
+          })
+        }
+      }
+    } else {
+      skipped += 1
+    }
+
+    return { created, skipped }
+  },
+})
