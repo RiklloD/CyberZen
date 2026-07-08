@@ -1,21 +1,23 @@
 import { v } from 'convex/values'
-import { internalMutation, internalQuery, query } from './_generated/server'
-import { action } from './_generated/server'
+import { internalMutation, internalQuery, mutation, query } from './_generated/server'
 import { internal } from './_generated/api'
 
 // ─── §3.8 — Manual advisory sync trigger ────────────────────────────────────
 
-export const runManualSync = action({
+export const runManualSync = mutation({
   args: {
     tenantSlug: v.string(),
   },
   handler: async (ctx, { tenantSlug }) => {
-    return await ctx.runAction(internal.breachIngest.syncRecentAdvisoriesOnSchedule, {
+    // Schedule the real sync action asynchronously — mutations can't make
+    // external HTTP calls, so we dispatch it and return immediately.
+    ctx.scheduler.runAfter(0, internal.breachIngest.syncRecentAdvisoriesOnSchedule, {
       maxRepositories: 50,
       lookbackHours: 72,
       githubLimit: 100,
       osvLimit: 100,
     })
+    return { scheduled: true }
   },
 })
 

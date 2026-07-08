@@ -18,13 +18,18 @@ export default function BreachIntelFeedPanel({
 	tenantSlug: string;
 }) {
 	const [syncing, setSyncing] = useState(false);
+	const [lastSyncResult, setLastSyncResult] = useState<string | null>(null);
 
 	const runSync = useMutation(api.advisorySync.runManualSync);
 
 	async function handleSync() {
 		setSyncing(true);
+		setLastSyncResult(null);
 		try {
 			await runSync({ tenantSlug });
+			setLastSyncResult("Sync scheduled — new advisories will appear within a minute.");
+		} catch (err) {
+			setLastSyncResult(`Sync failed: ${err instanceof Error ? err.message : "Unknown error"}`);
 		} finally {
 			setSyncing(false);
 		}
@@ -52,6 +57,9 @@ export default function BreachIntelFeedPanel({
 					{syncing ? "Syncing…" : "Sync Now"}
 				</button>
 			</div>
+			{lastSyncResult && (
+				<p className="mb-2 text-xs text-[var(--sea-ink-soft)]">{lastSyncResult}</p>
+			)}
 			<div className="space-y-3">
 				{disclosures.map((d: OverviewDisclosure) => (
 					<div key={d._id} className="card card-sm">

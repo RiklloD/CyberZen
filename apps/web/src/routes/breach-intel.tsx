@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { Shield } from "lucide-react";
+import { useMemo, useState } from "react";
 import StatusPill from "../components/StatusPill";
 import { PanelSkeleton } from "../components/panels/SharedPanelComponents";
 import BreachIntelFeedPanel from "../components/panels/BreachIntelFeedPanel";
@@ -30,6 +31,18 @@ function BreachIntelPage() {
 	const epss = useQuery(api.epssIntel.getLatestEpssSnapshot);
 	const tier3 = useQuery(api.tier3Intel.getRecentTier3Signals, { limit: 10 });
 
+	const [selectedRepo, setSelectedRepo] = useState<string>("all");
+
+	// Extract unique repo names from disclosures for the filter dropdown
+	const repoNames = useMemo(() => {
+		if (!escalations) return [];
+		const names = new Set<string>();
+		for (const d of escalations.disclosures) {
+			if (d.repositoryName) names.add(d.repositoryName);
+		}
+		return Array.from(names).sort();
+	}, [escalations]);
+
 	if (!escalations) {
 		return (
 			<main className="page-body-padded">
@@ -38,7 +51,23 @@ function BreachIntelPage() {
 		);
 	}
 
-	const { disclosures, advisoryAggregator } = escalations;
+	const { advisoryAggregator } = escalations;
+
+	// Filter disclosures by selected repository
+	const filteredDisclosures =
+		selectedRepo === "all"
+			? escalations.disclosures
+			: escalations.disclosures.filter(
+					(d) => d.repositoryName === selectedRepo,
+				);
+
+	// Filter advisory sync runs by selected repository
+	const filteredRuns =
+		selectedRepo === "all"
+			? advisoryAggregator.recentRuns
+			: advisoryAggregator.recentRuns.filter(
+					(run: OverviewAdvisoryRun) => run.repositoryName === selectedRepo,
+				);
 
 	return (
 		<main>
@@ -53,12 +82,37 @@ function BreachIntelPage() {
 						</p>
 					</div>
 				</div>
+
+				{/* Repository selector */}
+				{repoNames.length > 0 && (
+					<div className="flex items-center gap-2">
+						<label
+							htmlFor="repo-filter"
+							className="text-xs text-[var(--sea-ink-soft)]"
+						>
+							Repository:
+						</label>
+						<select
+							id="repo-filter"
+							value={selectedRepo}
+							onChange={(e) => setSelectedRepo(e.target.value)}
+							className="rounded-lg border border-[var(--line)] bg-[var(--surface-soft)] px-3 py-1.5 text-xs text-[var(--sea-ink)] focus:outline-none focus:ring-2 focus:ring-[var(--signal)]"
+						>
+							<option value="all">All repositories</option>
+							{repoNames.map((name) => (
+								<option key={name} value={name}>
+									{name}
+								</option>
+							))}
+						</select>
+					</div>
+				)}
 			</div>
 
 			<div className="page-body">
 				<div className="grid gap-4 xl:grid-cols-[1.3fr_1fr]">
 					{/* Left: Disclosures */}
-					<BreachIntelFeedPanel disclosures={disclosures} tenantSlug={TENANT} />
+					<BreachIntelFeedPanel disclosures={filteredDisclosures} tenantSlug={TENANT} />
 
 					{/* Right: Advisory aggregator + sources + threat intel */}
 					<div className="space-y-4">
@@ -70,13 +124,15 @@ function BreachIntelPage() {
 							<div className="card card-sm mb-3">
 								<div className="flex flex-wrap gap-2">
 									<StatusPill
-										label={`${advisoryAggregator.recentImportedDisclosures} imported`}
+										label={`${selectedRepo === "all" ? advisoryAggregator.recentImportedDisclosures : filteredDisclosures.length} imported`}
 										tone="neutral"
 									/>
 									<StatusPill
-										label={`${advisoryAggregator.recentMatchedDisclosures} matched`}
+										label={`${selectedRepo === "all" ? advisoryAggregator.recentMatchedDisclosures : filteredDisclosures.filter((d) => d.matchStatus === "matched").length} matched`}
 										tone={
-											advisoryAggregator.recentMatchedDisclosures > 0
+											(selectedRepo === "all"
+												? advisoryAggregator.recentMatchedDisclosures
+												: filteredDisclosures.filter((d) => d.matchStatus === "matched").length) > 0
 												? "warning"
 												: "success"
 										}
@@ -91,7 +147,7 @@ function BreachIntelPage() {
 							</div>
 
 							<div className="space-y-2">
-								{advisoryAggregator.recentRuns.map(
+								{filteredRuns.map(
 									(run: OverviewAdvisoryRun) => (
 										<div key={run._id} className="card card-sm">
 											<div className="flex flex-wrap items-center gap-2">
