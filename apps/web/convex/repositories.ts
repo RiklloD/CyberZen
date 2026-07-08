@@ -1,4 +1,4 @@
-import { query } from './_generated/server'
+import { mutation, query } from './_generated/server'
 import { v } from 'convex/values'
 import { aggregateTrustScore } from './lib/trustScore'
 
@@ -31,7 +31,11 @@ export const listByTenant = query({
       .withIndex('by_tenant', (q) => q.eq('tenantId', tenant._id))
       .collect()
 
-    return repositories.map((repository) => ({
+    const activeRepositories = repositories.filter(
+      (r) => !r.disconnectedAt,
+    )
+
+    return activeRepositories.map((repository) => ({
       _id: repository._id,
       name: repository.name,
       fullName: repository.fullName,
@@ -387,5 +391,91 @@ export const drilldown = query({
         completedAt: run.completedAt,
       })),
     }
+  },
+})
+
+// ---------------------------------------------------------------------------
+// repositories.disconnect — soft-delete a repo from the tenant dashboard
+// ---------------------------------------------------------------------------
+// Marks the repository as disconnected (disconnectedAt = now) so it no longer
+// shows up in dashboard or list queries.  The row is kept so that "Reconnect"
+// can revive it without losing historical SBOM / finding data.
+// ---------------------------------------------------------------------------
+
+export const disconnect = mutation({
+  args: {
+    tenantSlug: v.string(),
+    repositoryFullName: v.string(),
+  },
+  returns: v.object({ disconnected: v.boolean() }),
+  handler: async (ctx, args) => {
+    const tenant = await ctx.db
+      .query('tenants')
+      .withIndex('by_slug', (q) => q.eq('slug', args.tenantSlug))
+      .unique()
+
+    if (!tenant) {
+      throw new Error(`Tenant not found: ${args.tenantSlug}`)
+    }
+
+    const repository = await ctx.db
+      .query('repositories')
+      .withIndex('by_tenant_and_full_name', (q) =>
+        q
+          .eq('tenantId', tenant._id)
+          .eq('fullName', args.repositoryFullName),
+      )
+      .unique()
+
+    if (!repository) {
+      throw new Error(`Repository not found: ${args.repositoryFullName}`)
+    }
+
+    await ctx.db.patch(repository._id, {
+      disconnectedAt: Date.now(),
+    })
+
+    return { disconnected: true }
+  },
+})
+
+// ---------------------------------------------------------------------------
+// repositories.reconnect — clear the disconnected flag so the repo reappears
+// ---------------------------------------------------------------------------
+
+export const reconnect = mutation({
+  args: {
+    tenantSlug: v.string(),
+    repositoryFullName: v.string(),
+  },
+  returns: v.object({ reconnected: v.boolean() }),
+  handler: async (ctx, args) => {
+    const tenant = await ctx.db
+      .query('tenants')
+      .withIndex('by_slug', (q) => q.eq('slug', args.tenantSlug))
+      .unique()
+
+    if (!tenant) {
+      throw new Error(`Tenant not found: ${args.tenantSlug}`)
+    }
+
+    const repository = await ctx.db
+      .query('repositories')
+      .withIndex('by_tenant_and_full_name', (q) =>
+        q
+          .eq('tenantId', tenant._id)
+          .eq('fullName', args.repositoryFullName),
+      )
+      .unique()
+
+    if (!repository) {
+      throw new Error(`Repository not found: ${args.repositoryFullName}`)
+    }
+
+    await ctx.db.patch(repository._id, {
+      disconnectedAt: undefined,
+    })
+
+    return { reconnected: true }
   },
 })

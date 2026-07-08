@@ -1162,8 +1162,12 @@ export const overview = query({
       .withIndex('by_tenant', (q) => q.eq('tenantId', tenant._id))
       .collect()
 
+    const activeRepositories = repositories.filter(
+      (r: any) => !r.disconnectedAt,
+    )
+
     const reposWithSnapshots = await Promise.all(
-      repositories.map(async (repo: any) => {
+      activeRepositories.map(async (repo: any) => {
         const snapshotHistory = await ctx.db
           .query('sbomSnapshots')
           .withIndex('by_repository_and_captured_at', (q) =>

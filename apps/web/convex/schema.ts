@@ -253,6 +253,7 @@ export default defineSchema({
     primaryLanguage: v.string(),
     latestCommitSha: v.optional(v.string()),
     lastScannedAt: v.optional(v.number()),
+    disconnectedAt: v.optional(v.number()),
   })
     .index('by_tenant', ['tenantId'])
     .index('by_tenant_and_full_name', ['tenantId', 'fullName'])
