@@ -12,7 +12,15 @@
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-export type LLMProvider = 'openai' | 'anthropic' | 'ollama' | 'custom'
+export type LLMProvider =
+  | 'openai'
+  | 'anthropic'
+  | 'ollama'
+  | 'custom'
+  | 'zai_coding'
+  | 'zai_token'
+  | 'minimax_token'
+  | 'openrouter'
 
 export type LLMMessage = {
   role: 'system' | 'user' | 'assistant' | 'tool'
@@ -64,15 +72,25 @@ export type LLMConfig = {
 // ─── Pricing (per 1K tokens, USD) ────────────────────────────────────────────
 
 const PRICING: Record<string, { input: number; output: number }> = {
+  // OpenAI
   'gpt-4o': { input: 0.0025, output: 0.01 },
   'gpt-4o-mini': { input: 0.00015, output: 0.0006 },
   'o3': { input: 0.015, output: 0.06 },
   'o3-mini': { input: 0.0011, output: 0.0044 },
+  // Anthropic
   'claude-sonnet-4-6': { input: 0.003, output: 0.015 },
   'claude-sonnet-4-20250514': { input: 0.003, output: 0.015 },
   'claude-haiku-3.5': { input: 0.0008, output: 0.004 },
-  'codellama': { input: 0, output: 0 }, // local
-  'deepseek-coder': { input: 0, output: 0 }, // local
+  // Z.AI
+  'glm-5.2': { input: 0.0007, output: 0.0021 },
+  'glm-5.1': { input: 0.0005, output: 0.0015 },
+  'glm-4.7': { input: 0.0004, output: 0.0012 },
+  // MiniMax
+  'MiniMax-M3': { input: 0.001, output: 0.004 },
+  'MiniMax-M2.7': { input: 0.0008, output: 0.003 },
+  // Local (free)
+  'codellama': { input: 0, output: 0 },
+  'deepseek-coder': { input: 0, output: 0 },
 }
 
 function estimateCost(model: string, promptTokens: number, completionTokens: number): number {
@@ -95,6 +113,14 @@ function getApiKey(provider: LLMProvider): string | null {
       return 'ollama' // no key needed
     case 'custom':
       return process.env.CUSTOM_LLM_API_KEY ?? null
+    case 'zai_coding':
+      return process.env.ZAI_CODING_API_KEY ?? null
+    case 'zai_token':
+      return process.env.ZAI_API_KEY ?? null
+    case 'minimax_token':
+      return process.env.MINIMAX_API_KEY ?? null
+    case 'openrouter':
+      return process.env.OPENROUTER_API_KEY ?? null
     default:
       return null
   }
@@ -110,6 +136,14 @@ function getBaseUrl(provider: LLMProvider): string {
       return process.env.OLLAMA_BASE_URL ?? 'http://localhost:11434/v1'
     case 'custom':
       return process.env.CUSTOM_LLM_BASE_URL ?? 'http://localhost:8080/v1'
+    case 'zai_coding':
+      return process.env.ZAI_CODING_BASE_URL ?? 'https://api.z.ai/api/coding/paas/v4'
+    case 'zai_token':
+      return process.env.ZAI_BASE_URL ?? 'https://api.z.ai/api/paas/v4'
+    case 'minimax_token':
+      return process.env.MINIMAX_BASE_URL ?? 'https://api.minimax.io/v1'
+    case 'openrouter':
+      return process.env.OPENROUTER_BASE_URL ?? 'https://openrouter.ai/api/v1'
     default:
       return 'https://api.openai.com/v1'
   }
@@ -176,12 +210,20 @@ async function callOpenAICompatible(
   // A15 — 60-second timeout via AbortController
   const { signal, cleanup } = withTimeout()
   try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    }
+
+    // OpenRouter requires attribution headers
+    if (req.provider === 'openrouter') {
+      headers['HTTP-Referer'] = process.env.OPENROUTER_REFERER ?? 'https://cyberzen.dev'
+      headers['X-Title'] = 'CyberZen'
+    }
+
     const response = await fetch(`${baseUrl}/chat/completions`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-      },
+      headers,
       body: bodyStr,
       signal,
     })
@@ -388,6 +430,10 @@ export function selectProvider(taskType: AgentTaskType): LLMConfig {
   const hasAnthropic = !!process.env.ANTHROPIC_API_KEY
   const hasOpenAI = !!process.env.OPENAI_API_KEY
   const hasOllama = !!process.env.OLLAMA_BASE_URL
+  const hasZaiCoding = !!process.env.ZAI_CODING_API_KEY
+  const hasZaiToken = !!process.env.ZAI_API_KEY
+  const hasMinimax = !!process.env.MINIMAX_API_KEY
+  const hasOpenRouter = !!process.env.OPENROUTER_API_KEY
 
   // Tier 1: Deep reasoning — prefer Anthropic Claude for long-context analysis
   if (taskType === 'deep_reasoning' && hasAnthropic) {
@@ -409,20 +455,37 @@ export function selectProvider(taskType: AgentTaskType): LLMConfig {
     if (hasOpenAI) {
       return { provider: 'openai', model: 'gpt-4o-mini', temperature: 0.0, maxTokens: 2048 }
     }
+    // Z.AI coding plan is a good cheap alternative
+    if (hasZaiCoding) {
+      return { provider: 'zai_coding', model: 'glm-4.7', temperature: 0.0, maxTokens: 2048 }
+    }
   }
 
-  // Fallback chain: OpenAI → Anthropic → Ollama → error
+  // Fallback chain: OpenAI → Anthropic → Z.AI → MiniMax → OpenRouter → Ollama → error
   if (hasOpenAI) {
     return { provider: 'openai', model: 'gpt-4o-mini', temperature: 0.1, maxTokens: 4096 }
   }
   if (hasAnthropic) {
     return { provider: 'anthropic', model: 'claude-haiku-3.5', temperature: 0.1, maxTokens: 4096 }
   }
+  if (hasZaiCoding) {
+    return { provider: 'zai_coding', model: 'glm-5.2', temperature: 0.1, maxTokens: 4096 }
+  }
+  if (hasZaiToken) {
+    return { provider: 'zai_token', model: 'glm-5.2', temperature: 0.1, maxTokens: 4096 }
+  }
+  if (hasMinimax) {
+    return { provider: 'minimax_token', model: 'MiniMax-M3', temperature: 0.1, maxTokens: 4096 }
+  }
+  if (hasOpenRouter) {
+    return { provider: 'openrouter', model: 'anthropic/claude-sonnet-4', temperature: 0.1, maxTokens: 4096 }
+  }
   if (hasOllama) {
     return { provider: 'ollama', model: 'deepseek-coder', temperature: 0.1, maxTokens: 4096 }
   }
 
   throw new Error(
-    'No LLM provider configured. Set OPENAI_API_KEY, ANTHROPIC_API_KEY, or OLLAMA_BASE_URL.',
+    'No LLM provider configured. Set one of: OPENAI_API_KEY, ANTHROPIC_API_KEY, ' +
+    'ZAI_CODING_API_KEY, ZAI_API_KEY, MINIMAX_API_KEY, OPENROUTER_API_KEY, or OLLAMA_BASE_URL.',
   )
 }

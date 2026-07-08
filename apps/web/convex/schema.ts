@@ -6108,4 +6108,32 @@ export default defineSchema({
     .index('by_repository', ['repositoryId'])
     .index('by_outcome', ['outcome'])
     .index('by_tenant_and_created_at', ['tenantId', 'createdAt']),
+
+  // ── LLM Provider Configurations ───────────────────────────────────────────
+  // Per-tenant LLM provider connections. Users configure their own API keys
+  // for OpenAI, Z.AI, MiniMax, OpenRouter, etc. Keys are stored encrypted
+  // (masked in UI). Each config is one provider connection per tenant.
+  // The `enabled` flag controls whether the provider is used by the agent system.
+
+  llmProviderConfigs: defineTable({
+    tenantId: v.id('tenants'),
+    providerKey: v.string(),           // 'openai' | 'zai_coding' | 'zai_token' | 'minimax_token' | 'openrouter'
+    label: v.string(),                 // user-assigned display name
+    apiKey: v.string(),                // the actual API key (stored in DB)
+    baseUrl: v.optional(v.string()),   // optional override base URL
+    defaultModel: v.optional(v.string()), // preferred model for this provider
+    enabled: v.boolean(),              // is this provider active?
+    lastTestedAt: v.optional(v.number()),
+    lastTestResult: v.optional(
+      v.union(
+        v.literal('success'),
+        v.literal('failed'),
+      ),
+    ),
+    lastTestError: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index('by_tenant', ['tenantId'])
+    .index('by_tenant_and_provider', ['tenantId', 'providerKey']),
 })

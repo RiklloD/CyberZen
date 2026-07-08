@@ -59,6 +59,7 @@ import { Route as SettingsPoliciesRouteImport } from './routes/settings/policies
 import { Route as SettingsOnCallRouteImport } from './routes/settings/on-call'
 import { Route as SettingsNotificationsRouteImport } from './routes/settings/notifications'
 import { Route as SettingsMsspKeysRouteImport } from './routes/settings/mssp-keys'
+import { Route as SettingsLlmProvidersRouteImport } from './routes/settings/llm-providers'
 import { Route as SettingsJobsRouteImport } from './routes/settings/jobs'
 import { Route as SettingsIpAllowlistRouteImport } from './routes/settings/ip-allowlist'
 import { Route as SettingsGeneralRouteImport } from './routes/settings/general'
@@ -322,6 +323,11 @@ const SettingsMsspKeysRoute = SettingsMsspKeysRouteImport.update({
   path: '/mssp-keys',
   getParentRoute: () => SettingsRoute,
 } as any)
+const SettingsLlmProvidersRoute = SettingsLlmProvidersRouteImport.update({
+  id: '/llm-providers',
+  path: '/llm-providers',
+  getParentRoute: () => SettingsRoute,
+} as any)
 const SettingsJobsRoute = SettingsJobsRouteImport.update({
   id: '/jobs',
   path: '/jobs',
@@ -428,6 +434,7 @@ export interface FileRoutesByFullPath {
   '/settings/general': typeof SettingsGeneralRoute
   '/settings/ip-allowlist': typeof SettingsIpAllowlistRoute
   '/settings/jobs': typeof SettingsJobsRoute
+  '/settings/llm-providers': typeof SettingsLlmProvidersRoute
   '/settings/mssp-keys': typeof SettingsMsspKeysRoute
   '/settings/notifications': typeof SettingsNotificationsRoute
   '/settings/on-call': typeof SettingsOnCallRoute
@@ -491,6 +498,7 @@ export interface FileRoutesByTo {
   '/settings/general': typeof SettingsGeneralRoute
   '/settings/ip-allowlist': typeof SettingsIpAllowlistRoute
   '/settings/jobs': typeof SettingsJobsRoute
+  '/settings/llm-providers': typeof SettingsLlmProvidersRoute
   '/settings/mssp-keys': typeof SettingsMsspKeysRoute
   '/settings/notifications': typeof SettingsNotificationsRoute
   '/settings/on-call': typeof SettingsOnCallRoute
@@ -556,6 +564,7 @@ export interface FileRoutesById {
   '/settings/general': typeof SettingsGeneralRoute
   '/settings/ip-allowlist': typeof SettingsIpAllowlistRoute
   '/settings/jobs': typeof SettingsJobsRoute
+  '/settings/llm-providers': typeof SettingsLlmProvidersRoute
   '/settings/mssp-keys': typeof SettingsMsspKeysRoute
   '/settings/notifications': typeof SettingsNotificationsRoute
   '/settings/on-call': typeof SettingsOnCallRoute
@@ -622,6 +631,7 @@ export interface FileRouteTypes {
     | '/settings/general'
     | '/settings/ip-allowlist'
     | '/settings/jobs'
+    | '/settings/llm-providers'
     | '/settings/mssp-keys'
     | '/settings/notifications'
     | '/settings/on-call'
@@ -685,6 +695,7 @@ export interface FileRouteTypes {
     | '/settings/general'
     | '/settings/ip-allowlist'
     | '/settings/jobs'
+    | '/settings/llm-providers'
     | '/settings/mssp-keys'
     | '/settings/notifications'
     | '/settings/on-call'
@@ -749,6 +760,7 @@ export interface FileRouteTypes {
     | '/settings/general'
     | '/settings/ip-allowlist'
     | '/settings/jobs'
+    | '/settings/llm-providers'
     | '/settings/mssp-keys'
     | '/settings/notifications'
     | '/settings/on-call'
@@ -1163,6 +1175,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsMsspKeysRouteImport
       parentRoute: typeof SettingsRoute
     }
+    '/settings/llm-providers': {
+      id: '/settings/llm-providers'
+      path: '/llm-providers'
+      fullPath: '/settings/llm-providers'
+      preLoaderRoute: typeof SettingsLlmProvidersRouteImport
+      parentRoute: typeof SettingsRoute
+    }
     '/settings/jobs': {
       id: '/settings/jobs'
       path: '/jobs'
@@ -1259,6 +1278,7 @@ interface SettingsRouteChildren {
   SettingsGeneralRoute: typeof SettingsGeneralRoute
   SettingsIpAllowlistRoute: typeof SettingsIpAllowlistRoute
   SettingsJobsRoute: typeof SettingsJobsRoute
+  SettingsLlmProvidersRoute: typeof SettingsLlmProvidersRoute
   SettingsMsspKeysRoute: typeof SettingsMsspKeysRoute
   SettingsNotificationsRoute: typeof SettingsNotificationsRoute
   SettingsOnCallRoute: typeof SettingsOnCallRoute
@@ -1285,6 +1305,7 @@ const SettingsRouteChildren: SettingsRouteChildren = {
   SettingsGeneralRoute: SettingsGeneralRoute,
   SettingsIpAllowlistRoute: SettingsIpAllowlistRoute,
   SettingsJobsRoute: SettingsJobsRoute,
+  SettingsLlmProvidersRoute: SettingsLlmProvidersRoute,
   SettingsMsspKeysRoute: SettingsMsspKeysRoute,
   SettingsNotificationsRoute: SettingsNotificationsRoute,
   SettingsOnCallRoute: SettingsOnCallRoute,

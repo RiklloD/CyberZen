@@ -257,6 +257,7 @@ import type * as licenseComplianceIntel from "../licenseComplianceIntel.js";
 import type * as licenseScanIntel from "../licenseScanIntel.js";
 import type * as linear from "../linear.js";
 import type * as llmCertificationIntel from "../llmCertificationIntel.js";
+import type * as llmProviders from "../llmProviders.js";
 import type * as maliciousPackageIntel from "../maliciousPackageIntel.js";
 import type * as maturityAssessmentIntel from "../maturityAssessmentIntel.js";
 import type * as messagingSecurityDriftIntel from "../messagingSecurityDriftIntel.js";
@@ -607,6 +608,7 @@ declare const fullApi: ApiFromModules<{
   licenseScanIntel: typeof licenseScanIntel;
   linear: typeof linear;
   llmCertificationIntel: typeof llmCertificationIntel;
+  llmProviders: typeof llmProviders;
   maliciousPackageIntel: typeof maliciousPackageIntel;
   maturityAssessmentIntel: typeof maturityAssessmentIntel;
   messagingSecurityDriftIntel: typeof messagingSecurityDriftIntel;

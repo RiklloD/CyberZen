@@ -902,7 +902,32 @@ export const runRealScan = internalAction({
       }
     }
 
-    // 9. Record scan results summary
+    // 9. Synthesize findings from scanner results
+    //    The individual scanners (secret, IaC, CI/CD, crypto, sensitive file)
+    //    write to their own tables. This bridge converts those results into
+    //    unified `findings` rows so the /findings page shows real scan output.
+    let findingsCreated = 0
+    try {
+      const result = await ctx.runMutation(
+        internal.scannerEngine.synthesizeFindingsFromScanResults,
+        {
+          tenantId,
+          repositoryId,
+          workflowRunId: args.workflowRunId,
+          branch,
+          commitSha: ref,
+        },
+      )
+      findingsCreated = result.created
+      if (findingsCreated > 0) {
+        await log('findings_synthesized', 'success', `Created ${findingsCreated} security findings from scan results`)
+      }
+    } catch (e: any) {
+      errors.push(`Finding synthesis failed: ${e.message}`)
+      await log('findings_synthesized', 'error', `Finding synthesis failed: ${e.message}`)
+    }
+
+    // 10. Record scan results summary
     try {
       await ctx.runMutation(internal.scannerEngine.recordScanOutcome, {
         tenantId,

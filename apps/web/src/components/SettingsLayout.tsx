@@ -5,6 +5,7 @@ import {
 	BookOpen,
 	CalendarClock,
 	ClipboardCheck,
+	Cpu,
 	CreditCard,
 	Database,
 	Globe,
@@ -62,6 +63,7 @@ const SETTINGS_GROUPS: SettingsGroup[] = [
 		links: [
 			{ to: "/integrations", label: "Integrations", icon: Plug },
 			{ to: "/marketplace", label: "Marketplace", icon: Store },
+			{ to: "/settings/llm-providers", label: "LLM Providers", icon: Cpu },
 			{ to: "/settings/api-keys", label: "API Keys", icon: Key },
 			{ to: "/settings/webhooks", label: "Webhooks", icon: Webhook },
 			{ to: "/docs/github-integration", label: "GitHub Action", icon: Github },
