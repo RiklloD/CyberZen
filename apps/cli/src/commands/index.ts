@@ -7,8 +7,12 @@ import type { Command } from 'commander'
  */
 import { registerAuth } from './auth'
 import { registerLink } from './link'
+import { registerFindings } from './findings'
+import { registerRepos } from './repos'
 
 export function registerAll(program: Command): void {
   registerAuth(program)
   registerLink(program)
+  registerFindings(program)
+  registerRepos(program)
 }
