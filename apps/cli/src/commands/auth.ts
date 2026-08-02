@@ -96,4 +96,15 @@ export function registerAuth(program: Command): void {
 			const removed = deleteAuth();
 			render({ loggedOut: true, removed });
 		});
+
+	auth
+		.command("keys")
+		.description("List API keys for the authenticated tenant")
+		.action(async (_options: unknown, command: Command) => {
+			const globals = globalsOf(command);
+			render(
+				await api({ path: "/api/cli/auth/keys", timeout: globals.timeout }),
+				globals,
+			);
+		});
 }

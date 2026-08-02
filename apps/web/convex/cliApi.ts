@@ -167,6 +167,27 @@ export const getTenantForCli = internalQuery({
   handler: async (ctx, { tenantId }) => await ctx.db.get(tenantId),
 })
 
+export const listApiKeySummariesForTenant = internalQuery({
+  args: { tenantId: v.id('tenants') },
+  returns: v.array(v.any()),
+  handler: async (ctx, { tenantId }) => {
+    const keys = await ctx.db
+      .query('apiKeys')
+      .withIndex('by_tenant', (q) => q.eq('tenantId', tenantId))
+      .collect()
+    return keys.map((key) => ({
+      keyId: key._id,
+      name: key.name,
+      prefix: key.prefix,
+      scopes: key.scopes,
+      lastUsedAt: key.lastUsedAt ?? null,
+      expiresAt: key.expiresAt ?? null,
+      revokedAt: key.revokedAt ?? null,
+      createdAt: key.createdAt,
+    }))
+  },
+})
+
 export const getTenantMemberSummaries = internalQuery({
   args: { tenantId: v.id('tenants') },
   returns: v.array(v.any()),
