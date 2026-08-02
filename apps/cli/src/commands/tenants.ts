@@ -65,4 +65,32 @@ export function registerTenants(program: Command): void {
 				"Use `cyberzen tenants use <slug>` for an existing tenant. The bridge is being implemented next.",
 			);
 		});
+
+	tenants
+		.command("members")
+		.description("List members in the API-key tenant")
+		.action(async (_options: unknown, command: Command) => {
+			const globals = globalsOf(command);
+			render(
+				await api({
+					path: "/api/cli/tenants/members",
+					timeout: globals.timeout,
+				}),
+				globals,
+			);
+		});
+
+	tenants
+		.command("invites")
+		.description("List invitations for the API-key tenant")
+		.action(async (_options: unknown, command: Command) => {
+			const globals = globalsOf(command);
+			render(
+				await api({
+					path: "/api/cli/tenants/invites",
+					timeout: globals.timeout,
+				}),
+				globals,
+			);
+		});
 }
