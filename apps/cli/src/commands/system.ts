@@ -43,6 +43,12 @@ export const COMMAND_MANIFEST: CommandManifestEntry[] = [
 		machineOutput: true,
 	},
 	{
+		command: "integrations catalog",
+		transport: "http",
+		endpoint: "GET /api/cli/integrations/catalog",
+		machineOutput: true,
+	},
+	{
 		command: "integrations health",
 		transport: "http",
 		endpoint: "GET /api/cli/integrations/health",

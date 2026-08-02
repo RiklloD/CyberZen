@@ -6326,6 +6326,17 @@ http.route({
 })
 
 http.route({
+  path: '/api/cli/integrations/catalog',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const authError = await authenticateApiRequest(ctx, request)
+    if (authError) return authError
+    const result = await ctx.runQuery(api.integrations.listIntegrationCatalog, {})
+    return jsonResponse(result, 200)
+  }),
+})
+
+http.route({
   path: '/api/cli/integrations/health',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
