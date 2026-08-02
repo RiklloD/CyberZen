@@ -5,10 +5,10 @@ import type { Command } from 'commander'
  * exports a `registerX(program)` function. Groups are added here as they are
  * implemented (see docs/plans/2026-08-02-cyberzen-cli.md).
  */
+import { registerAuth } from './auth'
+import { registerLink } from './link'
+
 export function registerAll(program: Command): void {
-  // Phase 1 — auth & linkage
-  // Phase 3 — HTTP feature commands
-  // Phase 4 — Convex-backed commands
-  // (registered incrementally as modules land)
-  void program
+  registerAuth(program)
+  registerLink(program)
 }
