@@ -1,75 +1,82 @@
-import type { GlobalFlags } from './globalFlags'
+import type { GlobalFlags } from "./globalFlags.js";
 
-export interface RenderOptions extends Partial<GlobalFlags> {
-  columns?: string[]
+export interface RenderOptions
+	extends Pick<GlobalFlags, "json" | "ndjson" | "color"> {
+	columns?: string[];
 }
 
-/** Render command data without contaminating stdout with diagnostics. */
-export function render(data: unknown, options: RenderOptions = {}): void {
-  if (options.json || process.env.CYBERZEN_OUTPUT === 'json') {
-    if (options.ndjson && Array.isArray(data)) {
-      process.stdout.write(`${data.map((item) => JSON.stringify(item)).join('\n')}\n`)
-      return
-    }
-    process.stdout.write(`${JSON.stringify(data, null, 2)}\n`)
-    return
-  }
-
-  if (data === null || data === undefined) return
-  if (Array.isArray(data)) {
-    renderTable(data, options.columns, options.color !== false)
-    return
-  }
-  if (isRecord(data)) {
-    renderKeyValue(data, options.color !== false)
-    return
-  }
-  process.stdout.write(`${String(data)}\n`)
+function stringify(value: unknown): string {
+	return JSON.stringify(value, (_key, item) =>
+		typeof item === "bigint" ? item.toString() : item,
+	);
 }
 
-export function renderKeyValue(value: Record<string, unknown>, color = true): void {
-  const rows = Object.entries(value).map(([key, item]) => [key, formatValue(item)] as const)
-  const width = Math.max(0, ...rows.map(([key]) => key.length))
-  for (const [key, item] of rows) {
-    const label = color ? `\x1b[36m${key.padEnd(width)}\x1b[0m` : key.padEnd(width)
-    process.stdout.write(`${label}  ${item}\n`)
-  }
+function cell(value: unknown): string {
+	if (value === null || value === undefined) return "";
+	if (typeof value === "object") return stringify(value);
+	return String(value);
 }
 
-export function renderTable(
-  values: unknown[],
-  requestedColumns?: string[],
-  color = true,
+function flattenRows(data: unknown): Record<string, unknown>[] {
+	if (Array.isArray(data))
+		return data.map((item) =>
+			item && typeof item === "object"
+				? (item as Record<string, unknown>)
+				: { value: item },
+		);
+	if (data && typeof data === "object")
+		return [data as Record<string, unknown>];
+	return [{ value: data }];
+}
+
+function table(data: unknown, options: RenderOptions): string {
+	const rows = flattenRows(data);
+	const keys = options.columns?.length
+		? options.columns
+		: [...new Set(rows.flatMap((row) => Object.keys(row)))];
+	if (keys.length === 0) return "";
+
+	const values = rows.map((row) => keys.map((key) => cell(row[key])));
+	const widths = keys.map((key, index) =>
+		Math.max(key.length, ...values.map((row) => row[index]?.length ?? 0)),
+	);
+	const header = keys
+		.map((key, index) => key.padEnd(widths[index] ?? key.length))
+		.join("  ");
+	const divider = widths.map((width) => "-".repeat(width)).join("  ");
+	const body = values
+		.map((row) =>
+			row
+				.map((value, index) => value.padEnd(widths[index] ?? value.length))
+				.join("  "),
+		)
+		.join("\n");
+	return `${header}\n${divider}${body ? `\n${body}` : ""}`;
+}
+
+/** Render command data. Data goes to stdout; diagnostics belong on stderr. */
+export function render(data: unknown, options: RenderOptions): void {
+	if (options.json) {
+		if (options.ndjson && Array.isArray(data)) {
+			process.stdout.write(`${data.map(stringify).join("\n")}\n`);
+		} else {
+			process.stdout.write(`${stringify(data)}\n`);
+		}
+		return;
+	}
+	process.stdout.write(`${table(data, options)}\n`);
+}
+
+export function renderKeyValue(
+	data: Record<string, unknown>,
+	options: RenderOptions,
 ): void {
-  if (values.length === 0) {
-    process.stdout.write('No results.\n')
-    return
-  }
-  const records = values.filter(isRecord)
-  if (records.length !== values.length) {
-    for (const value of values) process.stdout.write(`${formatValue(value)}\n`)
-    return
-  }
-
-  const columns = requestedColumns?.length
-    ? requestedColumns
-    : [...new Set(records.flatMap((record) => Object.keys(record)))]
-  const rows = records.map((record) => columns.map((column) => formatValue(record[column])))
-  const widths = columns.map((column, index) =>
-    Math.max(column.length, ...rows.map((row) => row[index]?.length ?? 0)),
-  )
-  const header = columns.map((column, index) => column.padEnd(widths[index] ?? column.length)).join('  ')
-  const rule = widths.map((width) => '-'.repeat(width)).join('  ')
-  process.stdout.write(`${color ? `\x1b[1m${header}\x1b[0m` : header}\n${rule}\n`)
-  for (const row of rows) process.stdout.write(`${row.map((cell, index) => cell.padEnd(widths[index] ?? cell.length)).join('  ')}\n`)
-}
-
-function formatValue(value: unknown): string {
-  if (value === null || value === undefined) return ''
-  if (typeof value === 'object') return JSON.stringify(value)
-  return String(value)
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
+	if (options.json) {
+		render(data, options);
+		return;
+	}
+	const lines = Object.entries(data).map(
+		([key, value]) => `${key}: ${cell(value)}`,
+	);
+	process.stdout.write(`${lines.join("\n")}\n`);
 }

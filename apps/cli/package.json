@@ -1,33 +1,33 @@
 {
-  "name": "cyberzen-cli",
-  "version": "0.1.0",
-  "description": "CyberZen security-operations CLI — full platform control from the terminal.",
-  "license": "MIT",
-  "type": "module",
-  "bin": {
-    "cyberzen": "./dist/cyberzen.js"
-  },
-  "files": [
-    "dist",
-    "README.md"
-  ],
-  "scripts": {
-    "build": "bun run scripts/build.ts",
-    "compile": "bun build src/index.ts --outfile dist/cyberzen --compile",
-    "dev": "bun run src/index.ts",
-    "test": "bun test",
-    "lint": "biome lint .",
-    "check": "biome check ."
-  },
-  "dependencies": {
-    "commander": "^12.1.0",
-    "convex": "^1.32.0",
-    "open": "^10.1.0",
-    "undici": "^6.19.0"
-  },
-  "devDependencies": {
-    "@types/bun": "^1.1.0",
-    "@types/node": "^22.0.0",
-    "typescript": "^5.5.0"
-  }
+	"name": "cyberzen-cli",
+	"version": "0.1.0",
+	"description": "CyberZen security-operations CLI — full platform control from the terminal.",
+	"license": "MIT",
+	"type": "module",
+	"bin": {
+		"cyberzen": "./dist/cyberzen.js"
+	},
+	"files": [
+		"dist",
+		"README.md"
+	],
+	"scripts": {
+		"build": "bun run scripts/build.ts",
+		"compile": "bun build src/index.ts --outfile dist/cyberzen --compile",
+		"dev": "bun run src/index.ts",
+		"test": "bun test",
+		"lint": "biome lint .",
+		"check": "biome check src scripts package.json tsconfig.json"
+	},
+	"dependencies": {
+		"commander": "^12.1.0",
+		"convex": "^1.32.0",
+		"open": "^10.1.0",
+		"undici": "^6.19.0"
+	},
+	"devDependencies": {
+		"@types/bun": "^1.1.0",
+		"@types/node": "^22.0.0",
+		"typescript": "^5.5.0"
+	}
 }
