@@ -11,6 +11,17 @@ export function registerRepos(program: Command): void {
 		.description("Scan and inspect repositories");
 
 	repos
+		.command("list")
+		.description("List repositories for the authenticated tenant")
+		.action(async (_options: unknown, command: Command) => {
+			const globals = globalsOf(command);
+			render(
+				await api({ path: "/api/cli/repos", timeout: globals.timeout }),
+				globals,
+			);
+		});
+
+	repos
 		.command("scan")
 		.description("Dispatch a real full repository scan")
 		.requiredOption("--repo <owner/name>")

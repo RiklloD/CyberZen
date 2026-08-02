@@ -79,6 +79,12 @@ export const COMMAND_MANIFEST: CommandManifestEntry[] = [
 		endpoint: "GET /api/cli/auth/keys",
 		machineOutput: true,
 	},
+	{
+		command: "repos list",
+		transport: "http",
+		endpoint: "GET /api/cli/repos",
+		machineOutput: true,
+	},
 	{ command: "auth whoami", transport: "local", machineOutput: true },
 	{ command: "auth logout", transport: "local", machineOutput: true },
 	{ command: "link", transport: "local", machineOutput: true },
