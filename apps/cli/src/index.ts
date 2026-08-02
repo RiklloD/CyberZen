@@ -13,8 +13,30 @@ applyGlobalFlags(program)
 registerAll(program)
 
 program.exitOverride()
+
+/** Commander only parses parent options before a subcommand. Normalize the
+ * documented global flags so agents and humans may place them anywhere. */
+function normalizeGlobalArgs(args: string[]): string[] {
+  const flagsWithValues = new Set(['--tenant', '--profile', '--token', '--api-url', '--site-url', '--timeout'])
+  const booleanFlags = new Set(['--json', '--ndjson', '--verbose', '--no-color'])
+  const globals: string[] = []
+  const rest: string[] = []
+  for (let index = 2; index < args.length; index += 1) {
+    const arg = args[index]
+    if (flagsWithValues.has(arg)) {
+      globals.push(arg)
+      if (index + 1 < args.length) globals.push(args[++index]!)
+    } else if (booleanFlags.has(arg)) {
+      globals.push(arg)
+    } else {
+      rest.push(arg)
+    }
+  }
+  return [...args.slice(0, 2), ...globals, ...rest]
+}
+
 try {
-  await program.parseAsync(process.argv)
+  await program.parseAsync(normalizeGlobalArgs(process.argv))
 } catch (err) {
   handleError(err)
 }
