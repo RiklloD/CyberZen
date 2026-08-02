@@ -6371,6 +6371,45 @@ http.route({
 })
 
 http.route({
+  path: '/api/cli/scans',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const authError = await authenticateApiRequest(ctx, request)
+    if (authError) return authError
+    const authHeader = request.headers.get('authorization')
+    const rawKey = request.headers.get('x-sentinel-api-key') ??
+      (authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null)
+    if (!rawKey) return jsonResponse({ error: 'Authentication required.' }, 401)
+    const keyCheck = await ctx.runMutation(internal.apiKeys.checkAndRecordTenantKeyUsage, { rawKey })
+    if (keyCheck.status !== 'ok') return jsonResponse({ error: 'Invalid or rate-limited API key.' }, keyCheck.status === 'rate_limited' ? 429 : 401)
+    const rawLimit = Number(new URL(request.url).searchParams.get('limit') ?? '20')
+    const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(Math.floor(rawLimit), 1), 100) : 20
+    const result = await ctx.runQuery(internal.cliApi.listWorkflowRunsForTenant, { tenantId: keyCheck.tenantId, limit })
+    return jsonResponse(result, 200)
+  }),
+})
+
+http.route({
+  path: '/api/cli/scans/detail',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const authError = await authenticateApiRequest(ctx, request)
+    if (authError) return authError
+    const authHeader = request.headers.get('authorization')
+    const rawKey = request.headers.get('x-sentinel-api-key') ??
+      (authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null)
+    if (!rawKey) return jsonResponse({ error: 'Authentication required.' }, 401)
+    const keyCheck = await ctx.runMutation(internal.apiKeys.checkAndRecordTenantKeyUsage, { rawKey })
+    if (keyCheck.status !== 'ok') return jsonResponse({ error: 'Invalid or rate-limited API key.' }, keyCheck.status === 'rate_limited' ? 429 : 401)
+    const workflowRunId = new URL(request.url).searchParams.get('workflowRunId')
+    if (!workflowRunId) return jsonResponse({ error: 'Missing required query parameter: workflowRunId' }, 400)
+    const result = await ctx.runQuery(internal.cliApi.getWorkflowRunDetailsForTenant, { tenantId: keyCheck.tenantId, workflowRunId: workflowRunId as Id<'workflowRuns'> })
+    if (!result) return jsonResponse({ error: 'Workflow run not found for this tenant.' }, 404)
+    return jsonResponse(result, 200)
+  }),
+})
+
+http.route({
   path: '/api/cli/repos/detail',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {

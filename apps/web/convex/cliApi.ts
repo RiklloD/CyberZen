@@ -63,6 +63,71 @@ export const listRepositoriesForTenant = internalQuery({
   },
 })
 
+export const listWorkflowRunsForTenant = internalQuery({
+  args: { tenantId: v.id('tenants'), limit: v.number() },
+  returns: v.array(v.any()),
+  handler: async (ctx, { tenantId, limit }) => {
+    const runs = await ctx.db
+      .query('workflowRuns')
+      .withIndex('by_tenant_and_started_at', (q) => q.eq('tenantId', tenantId))
+      .order('desc')
+      .take(Math.min(Math.max(limit, 1), 100))
+    return await Promise.all(
+      runs.map(async (run) => {
+        const repository = await ctx.db.get(run.repositoryId)
+        return {
+          workflowRunId: run._id,
+          repository: repository?.fullName ?? null,
+          workflowType: run.workflowType,
+          status: run.status,
+          priority: run.priority,
+          currentStage: run.currentStage ?? null,
+          summary: run.summary,
+          totalTaskCount: run.totalTaskCount,
+          completedTaskCount: run.completedTaskCount,
+          startedAt: run.startedAt,
+          completedAt: run.completedAt ?? null,
+        }
+      }),
+    )
+  },
+})
+
+export const getWorkflowRunDetailsForTenant = internalQuery({
+  args: { tenantId: v.id('tenants'), workflowRunId: v.id('workflowRuns') },
+  returns: v.any(),
+  handler: async (ctx, { tenantId, workflowRunId }) => {
+    const run = await ctx.db.get(workflowRunId)
+    if (!run || run.tenantId !== tenantId) return null
+    const repository = await ctx.db.get(run.repositoryId)
+    const tasks = await ctx.db
+      .query('workflowTasks')
+      .withIndex('by_workflow_run_and_order', (q) => q.eq('workflowRunId', workflowRunId))
+      .order('asc')
+      .collect()
+    const logs = await ctx.db
+      .query('scanLogs')
+      .withIndex('by_workflow_run_and_created_at', (q) => q.eq('workflowRunId', workflowRunId))
+      .order('asc')
+      .take(500)
+    return {
+      workflowRunId: run._id,
+      repository: repository?.fullName ?? null,
+      workflowType: run.workflowType,
+      status: run.status,
+      priority: run.priority,
+      currentStage: run.currentStage ?? null,
+      summary: run.summary,
+      totalTaskCount: run.totalTaskCount,
+      completedTaskCount: run.completedTaskCount,
+      startedAt: run.startedAt,
+      completedAt: run.completedAt ?? null,
+      tasks,
+      logs,
+    }
+  },
+})
+
 export const getRepositoryMemorySummary = internalQuery({
   args: { repositoryId: v.id('repositories') },
   returns: v.object({

@@ -135,5 +135,37 @@ export function registerRepos(program: Command): void {
 			},
 		);
 
+	const scan = program
+		.command("scans")
+		.description("Inspect dispatched scan workflows");
+	scan
+		.command("list")
+		.option("--limit <n>")
+		.action(async (options: { limit?: string }, command: Command) => {
+			const globals = globalsOf(command);
+			render(
+				await api({
+					path: "/api/cli/scans",
+					query: { limit: options.limit },
+					timeout: globals.timeout,
+				}),
+				globals,
+			);
+		});
+	scan
+		.command("get")
+		.requiredOption("--workflow-run-id <id>")
+		.action(async (options: { workflowRunId: string }, command: Command) => {
+			const globals = globalsOf(command);
+			render(
+				await api({
+					path: "/api/cli/scans/detail",
+					query: { workflowRunId: options.workflowRunId },
+					timeout: globals.timeout,
+				}),
+				globals,
+			);
+		});
+
 	void UsageError;
 }
