@@ -72,6 +72,7 @@ import { Route as DocsGithubIntegrationRouteImport } from './routes/docs/github-
 import { Route as DocsApiRouteImport } from './routes/docs/api'
 import { Route as DashboardsIdRouteImport } from './routes/dashboards/$id'
 import { Route as ConnectGithubRouteImport } from './routes/connect/github'
+import { Route as CliDeviceRouteImport } from './routes/cli.device'
 
 const ZeroDayRoute = ZeroDayRouteImport.update({
   id: '/zero-day',
@@ -388,6 +389,11 @@ const ConnectGithubRoute = ConnectGithubRouteImport.update({
   path: '/connect/github',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CliDeviceRoute = CliDeviceRouteImport.update({
+  id: '/cli/device',
+  path: '/cli/device',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -422,6 +428,7 @@ export interface FileRoutesByFullPath {
   '/supply-chain': typeof SupplyChainRoute
   '/timeline': typeof TimelineRoute
   '/zero-day': typeof ZeroDayRoute
+  '/cli/device': typeof CliDeviceRoute
   '/connect/github': typeof ConnectGithubRoute
   '/dashboards/$id': typeof DashboardsIdRoute
   '/docs/api': typeof DocsApiRoute
@@ -486,6 +493,7 @@ export interface FileRoutesByTo {
   '/supply-chain': typeof SupplyChainRoute
   '/timeline': typeof TimelineRoute
   '/zero-day': typeof ZeroDayRoute
+  '/cli/device': typeof CliDeviceRoute
   '/connect/github': typeof ConnectGithubRoute
   '/dashboards/$id': typeof DashboardsIdRoute
   '/docs/api': typeof DocsApiRoute
@@ -552,6 +560,7 @@ export interface FileRoutesById {
   '/supply-chain': typeof SupplyChainRoute
   '/timeline': typeof TimelineRoute
   '/zero-day': typeof ZeroDayRoute
+  '/cli/device': typeof CliDeviceRoute
   '/connect/github': typeof ConnectGithubRoute
   '/dashboards/$id': typeof DashboardsIdRoute
   '/docs/api': typeof DocsApiRoute
@@ -619,6 +628,7 @@ export interface FileRouteTypes {
     | '/supply-chain'
     | '/timeline'
     | '/zero-day'
+    | '/cli/device'
     | '/connect/github'
     | '/dashboards/$id'
     | '/docs/api'
@@ -683,6 +693,7 @@ export interface FileRouteTypes {
     | '/supply-chain'
     | '/timeline'
     | '/zero-day'
+    | '/cli/device'
     | '/connect/github'
     | '/dashboards/$id'
     | '/docs/api'
@@ -748,6 +759,7 @@ export interface FileRouteTypes {
     | '/supply-chain'
     | '/timeline'
     | '/zero-day'
+    | '/cli/device'
     | '/connect/github'
     | '/dashboards/$id'
     | '/docs/api'
@@ -814,6 +826,7 @@ export interface RootRouteChildren {
   SupplyChainRoute: typeof SupplyChainRoute
   TimelineRoute: typeof TimelineRoute
   ZeroDayRoute: typeof ZeroDayRoute
+  CliDeviceRoute: typeof CliDeviceRoute
   ConnectGithubRoute: typeof ConnectGithubRoute
   DashboardsIdRoute: typeof DashboardsIdRoute
   DocsApiRoute: typeof DocsApiRoute
@@ -1266,6 +1279,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ConnectGithubRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/cli/device': {
+      id: '/cli/device'
+      path: '/cli/device'
+      fullPath: '/cli/device'
+      preLoaderRoute: typeof CliDeviceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -1360,6 +1380,7 @@ const rootRouteChildren: RootRouteChildren = {
   SupplyChainRoute: SupplyChainRoute,
   TimelineRoute: TimelineRoute,
   ZeroDayRoute: ZeroDayRoute,
+  CliDeviceRoute: CliDeviceRoute,
   ConnectGithubRoute: ConnectGithubRoute,
   DashboardsIdRoute: DashboardsIdRoute,
   DocsApiRoute: DocsApiRoute,

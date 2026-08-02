@@ -51,7 +51,7 @@ export const Route = createRootRoute({
 			{ rel: "manifest", href: "/manifest.json" },
 		] }) });
 
-const PUBLIC_ROUTES = new Set<string>(["/about", "/sign-in", "/sign-up"]);
+const PUBLIC_ROUTES = new Set<string>(["/about", "/cli/device", "/sign-in", "/sign-up"]);
 
 function RootDocument() {
 	return (
