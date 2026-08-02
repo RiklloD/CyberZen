@@ -1,5 +1,5 @@
 import type { Id } from './_generated/dataModel'
-import { internalMutation, mutation, query } from './_generated/server'
+import { internalMutation, internalQuery, mutation, query } from './_generated/server'
 import { v } from 'convex/values'
 import { requireSessionAuth } from './lib/sessionAuth'
 
@@ -354,6 +354,14 @@ export const checkAndRecordTenantKeyUsage = internalMutation({
     await ctx.db.patch(key._id, { lastUsedAt: now })
 
     return { status: 'ok' as const, keyId: key._id, tenantId: key.tenantId }
+  },
+})
+
+export const getTenantSlugForApiKeyTenant = internalQuery({
+  args: { tenantId: v.id('tenants') },
+  returns: v.union(v.string(), v.null()),
+  handler: async (ctx, { tenantId }) => {
+    return (await ctx.db.get(tenantId))?.slug ?? null
   },
 })
 

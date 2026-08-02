@@ -92,6 +92,16 @@ export async function api<T = unknown>(options: ApiOptions): Promise<T> {
 	}
 }
 
+/** Call an explicit CLI-only backend endpoint. */
+export async function cliApi<T = unknown>(
+	options: Omit<ApiOptions, "path"> & { path: string },
+): Promise<T> {
+	return api({
+		...options,
+		path: `/api/cli/${options.path.replace(/^\//, "")}`,
+	});
+}
+
 export function endpoint(path: string, base = siteUrl()): string {
 	return buildUrl(base, path);
 }

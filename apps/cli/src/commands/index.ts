@@ -6,6 +6,7 @@ import type { Command } from "commander";
  * implemented (see docs/plans/2026-08-02-cyberzen-cli.md).
  */
 import { registerAuth } from "./auth";
+import { registerDashboard } from "./dashboard";
 import { registerDrift } from "./drift";
 import { registerFindings } from "./findings";
 import { registerLink } from "./link";
@@ -18,6 +19,7 @@ import { registerTenants } from "./tenants";
 export function registerAll(program: Command): void {
 	registerAuth(program);
 	registerTenants(program);
+	registerDashboard(program);
 	registerLink(program);
 	registerFindings(program);
 	registerRepos(program);
