@@ -54,7 +54,7 @@ export function registerFindings(program: Command): void {
 			const globals = globalsOf(command);
 			render(
 				await api({
-					path: "/api/findings/detail",
+					path: "/api/cli/findings/detail",
 					query: { findingId },
 					timeout: globals.timeout,
 				}),
@@ -90,8 +90,8 @@ export function registerFindings(program: Command): void {
 					);
 				render(
 					await api({
-						path: "/api/findings/status",
-						method: "PATCH",
+						path: "/api/cli/findings/status",
+						method: "POST",
 						body: { findingId, newStatus, reason: options.reason },
 						timeout: globals.timeout,
 					}),

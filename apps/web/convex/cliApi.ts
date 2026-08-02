@@ -63,6 +63,43 @@ export const listRepositoriesForTenant = internalQuery({
   },
 })
 
+export const getFindingDetailsForTenant = internalQuery({
+  args: { tenantId: v.id('tenants'), findingId: v.id('findings') },
+  returns: v.any(),
+  handler: async (ctx, { tenantId, findingId }) => {
+    const finding = await ctx.db.get(findingId)
+    if (!finding || finding.tenantId !== tenantId) return null
+    const repository = await ctx.db.get(finding.repositoryId)
+    const workflow = await ctx.db.get(finding.workflowRunId)
+    return {
+      ...finding,
+      repository: repository?.fullName ?? null,
+      workflowStatus: workflow?.status ?? null,
+    }
+  },
+})
+
+export const updateFindingStatusForTenant = internalMutation({
+  args: {
+    tenantId: v.id('tenants'),
+    findingId: v.id('findings'),
+    newStatus: v.string(),
+    reason: v.optional(v.string()),
+  },
+  returns: v.any(),
+  handler: async (ctx, { tenantId, findingId, newStatus, reason }) => {
+    const finding = await ctx.db.get(findingId)
+    if (!finding || finding.tenantId !== tenantId) return null
+    const allowed = ['open', 'pr_opened', 'merged', 'resolved', 'accepted_risk', 'false_positive', 'ignored', 'snoozed']
+    if (!allowed.includes(newStatus)) throw new Error(`Invalid finding status: ${newStatus}`)
+    await ctx.db.patch(findingId, {
+      status: newStatus as typeof finding.status,
+      resolvedAt: newStatus === 'resolved' ? Date.now() : finding.resolvedAt,
+    })
+    return { findingId, status: newStatus, reason: reason ?? null }
+  },
+})
+
 export const listWorkflowRunsForTenant = internalQuery({
   args: { tenantId: v.id('tenants'), limit: v.number() },
   returns: v.array(v.any()),

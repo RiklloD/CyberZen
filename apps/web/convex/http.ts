@@ -6371,6 +6371,52 @@ http.route({
 })
 
 http.route({
+  path: '/api/cli/findings/detail',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const authError = await authenticateApiRequest(ctx, request)
+    if (authError) return authError
+    const authHeader = request.headers.get('authorization')
+    const rawKey = request.headers.get('x-sentinel-api-key') ??
+      (authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null)
+    if (!rawKey) return jsonResponse({ error: 'Authentication required.' }, 401)
+    const keyCheck = await ctx.runMutation(internal.apiKeys.checkAndRecordTenantKeyUsage, { rawKey })
+    if (keyCheck.status !== 'ok') return jsonResponse({ error: 'Invalid or rate-limited API key.' }, keyCheck.status === 'rate_limited' ? 429 : 401)
+    const findingId = new URL(request.url).searchParams.get('findingId')
+    if (!findingId) return jsonResponse({ error: 'Missing required query parameter: findingId' }, 400)
+    const result = await ctx.runQuery(internal.cliApi.getFindingDetailsForTenant, { tenantId: keyCheck.tenantId, findingId: findingId as Id<'findings'> })
+    if (!result) return jsonResponse({ error: 'Finding not found for this tenant.' }, 404)
+    return jsonResponse(result, 200)
+  }),
+})
+
+http.route({
+  path: '/api/cli/findings/status',
+  method: 'POST',
+  handler: httpAction(async (ctx, request) => {
+    const authError = await authenticateApiRequest(ctx, request)
+    if (authError) return authError
+    const authHeader = request.headers.get('authorization')
+    const rawKey = request.headers.get('x-sentinel-api-key') ??
+      (authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null)
+    if (!rawKey) return jsonResponse({ error: 'Authentication required.' }, 401)
+    const keyCheck = await ctx.runMutation(internal.apiKeys.checkAndRecordTenantKeyUsage, { rawKey })
+    if (keyCheck.status !== 'ok') return jsonResponse({ error: 'Invalid or rate-limited API key.' }, keyCheck.status === 'rate_limited' ? 429 : 401)
+    let body: { findingId?: string; newStatus?: string; reason?: string }
+    try { body = await request.json() } catch { return jsonResponse({ error: 'Invalid JSON body.' }, 400) }
+    if (!body.findingId || !body.newStatus) return jsonResponse({ error: 'Missing required fields: findingId, newStatus' }, 400)
+    const result = await ctx.runMutation(internal.cliApi.updateFindingStatusForTenant, {
+      tenantId: keyCheck.tenantId,
+      findingId: body.findingId as Id<'findings'>,
+      newStatus: body.newStatus,
+      reason: body.reason,
+    })
+    if (!result) return jsonResponse({ error: 'Finding not found for this tenant.' }, 404)
+    return jsonResponse(result, 200)
+  }),
+})
+
+http.route({
   path: '/api/cli/scans',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {

@@ -109,7 +109,7 @@ export const COMMAND_MANIFEST: CommandManifestEntry[] = [
 	{
 		command: "findings *",
 		transport: "http",
-		endpoint: "GET|POST /api/findings/*",
+		endpoint: "GET|POST /api/findings/* and /api/cli/findings/*",
 		machineOutput: true,
 	},
 	{
