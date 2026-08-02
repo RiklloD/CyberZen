@@ -12,13 +12,18 @@ import { registerRepos } from './repos'
 import { registerSbom } from './sbom'
 import { registerDrift } from './drift'
 import { registerOperations } from './operations'
+import { registerSystem, registerStatus } from './system'
+import { registerTenants } from './tenants'
 
 export function registerAll(program: Command): void {
   registerAuth(program)
+  registerTenants(program)
   registerLink(program)
   registerFindings(program)
   registerRepos(program)
   registerSbom(program)
   registerDrift(program)
   registerOperations(program)
+  registerSystem(program)
+  registerStatus(program)
 }

@@ -6176,6 +6176,41 @@ http.route({
 // Accepts: { workspace: string, repository: string, branch?: string }
 // Returns: { scanId, workflowRunId, url }
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// CLI device authorization flow.
+// These two endpoints intentionally remain public: the device code itself is
+// the temporary credential. Authorization happens in the signed-in web app.
+// ---------------------------------------------------------------------------
+
+http.route({
+  path: '/api/cli/device/start',
+  method: 'POST',
+  handler: httpAction(async (ctx) => {
+    const result = await ctx.runMutation(api.cliDeviceAuth.startDeviceAuthorization, {})
+    const siteUrl = process.env.SITE_URL ?? process.env.CONVEX_SITE_URL ?? ''
+    return jsonResponse({
+      ...result,
+      verificationUrl: `${siteUrl}/cli/device?code=${encodeURIComponent(result.userCode)}`,
+    }, 200)
+  }),
+})
+
+http.route({
+  path: '/api/cli/device/poll',
+  method: 'POST',
+  handler: httpAction(async (ctx, request) => {
+    let body: { deviceCode?: string }
+    try {
+      body = await request.json()
+    } catch {
+      return jsonResponse({ error: 'Invalid JSON body.' }, 400)
+    }
+    if (!body.deviceCode) return jsonResponse({ error: 'Missing required field: deviceCode' }, 400)
+    const result = await ctx.runMutation(api.cliDeviceAuth.pollDeviceAuthorization, { deviceCode: body.deviceCode })
+    return jsonResponse(result, 200)
+  }),
+})
+
 http.route({
   path: '/api/repositories/scan',
   method: 'POST',

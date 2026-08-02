@@ -5000,6 +5000,23 @@ export default defineSchema({
     .index('by_tenant_and_prefix', ['tenantId', 'prefix'])
     .index('by_prefix', ['prefix']),
 
+  // ─── CLI device authorization ────────────────────────────────────────────
+
+  cliDeviceCodes: defineTable({
+    deviceCode: v.string(),
+    userCode: v.string(),
+    status: v.union(v.literal('pending'), v.literal('authorized'), v.literal('denied')),
+    userId: v.optional(v.id('users')),
+    tenantId: v.optional(v.id('tenants')),
+    apiKeyId: v.optional(v.id('apiKeys')),
+    tokenSecret: v.optional(v.string()),
+    email: v.optional(v.string()),
+    createdAt: v.number(),
+    expiresAt: v.number(),
+  })
+    .index('by_device_code', ['deviceCode'])
+    .index('by_user_code', ['userCode']),
+
   // ─── §6.5 Audit Log ─────────────────────────────────────────────────────
 
   auditLog: defineTable({
