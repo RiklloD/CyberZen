@@ -6284,6 +6284,31 @@ http.route({
 })
 
 http.route({
+  path: '/api/cli/memory/summary',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const authError = await authenticateApiRequest(ctx, request)
+    if (authError) return authError
+    const authHeader = request.headers.get('authorization')
+    const rawKey = request.headers.get('x-sentinel-api-key') ??
+      (authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null)
+    if (!rawKey) return jsonResponse({ error: 'Authentication required.' }, 401)
+    const keyCheck = await ctx.runMutation(internal.apiKeys.checkAndRecordTenantKeyUsage, { rawKey })
+    if (keyCheck.status !== 'ok') return jsonResponse({ error: 'Invalid or rate-limited API key.' }, keyCheck.status === 'rate_limited' ? 429 : 401)
+
+    const repoName = new URL(request.url).searchParams.get('repo')
+    if (!repoName) return jsonResponse({ error: 'Missing required query parameter: repo' }, 400)
+    const repository = await ctx.runQuery(internal.cliApi.getRepositoryForTenant, {
+      tenantId: keyCheck.tenantId,
+      fullName: repoName,
+    })
+    if (!repository) return jsonResponse({ error: 'Repository not found for this tenant.' }, 404)
+    const memory = await ctx.runQuery(internal.cliApi.getRepositoryMemorySummary, { repositoryId: repository._id })
+    return jsonResponse({ repository: repoName, ...memory }, 200)
+  }),
+})
+
+http.route({
   path: '/api/repositories/scan',
   method: 'POST',
   handler: httpAction(async (ctx, request) => {

@@ -11,6 +11,7 @@ import { registerDashboard } from "./dashboard";
 import { registerDrift } from "./drift";
 import { registerFindings } from "./findings";
 import { registerLink } from "./link";
+import { registerMemory } from "./memory";
 import { registerOperations } from "./operations";
 import { registerRepos } from "./repos";
 import { registerSbom } from "./sbom";
@@ -23,6 +24,7 @@ export function registerAll(program: Command): void {
 	registerTenants(program);
 	registerDashboard(program);
 	registerLink(program);
+	registerMemory(program);
 	registerFindings(program);
 	registerRepos(program);
 	registerSbom(program);
