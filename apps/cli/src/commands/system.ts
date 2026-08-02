@@ -12,6 +12,18 @@ export interface CommandManifestEntry {
 
 /** Machine-readable capability inventory. Keep this synchronized with command modules. */
 export const COMMAND_MANIFEST: CommandManifestEntry[] = [
+	{
+		command: "agents tasks",
+		transport: "http",
+		endpoint: "GET /api/cli/agent-tasks",
+		machineOutput: true,
+	},
+	{
+		command: "dashboard",
+		transport: "http",
+		endpoint: "GET /api/cli/dashboard",
+		machineOutput: true,
+	},
 	{ command: "auth login", transport: "local", machineOutput: true },
 	{ command: "auth whoami", transport: "local", machineOutput: true },
 	{ command: "auth logout", transport: "local", machineOutput: true },

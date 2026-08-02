@@ -5,6 +5,7 @@ import type { Command } from "commander";
  * exports a `registerX(program)` function. Groups are added here as they are
  * implemented (see docs/plans/2026-08-02-cyberzen-cli.md).
  */
+import { registerAgents } from "./agents";
 import { registerAuth } from "./auth";
 import { registerDashboard } from "./dashboard";
 import { registerDrift } from "./drift";
@@ -18,6 +19,7 @@ import { registerTenants } from "./tenants";
 
 export function registerAll(program: Command): void {
 	registerAuth(program);
+	registerAgents(program);
 	registerTenants(program);
 	registerDashboard(program);
 	registerLink(program);
