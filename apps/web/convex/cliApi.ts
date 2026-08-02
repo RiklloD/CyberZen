@@ -15,6 +15,32 @@ export const getRepositoryForTenant = internalQuery({
   },
 })
 
+export const getRepositoryDetailsForTenant = internalQuery({
+  args: { tenantId: v.id('tenants'), fullName: v.string() },
+  returns: v.any(),
+  handler: async (ctx, { tenantId, fullName }) => {
+    const repository = await ctx.db
+      .query('repositories')
+      .withIndex('by_tenant_and_full_name', (q) =>
+        q.eq('tenantId', tenantId).eq('fullName', fullName),
+      )
+      .unique()
+    if (!repository) return null
+    return {
+      repositoryId: repository._id,
+      fullName: repository.fullName,
+      provider: repository.provider,
+      name: repository.name,
+      defaultBranch: repository.defaultBranch,
+      visibility: repository.visibility,
+      primaryLanguage: repository.primaryLanguage,
+      latestCommitSha: repository.latestCommitSha ?? null,
+      lastScannedAt: repository.lastScannedAt ?? null,
+      disconnectedAt: repository.disconnectedAt ?? null,
+    }
+  },
+})
+
 export const listRepositoriesForTenant = internalQuery({
   args: { tenantId: v.id('tenants') },
   returns: v.array(v.any()),

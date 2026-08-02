@@ -22,6 +22,22 @@ export function registerRepos(program: Command): void {
 		});
 
 	repos
+		.command("get")
+		.requiredOption("--repo <owner/name>")
+		.description("Show one repository's stored metadata")
+		.action(async (options: { repo: string }, command: Command) => {
+			const globals = globalsOf(command);
+			render(
+				await api({
+					path: "/api/cli/repos/detail",
+					query: { repo: options.repo },
+					timeout: globals.timeout,
+				}),
+				globals,
+			);
+		});
+
+	repos
 		.command("scan")
 		.description("Dispatch a real full repository scan")
 		.requiredOption("--repo <owner/name>")
