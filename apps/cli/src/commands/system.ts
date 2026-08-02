@@ -19,6 +19,12 @@ export const COMMAND_MANIFEST: CommandManifestEntry[] = [
 		machineOutput: true,
 	},
 	{
+		command: "agents usage",
+		transport: "http",
+		endpoint: "GET /api/cli/agent-usage",
+		machineOutput: true,
+	},
+	{
 		command: "dashboard",
 		transport: "http",
 		endpoint: "GET /api/cli/dashboard",

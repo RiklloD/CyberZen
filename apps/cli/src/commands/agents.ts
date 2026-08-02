@@ -7,6 +7,7 @@ export function registerAgents(program: Command): void {
 	const agents = program
 		.command("agents")
 		.description("CyberZen agent activity");
+
 	agents
 		.command("tasks")
 		.option("--status <status>")
@@ -32,4 +33,15 @@ export function registerAgents(program: Command): void {
 				);
 			},
 		);
+
+	agents
+		.command("usage")
+		.description("Show LLM usage and estimated cost")
+		.action(async (_options: unknown, command: Command) => {
+			const globals = globalsOf(command);
+			render(
+				await cliApi({ path: "agent-usage", timeout: globals.timeout }),
+				globals,
+			);
+		});
 }
