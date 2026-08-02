@@ -7,9 +7,11 @@ import type { Command } from "commander";
  */
 import { registerAgents } from "./agents";
 import { registerAuth } from "./auth";
+import { registerBilling } from "./billing";
 import { registerDashboard } from "./dashboard";
 import { registerDrift } from "./drift";
 import { registerFindings } from "./findings";
+import { registerIntegrations } from "./integrations";
 import { registerLink } from "./link";
 import { registerMemory } from "./memory";
 import { registerOperations } from "./operations";
@@ -21,6 +23,8 @@ import { registerTenants } from "./tenants";
 export function registerAll(program: Command): void {
 	registerAuth(program);
 	registerAgents(program);
+	registerBilling(program);
+	registerIntegrations(program);
 	registerTenants(program);
 	registerDashboard(program);
 	registerLink(program);

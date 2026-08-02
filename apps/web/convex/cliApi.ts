@@ -3,10 +3,7 @@ import { v } from 'convex/values'
 
 /** Internal data access used only by explicit, tenant-bound CLI HTTP routes. */
 export const getRepositoryForTenant = internalQuery({
-  args: {
-    tenantId: v.id('tenants'),
-    fullName: v.string(),
-  },
+  args: { tenantId: v.id('tenants'), fullName: v.string() },
   returns: v.any(),
   handler: async (ctx, { tenantId, fullName }) => {
     return await ctx.db
@@ -33,7 +30,6 @@ export const getRepositoryMemorySummary = internalQuery({
       .query('projectMemories')
       .withIndex('by_repository', (q) => q.eq('repositoryId', repositoryId))
       .unique()
-
     if (!memory) {
       return {
         version: 0,
@@ -44,7 +40,6 @@ export const getRepositoryMemorySummary = internalQuery({
         coverageScore: 0,
       }
     }
-
     return {
       version: memory.version,
       lastLearningAt: memory.lastLearningAt ?? null,
@@ -53,5 +48,120 @@ export const getRepositoryMemorySummary = internalQuery({
       predictionAccuracy: memory.memoryStats.predictionAccuracy,
       coverageScore: memory.memoryStats.coverageScore,
     }
+  },
+})
+
+export const getBillingSummaryForTenant = internalQuery({
+  args: { tenantId: v.id('tenants') },
+  returns: v.object({
+    subscription: v.any(),
+    plan: v.any(),
+    invoices: v.array(v.any()),
+    usage: v.array(v.any()),
+  }),
+  handler: async (ctx, { tenantId }) => {
+    const subscription = await ctx.db
+      .query('subscriptions')
+      .withIndex('by_tenant', (q) => q.eq('tenantId', tenantId))
+      .first()
+    const plan = subscription
+      ? await ctx.db
+          .query('billingPlans')
+          .withIndex('by_slug', (q) => q.eq('slug', subscription.planSlug))
+          .unique()
+      : null
+    const invoices = await ctx.db
+      .query('invoices')
+      .withIndex('by_tenant_and_period', (q) => q.eq('tenantId', tenantId))
+      .order('desc')
+      .take(24)
+    const now = Date.now()
+    const records = await ctx.db
+      .query('usageRecords')
+      .withIndex('by_tenant_and_period', (q) => q.eq('tenantId', tenantId))
+      .collect()
+    const latest = new Map<string, (typeof records)[number]>()
+    for (const record of records) {
+      if (record.periodEnd >= now) {
+        const previous = latest.get(record.metric)
+        if (!previous || record.recordedAt > previous.recordedAt) latest.set(record.metric, record)
+      }
+    }
+    return {
+      subscription: subscription
+        ? {
+            planSlug: subscription.planSlug,
+            status: subscription.status,
+            currentPeriodStart: subscription.currentPeriodStart,
+            currentPeriodEnd: subscription.currentPeriodEnd,
+            cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
+          }
+        : null,
+      plan,
+      invoices,
+      usage: Array.from(latest.values()).map((record) => ({
+        metric: record.metric,
+        value: record.value,
+        periodStart: record.periodStart,
+        periodEnd: record.periodEnd,
+      })),
+    }
+  },
+})
+
+export const getIntegrationHealthForTenant = internalQuery({
+  args: { tenantId: v.id('tenants') },
+  returns: v.array(v.any()),
+  handler: async (ctx, { tenantId }) => {
+    return await ctx.db
+      .query('integrationHealth')
+      .withIndex('by_tenant', (q) => q.eq('tenantId', tenantId))
+      .take(50)
+  },
+})
+
+export const getTenantSlugForCli = internalQuery({
+  args: { tenantId: v.id('tenants') },
+  returns: v.union(v.string(), v.null()),
+  handler: async (ctx, { tenantId }) => (await ctx.db.get(tenantId))?.slug ?? null,
+})
+
+export const getTenantForCli = internalQuery({
+  args: { tenantId: v.id('tenants') },
+  returns: v.any(),
+  handler: async (ctx, { tenantId }) => await ctx.db.get(tenantId),
+})
+
+export const getTenantMemberSummaries = internalQuery({
+  args: { tenantId: v.id('tenants') },
+  returns: v.array(v.any()),
+  handler: async (ctx, { tenantId }) => {
+    const members = await ctx.db
+      .query('tenantMembers')
+      .withIndex('by_tenant', (q) => q.eq('tenantId', tenantId))
+      .collect()
+    return await Promise.all(
+      members.map(async (member) => {
+        const user = await ctx.db.get(member.userId)
+        return {
+          userId: member.userId,
+          role: member.role,
+          email: user?.email ?? null,
+          name: user?.name ?? null,
+        }
+      }),
+    )
+  },
+})
+
+export const getTenantInvites = internalQuery({
+  args: { tenantId: v.id('tenants') },
+  returns: v.array(v.any()),
+  handler: async (ctx, { tenantId }) => {
+    return await ctx.db
+      .query('tenantInvites')
+      .withIndex('by_tenant', (q) => q.eq('tenantId', tenantId))
+      .order('desc')
+      .take(100)
   },
 })

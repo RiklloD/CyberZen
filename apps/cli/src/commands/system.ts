@@ -36,6 +36,18 @@ export const COMMAND_MANIFEST: CommandManifestEntry[] = [
 		endpoint: "GET /api/cli/memory/summary",
 		machineOutput: true,
 	},
+	{
+		command: "billing summary",
+		transport: "http",
+		endpoint: "GET /api/cli/billing/summary",
+		machineOutput: true,
+	},
+	{
+		command: "integrations health",
+		transport: "http",
+		endpoint: "GET /api/cli/integrations/health",
+		machineOutput: true,
+	},
 	{ command: "auth login", transport: "local", machineOutput: true },
 	{ command: "auth whoami", transport: "local", machineOutput: true },
 	{ command: "auth logout", transport: "local", machineOutput: true },
