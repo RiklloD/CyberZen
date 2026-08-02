@@ -10,39 +10,22 @@ export interface CommandManifestEntry {
 	machineOutput: boolean;
 }
 
+/** Machine-readable capability inventory. Keep this synchronized with command modules. */
 export const COMMAND_MANIFEST: CommandManifestEntry[] = [
 	{ command: "auth login", transport: "local", machineOutput: true },
 	{ command: "auth whoami", transport: "local", machineOutput: true },
 	{ command: "auth logout", transport: "local", machineOutput: true },
 	{ command: "link", transport: "local", machineOutput: true },
 	{
-		command: "findings list",
+		command: "findings *",
 		transport: "http",
-		endpoint: "GET /api/findings",
+		endpoint: "GET|POST /api/findings/*",
 		machineOutput: true,
 	},
 	{
-		command: "findings get",
+		command: "repos *",
 		transport: "http",
-		endpoint: "GET /api/findings/detail",
-		machineOutput: true,
-	},
-	{
-		command: "findings status",
-		transport: "http",
-		endpoint: "PATCH /api/findings/status",
-		machineOutput: true,
-	},
-	{
-		command: "repos scan",
-		transport: "http",
-		endpoint: "POST /api/repositories/scan",
-		machineOutput: true,
-	},
-	{
-		command: "repos health",
-		transport: "http",
-		endpoint: "GET /api/repository/health-score",
+		endpoint: "GET|POST /api/repositories/*",
 		machineOutput: true,
 	},
 	{
@@ -52,23 +35,87 @@ export const COMMAND_MANIFEST: CommandManifestEntry[] = [
 		machineOutput: true,
 	},
 	{
-		command: "drift get",
+		command: "drift *",
 		transport: "http",
 		endpoint: "GET /api/repository/*-drift",
 		machineOutput: true,
 	},
-	{ command: "gates *", transport: "http", machineOutput: true },
-	{ command: "attack *", transport: "http", machineOutput: true },
-	{ command: "trust *", transport: "http", machineOutput: true },
-	{ command: "threat *", transport: "http", machineOutput: true },
-	{ command: "compliance *", transport: "http", machineOutput: true },
-	{ command: "reports *", transport: "http", machineOutput: true },
-	{ command: "sla *", transport: "http", machineOutput: true },
-	{ command: "remediation *", transport: "http", machineOutput: true },
+	{
+		command: "gates *",
+		transport: "http",
+		endpoint: "GET /api/security/timeline",
+		machineOutput: true,
+	},
+	{
+		command: "attack *",
+		transport: "http",
+		endpoint: "GET /api/attack-surface/*|/api/attack-paths|/api/blast-radius/*",
+		machineOutput: true,
+	},
+	{
+		command: "trust *",
+		transport: "http",
+		endpoint: "GET /api/trust-scores/*",
+		machineOutput: true,
+	},
+	{
+		command: "threat *",
+		transport: "http",
+		endpoint: "GET|POST /api/threat-intel/*",
+		machineOutput: true,
+	},
+	{
+		command: "compliance *",
+		transport: "http",
+		endpoint: "GET /api/compliance/*",
+		machineOutput: true,
+	},
+	{
+		command: "reports *",
+		transport: "http",
+		endpoint: "GET|POST /api/reports/*",
+		machineOutput: true,
+	},
+	{
+		command: "sla *",
+		transport: "http",
+		endpoint: "GET /api/sla/status",
+		machineOutput: true,
+	},
+	{
+		command: "remediation *",
+		transport: "http",
+		endpoint: "GET /api/remediation/*",
+		machineOutput: true,
+	},
+	{
+		command: "security *",
+		transport: "http",
+		endpoint: "GET /api/security/*",
+		machineOutput: true,
+	},
+	{
+		command: "crypto *",
+		transport: "http",
+		endpoint: "GET /api/crypto/*",
+		machineOutput: true,
+	},
+	{
+		command: "repository *",
+		transport: "http",
+		endpoint: "GET /api/repository/*",
+		machineOutput: true,
+	},
+	{
+		command: "traffic *",
+		transport: "http",
+		endpoint: "GET /api/traffic/events",
+		machineOutput: true,
+	},
 	{
 		command: "webhooks *",
 		transport: "http",
-		endpoint: "GET|POST|DELETE /api/webhooks",
+		endpoint: "GET|POST|DELETE /api/webhooks*",
 		machineOutput: true,
 	},
 	{
@@ -77,9 +124,30 @@ export const COMMAND_MANIFEST: CommandManifestEntry[] = [
 		endpoint: "POST /api/siem/push",
 		machineOutput: true,
 	},
-	{ command: "sandbox *", transport: "http", machineOutput: true },
-	{ command: "marketplace *", transport: "http", machineOutput: true },
-	{ command: "mssp *", transport: "http", machineOutput: true },
+	{
+		command: "honeypot trigger",
+		transport: "http",
+		endpoint: "POST /api/honeypot/trigger",
+		machineOutput: true,
+	},
+	{
+		command: "sandbox *",
+		transport: "http",
+		endpoint: "GET /api/sandbox/*",
+		machineOutput: true,
+	},
+	{
+		command: "marketplace *",
+		transport: "http",
+		endpoint: "GET|POST /api/marketplace/*",
+		machineOutput: true,
+	},
+	{
+		command: "mssp *",
+		transport: "http",
+		endpoint: "GET|POST /api/mssp/*",
+		machineOutput: true,
+	},
 ];
 
 export function registerSystem(program: Command): void {
@@ -89,9 +157,9 @@ export function registerSystem(program: Command): void {
 	system
 		.command("schema")
 		.description("Print the machine-readable CLI capability manifest")
-		.action((_options: unknown, command: Command) =>
-			render(COMMAND_MANIFEST, { ...globalsOf(command), json: true }),
-		);
+		.action((_options: unknown, command: Command) => {
+			render(COMMAND_MANIFEST, { ...globalsOf(command), json: true });
+		});
 	system.command("version").action((_options: unknown, command: Command) => {
 		render(
 			{ cli: process.env.CYBERZEN_CLI_VERSION ?? "0.1.0" },
@@ -113,18 +181,6 @@ export function registerSystem(program: Command): void {
 		});
 }
 
-export function registerStatus(program: Command): void {
-	program
-		.command("status")
-		.description("Check CyberZen platform status")
-		.action(async (_options: unknown, command: Command) => {
-			const globals = globalsOf(command);
-			render(
-				await api({
-					path: "/api/observability/metrics",
-					timeout: globals.timeout,
-				}),
-				globals,
-			);
-		});
+export function registerStatus(_program: Command): void {
+	// Kept as a compatibility export for callers from older CLI builds.
 }

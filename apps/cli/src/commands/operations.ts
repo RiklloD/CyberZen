@@ -205,6 +205,26 @@ export function registerOperations(program: Command): void {
 			"auto-runs": "/api/remediation/auto-runs",
 		},
 	);
+	registerReadGroup(program, "security", "Security timeline and debt", {
+		timeline: "/api/security/timeline",
+		debt: "/api/security/debt",
+	});
+	registerReadGroup(program, "crypto", "Cryptographic weakness analysis", {
+		weaknesses: "/api/crypto/weaknesses",
+	});
+	registerReadGroup(
+		program,
+		"repository",
+		"Repository health and lifecycle analysis",
+		{
+			"abandonment-scan": "/api/abandonment/scan",
+			"eol-scan": "/api/eol/scan",
+			"detection-rules": "/api/detection-rules",
+		},
+	);
+	registerReadGroup(program, "traffic", "Traffic anomaly events", {
+		events: "/api/traffic/events",
+	});
 
 	const webhooks = program
 		.command("webhooks")
@@ -334,6 +354,21 @@ export function registerOperations(program: Command): void {
 			);
 		});
 	marketplace
+		.command("submit")
+		.requiredOption("--payload <json>")
+		.action(async (options: { payload: string }, command: Command) => {
+			const globals = globalsOf(command);
+			render(
+				await api({
+					path: "/api/marketplace/contributions",
+					method: "POST",
+					body: JSON.parse(options.payload),
+					timeout: globals.timeout,
+				}),
+				globals,
+			);
+		});
+	marketplace
 		.command("stats")
 		.action(async (_options: unknown, command: Command) => {
 			const globals = globalsOf(command);
@@ -378,6 +413,36 @@ export function registerOperations(program: Command): void {
 			);
 		});
 	mssp
+		.command("tenant-summary")
+		.requiredOption("--tenant <slug>")
+		.action(async (options: { tenant: string }, command: Command) => {
+			const globals = globalsOf(command);
+			render(
+				await api({
+					path: "/api/mssp/tenant/summary",
+					query: { tenantSlug: options.tenant },
+					mssp: true,
+					timeout: globals.timeout,
+				}),
+				globals,
+			);
+		});
+	mssp
+		.command("tenant-get")
+		.requiredOption("--tenant <slug>")
+		.action(async (options: { tenant: string }, command: Command) => {
+			const globals = globalsOf(command);
+			render(
+				await api({
+					path: "/api/mssp/tenant",
+					query: { tenantSlug: options.tenant },
+					mssp: true,
+					timeout: globals.timeout,
+				}),
+				globals,
+			);
+		});
+	mssp
 		.command("dashboard")
 		.action(async (_options: unknown, command: Command) => {
 			const globals = globalsOf(command);
@@ -385,6 +450,25 @@ export function registerOperations(program: Command): void {
 				await api({
 					path: "/api/mssp/dashboard",
 					mssp: true,
+					timeout: globals.timeout,
+				}),
+				globals,
+			);
+		});
+
+	const honeypot = program
+		.command("honeypot")
+		.description("Honeypot operations");
+	honeypot
+		.command("trigger")
+		.requiredOption("--payload <json>")
+		.action(async (options: { payload: string }, command: Command) => {
+			const globals = globalsOf(command);
+			render(
+				await api({
+					path: "/api/honeypot/trigger",
+					method: "POST",
+					body: JSON.parse(options.payload),
 					timeout: globals.timeout,
 				}),
 				globals,

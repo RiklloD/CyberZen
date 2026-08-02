@@ -12,7 +12,7 @@ import { registerLink } from "./link";
 import { registerOperations } from "./operations";
 import { registerRepos } from "./repos";
 import { registerSbom } from "./sbom";
-import { registerStatus, registerSystem } from "./system";
+import { registerSystem } from "./system";
 import { registerTenants } from "./tenants";
 
 export function registerAll(program: Command): void {
@@ -25,5 +25,4 @@ export function registerAll(program: Command): void {
 	registerDrift(program);
 	registerOperations(program);
 	registerSystem(program);
-	registerStatus(program);
 }
