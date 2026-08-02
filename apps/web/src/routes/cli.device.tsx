@@ -47,7 +47,7 @@ function CliDeviceAuthorizationPage() {
 		setSubmitting(true);
 		setMessage(null);
 		try {
-			await authorizeDevice({ deviceCode: code, tenantSlug });
+			await authorizeDevice({ userCode: code, tenantSlug });
 			setMessage("CLI authorized. You can return to your terminal.");
 		} catch (error) {
 			setMessage(error instanceof Error ? error.message : "Authorization failed.");

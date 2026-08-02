@@ -86,12 +86,12 @@ export const pollDeviceAuthorization = mutation({
 
 /** Called by the signed-in browser authorization page. */
 export const authorizeDevice = mutation({
-  args: { deviceCode: v.string(), tenantSlug: v.string() },
-  handler: async (ctx, { deviceCode, tenantSlug }) => {
+  args: { userCode: v.string(), tenantSlug: v.string() },
+  handler: async (ctx, { userCode, tenantSlug }) => {
     const { userId } = await requireSessionAuth(ctx as any)
     const row = await ctx.db
       .query('cliDeviceCodes')
-      .withIndex('by_device_code', (query) => query.eq('deviceCode', deviceCode))
+      .withIndex('by_user_code', (query) => query.eq('userCode', userCode))
       .unique()
     if (!row || row.expiresAt < Date.now() || row.status !== 'pending') throw new Error('Device code is invalid or expired')
 
