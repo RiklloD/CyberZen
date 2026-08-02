@@ -120,6 +120,41 @@ export const getIntegrationHealthForTenant = internalQuery({
   },
 })
 
+export const getJobOperationsSummary = internalQuery({
+  args: {},
+  returns: v.object({ health: v.array(v.any()), paused: v.any() }),
+  handler: async (ctx) => {
+    const runs = await ctx.db.query('cronJobRuns').order('desc').take(500)
+    const byJob = new Map<string, { jobName: string; lastRun: number | null; lastStatus: string | null; lastDuration: number | null; lastError: string | null; successCount: number; failureCount: number; consecutiveFailures: number }>()
+    for (const run of runs) {
+      const current = byJob.get(run.jobName) ?? {
+        jobName: run.jobName,
+        lastRun: null,
+        lastStatus: null,
+        lastDuration: null,
+        lastError: null,
+        successCount: 0,
+        failureCount: 0,
+        consecutiveFailures: 0,
+      }
+      if (run.status === 'success') current.successCount += 1
+      if (run.status === 'failed') current.failureCount += 1
+      if (current.lastRun === null || run.startedAt > current.lastRun) {
+        current.lastRun = run.startedAt
+        current.lastStatus = run.status
+        current.lastDuration = run.duration ?? null
+        current.lastError = run.error ?? null
+      }
+      byJob.set(run.jobName, current)
+    }
+    const pausedRows = await ctx.db.query('cronSettings').collect()
+    return {
+      health: [...byJob.values()].sort((a, b) => (b.lastRun ?? 0) - (a.lastRun ?? 0)),
+      paused: Object.fromEntries(pausedRows.filter((row) => row.paused).map((row) => [row.jobName, true])),
+    }
+  },
+})
+
 export const getTenantSlugForCli = internalQuery({
   args: { tenantId: v.id('tenants') },
   returns: v.union(v.string(), v.null()),

@@ -48,6 +48,12 @@ export const COMMAND_MANIFEST: CommandManifestEntry[] = [
 		endpoint: "GET /api/cli/integrations/health",
 		machineOutput: true,
 	},
+	{
+		command: "jobs summary",
+		transport: "http",
+		endpoint: "GET /api/cli/jobs/summary",
+		machineOutput: true,
+	},
 	{ command: "auth login", transport: "local", machineOutput: true },
 	{ command: "auth whoami", transport: "local", machineOutput: true },
 	{ command: "auth logout", transport: "local", machineOutput: true },

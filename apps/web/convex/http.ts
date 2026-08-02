@@ -6343,6 +6343,23 @@ http.route({
 })
 
 http.route({
+  path: '/api/cli/jobs/summary',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const authError = await authenticateApiRequest(ctx, request)
+    if (authError) return authError
+    const authHeader = request.headers.get('authorization')
+    const rawKey = request.headers.get('x-sentinel-api-key') ??
+      (authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null)
+    if (!rawKey) return jsonResponse({ error: 'Authentication required.' }, 401)
+    const keyCheck = await ctx.runMutation(internal.apiKeys.checkAndRecordTenantKeyUsage, { rawKey })
+    if (keyCheck.status !== 'ok') return jsonResponse({ error: 'Invalid or rate-limited API key.' }, keyCheck.status === 'rate_limited' ? 429 : 401)
+    const result = await ctx.runQuery(internal.cliApi.getJobOperationsSummary, {})
+    return jsonResponse(result, 200)
+  }),
+})
+
+http.route({
   path: '/api/repositories/scan',
   method: 'POST',
   handler: httpAction(async (ctx, request) => {

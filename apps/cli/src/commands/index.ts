@@ -12,6 +12,7 @@ import { registerDashboard } from "./dashboard";
 import { registerDrift } from "./drift";
 import { registerFindings } from "./findings";
 import { registerIntegrations } from "./integrations";
+import { registerJobs } from "./jobs";
 import { registerLink } from "./link";
 import { registerMemory } from "./memory";
 import { registerOperations } from "./operations";
@@ -25,6 +26,7 @@ export function registerAll(program: Command): void {
 	registerAgents(program);
 	registerBilling(program);
 	registerIntegrations(program);
+	registerJobs(program);
 	registerTenants(program);
 	registerDashboard(program);
 	registerLink(program);
