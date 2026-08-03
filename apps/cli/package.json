@@ -9,8 +9,15 @@
 	},
 	"files": [
 		"dist",
-		"README.md"
+		"README.md",
+		"completions"
 	],
+	"engines": {
+		"node": ">=18"
+	},
+	"publishConfig": {
+		"access": "public"
+	},
 	"scripts": {
 		"build": "bun run scripts/build.ts",
 		"compile": "bun build src/index.ts --outfile dist/cyberzen --compile",

@@ -1,5 +1,6 @@
 import type { Command } from "commander";
 import { api } from "../lib/api";
+import { completionScript } from "../lib/completions";
 import { globalsOf } from "../lib/globalFlags";
 import { render } from "../lib/output";
 
@@ -105,6 +106,11 @@ export const COMMAND_MANIFEST: CommandManifestEntry[] = [
 	},
 	{ command: "auth whoami", transport: "local", machineOutput: true },
 	{ command: "auth logout", transport: "local", machineOutput: true },
+	{
+		command: "system completions <shell>",
+		transport: "local",
+		machineOutput: true,
+	},
 	{ command: "link", transport: "local", machineOutput: true },
 	{
 		command: "findings *",
@@ -250,6 +256,10 @@ export function registerSystem(program: Command): void {
 		.action((_options: unknown, command: Command) => {
 			render(COMMAND_MANIFEST, { ...globalsOf(command), json: true });
 		});
+	system
+		.command("completions <shell>")
+		.description("Print shell completion script")
+		.action((shell: string) => process.stdout.write(completionScript(shell)));
 	system.command("version").action((_options: unknown, command: Command) => {
 		render(
 			{ cli: process.env.CYBERZEN_CLI_VERSION ?? "0.1.0" },

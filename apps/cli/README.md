@@ -79,14 +79,15 @@ cyberzen system schema | jq
 ## Implemented command groups
 
 - `auth`, `tenants`, `link`, `dashboard`
-- `findings`, `repos`, `scan`
+- `agents`, `billing`, `memory`, `integrations`, `jobs`
+- `findings`, `repos`, `scan`, `scans`
 - `sbom`, `drift`, `repository`
 - `gates`, `attack`, `trust`, `threat`
 - `compliance`, `reports`, `sla`, `remediation`
 - `security`, `crypto`, `traffic`
 - `webhooks`, `siem`, `honeypot`, `sandbox`
 - `marketplace`, `mssp`
-- `system status`, `system schema`, `system version`
+- `system status`, `system schema`, `system version`, `system completions <shell>`
 
 All implemented operations call real CyberZen HTTP endpoints. Scanner and analysis logic remains server-side; the CLI does not simulate findings, scans, or results.
 
