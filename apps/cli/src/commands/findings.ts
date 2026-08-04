@@ -1,5 +1,6 @@
 import type { Command } from "commander";
 import { api } from "../lib/api";
+import { UsageError } from "../lib/errors";
 import { globalsOf } from "../lib/globalFlags";
 import { render } from "../lib/output";
 
@@ -77,6 +78,7 @@ export function registerFindings(program: Command): void {
 					"accepted_risk",
 					"false_positive",
 					"ignored",
+					"snoozed",
 				];
 				if (!allowed.includes(newStatus))
 					throw new UsageError(

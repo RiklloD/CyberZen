@@ -428,16 +428,22 @@ export function registerOperations(program: Command): void {
 		.command("create")
 		.requiredOption("--url <url>")
 		.requiredOption("--events <events>")
+		.option("--secret <secret>", "Optional webhook secret")
 		.action(
-			async (options: { url: string; events: string }, command: Command) => {
+			async (
+				options: { url: string; events: string; secret?: string },
+				command: Command,
+			) => {
 				const globals = globalsOf(command);
 				render(
 					await api({
 						path: "/api/webhooks",
 						method: "POST",
 						body: {
+							tenantSlug: requiredTenant(globals.tenant),
 							url: options.url,
 							events: options.events.split(",").map((event) => event.trim()),
+							secret: options.secret,
 						},
 						timeout: globals.timeout,
 					}),
@@ -454,7 +460,10 @@ export function registerOperations(program: Command): void {
 				await api({
 					path: "/api/webhooks",
 					method: "DELETE",
-					body: { id: options.id },
+					query: {
+						tenantSlug: requiredTenant(globals.tenant),
+						endpointId: options.id,
+					},
 					timeout: globals.timeout,
 				}),
 				globals,

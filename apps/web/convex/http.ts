@@ -6753,7 +6753,12 @@ http.route({
     let body: { cidrs?: string[] }
     try { body = await request.json() } catch { return jsonResponse({ error: 'Invalid JSON body.' }, 400) }
     if (!Array.isArray(body.cidrs)) return jsonResponse({ error: 'Missing required field: cidrs (array)' }, 400)
-    return jsonResponse(await ctx.runMutation(internal.cliApi.updateIpAllowlistForTenant, { tenantId: auth.keyCheck.tenantId as Id<'tenants'>, cidrs: body.cidrs }), 200)
+    try {
+      return jsonResponse(await ctx.runMutation(internal.cliApi.updateIpAllowlistForTenant, { tenantId: auth.keyCheck.tenantId as Id<'tenants'>, cidrs: body.cidrs }), 200)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      return jsonResponse({ error: message }, 400)
+    }
   }),
 })
 
@@ -6779,13 +6784,18 @@ http.route({
         typeof body.apiUsageRecordsDays !== 'number' || typeof body.webhookDeliveriesDays !== 'number') {
       return jsonResponse({ error: 'Missing required fields: findingsDays, auditLogsDays, apiUsageRecordsDays, webhookDeliveriesDays' }, 400)
     }
-    return jsonResponse(await ctx.runMutation(internal.cliApi.updateRetentionPoliciesForTenant, {
-      tenantId: auth.keyCheck.tenantId as Id<'tenants'>,
-      findingsDays: body.findingsDays,
-      auditLogsDays: body.auditLogsDays,
-      apiUsageRecordsDays: body.apiUsageRecordsDays,
-      webhookDeliveriesDays: body.webhookDeliveriesDays,
-    }), 200)
+    try {
+      return jsonResponse(await ctx.runMutation(internal.cliApi.updateRetentionPoliciesForTenant, {
+        tenantId: auth.keyCheck.tenantId as Id<'tenants'>,
+        findingsDays: body.findingsDays,
+        auditLogsDays: body.auditLogsDays,
+        apiUsageRecordsDays: body.apiUsageRecordsDays,
+        webhookDeliveriesDays: body.webhookDeliveriesDays,
+      }), 200)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      return jsonResponse({ error: message }, 400)
+    }
   }),
 })
 
