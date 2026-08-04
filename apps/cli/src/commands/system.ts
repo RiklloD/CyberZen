@@ -3,6 +3,7 @@ import { api } from "../lib/api";
 import { completionScript } from "../lib/completions";
 import { globalsOf } from "../lib/globalFlags";
 import { render } from "../lib/output";
+import { requiredTenant } from "../lib/tenant";
 
 export interface CommandManifestEntry {
 	command: string;
@@ -274,6 +275,7 @@ export function registerSystem(program: Command): void {
 			render(
 				await api({
 					path: "/api/observability/metrics",
+					query: { tenantSlug: requiredTenant(globals.tenant) },
 					timeout: globals.timeout,
 				}),
 				globals,

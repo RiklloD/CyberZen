@@ -49,7 +49,7 @@ export function registerAuth(program: Command): void {
 				// Validate before persisting. A one-item findings request is the least
 				// surprising authenticated endpoint and does not mutate server state.
 				await api({
-					path: "/api/findings",
+					path: "/api/cli/findings",
 					query: { limit: 1 },
 					token,
 					timeout: globals.timeout,

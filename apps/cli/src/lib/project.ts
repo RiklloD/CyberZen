@@ -6,6 +6,7 @@ import {
 	writeFileSync,
 } from "node:fs";
 import { dirname, join, resolve } from "node:path";
+import { readAuth, readConfig } from "./config";
 
 export interface ProjectLink {
 	tenantSlug: string;
@@ -66,6 +67,8 @@ export function resolveTenant(
 	return (
 		explicit ??
 		process.env.CYBERZEN_TENANT ??
-		readProject(directory)?.tenantSlug
+		readProject(directory)?.tenantSlug ??
+		readConfig().tenant ??
+		readAuth()?.tenantSlug
 	);
 }
