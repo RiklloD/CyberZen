@@ -53,22 +53,140 @@ export function registerOperations(program: Command): void {
 			score: "/api/attack-surface/score",
 			history: "/api/attack-surface/score/history",
 			components: "/api/attack-surface/components",
-			paths: "/api/attack-paths",
-			"blast-radius": "/api/blast-radius",
-			"blast-radius-graph": "/api/blast-radius/graph",
 		},
 	);
 
-	registerReadGroup(
-		program,
-		"trust",
-		"Repository and dependency trust scores",
-		{
-			list: "/api/trust-scores",
-			detail: "/api/trust-scores/detail",
-			history: "/api/trust-scores/history",
-		},
-	);
+	const attack = program.commands.find((c) => c.name() === "attack");
+	if (attack) {
+		attack
+			.command("paths")
+			.description("Attack path visualization for a repository or finding")
+			.option("--tenant <slug>")
+			.option("--repo <owner/name>")
+			.option("--finding <id>", "Attack path for a specific finding")
+			.action(
+				async (
+					options: ScopedOptions & { finding?: string },
+					command: Command,
+				) => {
+					const globals = globalsOf(command);
+					if (options.finding) {
+						render(
+							await api({
+								path: "/api/attack-paths",
+								query: { findingId: options.finding },
+								timeout: globals.timeout,
+							}),
+							globals,
+						);
+						return;
+					}
+					const { query } = scoped(options, command);
+					render(
+						await api({
+							path: "/api/attack-paths",
+							query,
+							timeout: globals.timeout,
+						}),
+						globals,
+					);
+				},
+			);
+		attack
+			.command("blast-radius")
+			.description("Blast radius snapshot for a finding")
+			.requiredOption("--finding <id>", "Finding ID")
+			.action(async (options: { finding: string }, command: Command) => {
+				const globals = globalsOf(command);
+				render(
+					await api({
+						path: "/api/blast-radius",
+						query: { findingId: options.finding },
+						timeout: globals.timeout,
+					}),
+					globals,
+				);
+			});
+		attack
+			.command("blast-radius-graph")
+			.description("Architectural blast radius graph for a repository")
+			.option("--tenant <slug>")
+			.option("--repo <owner/name>")
+			.action(async (options: ScopedOptions, command: Command) => {
+				const { globals, query } = scoped(options, command);
+				render(
+					await api({
+						path: "/api/blast-radius/graph",
+						query,
+						timeout: globals.timeout,
+					}),
+					globals,
+				);
+			});
+	}
+
+	const trust = program
+		.command("trust")
+		.description("Repository and dependency trust scores");
+	trust
+		.command("list")
+		.option("--tenant <slug>")
+		.option("--repo <owner/name>")
+		.action(async (options: ScopedOptions, command: Command) => {
+			const { globals, query } = scoped(options, command);
+			render(
+				await api({
+					path: "/api/trust-scores",
+					query,
+					timeout: globals.timeout,
+				}),
+				globals,
+			);
+		});
+	trust
+		.command("detail")
+		.description("Trust score for a specific package")
+		.requiredOption("--package <name>", "Package name")
+		.option("--tenant <slug>")
+		.option("--repo <owner/name>")
+		.action(
+			async (
+				options: ScopedOptions & { package: string },
+				command: Command,
+			) => {
+				const { globals, query } = scoped(options, command);
+				render(
+					await api({
+						path: "/api/trust-scores/detail",
+						query: { ...query, package: options.package },
+						timeout: globals.timeout,
+					}),
+					globals,
+				);
+			},
+		);
+	trust
+		.command("history")
+		.description("Trust score history for a specific package")
+		.requiredOption("--package <name>", "Package name")
+		.option("--tenant <slug>")
+		.option("--repo <owner/name>")
+		.action(
+			async (
+				options: ScopedOptions & { package: string },
+				command: Command,
+			) => {
+				const { globals, query } = scoped(options, command);
+				render(
+					await api({
+						path: "/api/trust-scores/history",
+						query: { ...query, package: options.package },
+						timeout: globals.timeout,
+					}),
+					globals,
+				);
+			},
+		);
 
 	const threat = program
 		.command("threat")
@@ -220,6 +338,19 @@ export function registerOperations(program: Command): void {
 			"abandonment-scan": "/api/abandonment/scan",
 			"eol-scan": "/api/eol/scan",
 			"detection-rules": "/api/detection-rules",
+			"health-score": "/api/repository/health-score",
+			"sensitive-files": "/api/repository/sensitive-files",
+			"branch-protection": "/api/repository/branch-protection",
+			"commit-messages": "/api/repository/commit-messages",
+			"git-integrity": "/api/repository/git-integrity",
+			"high-risk-changes": "/api/repository/high-risk-changes",
+			"security-config-drift": "/api/repository/security-config-drift",
+			"test-coverage-gaps": "/api/repository/test-coverage-gaps",
+			"database-security": "/api/repository/database-security",
+			"container-hardening": "/api/repository/container-hardening",
+			"cloud-security-drift": "/api/repository/cloud-security-drift",
+			"build-config": "/api/repository/build-config",
+			"dep-lock": "/api/repository/dep-lock",
 		},
 	);
 	const traffic = program
@@ -352,14 +483,13 @@ export function registerOperations(program: Command): void {
 		.description("Sandbox validation environments");
 	sandbox
 		.command("environment")
-		.option("--tenant <slug>")
-		.option("--repo <owner/name>")
-		.action(async (options: ScopedOptions, command: Command) => {
-			const { globals, query } = scoped(options, command);
+		.requiredOption("--finding <id>", "Finding ID")
+		.action(async (options: { finding: string }, command: Command) => {
+			const globals = globalsOf(command);
 			render(
 				await api({
 					path: "/api/sandbox/environment",
-					query,
+					query: { findingId: options.finding },
 					timeout: globals.timeout,
 				}),
 				globals,

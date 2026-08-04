@@ -1067,6 +1067,54 @@ http.route({
 })
 
 // ---------------------------------------------------------------------------
+// GET /api/attack-paths
+//
+// Attack path visualization for a repository, or for a specific finding.
+// Spec §7.1.
+// ---------------------------------------------------------------------------
+
+http.route({
+  path: '/api/attack-paths',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const authError = await authenticateApiRequest(ctx, request)
+    if (authError) return authError
+
+    const { searchParams } = new URL(request.url)
+    const findingId = searchParams.get('findingId')
+    const tenantSlug = searchParams.get('tenantSlug')
+    const repositoryFullName = searchParams.get('repositoryFullName')
+
+    if (findingId) {
+      const path = await ctx.runQuery(api.attackPaths.getAttackPathForFinding, {
+        findingId: findingId as Id<'findings'>,
+      })
+      return jsonResponse({ findingId, path }, 200)
+    }
+
+    if (!tenantSlug || !repositoryFullName) {
+      return jsonResponse({ error: 'Missing required query parameters: tenantSlug and repositoryFullName (or findingId)' }, 400)
+    }
+
+    const tenant = await ctx.runQuery(internal.cliApi.getTenantForCli, {
+      tenantId: (await ctx.runQuery(internal.cliApi.getTenantIdForSlug, { slug: tenantSlug })) as Id<'tenants'>,
+    })
+    if (!tenant) return jsonResponse({ error: `Tenant not found: ${tenantSlug}` }, 404)
+
+    const repository = await ctx.runQuery(internal.cliApi.getRepositoryForTenant, {
+      tenantId: tenant._id as Id<'tenants'>,
+      fullName: repositoryFullName,
+    })
+    if (!repository) return jsonResponse({ error: `Repository not found: ${repositoryFullName}` }, 404)
+
+    const path = await ctx.runQuery(api.attackPaths.getAttackPathVisualization, {
+      repositoryId: repository._id,
+    })
+    return jsonResponse({ repositoryFullName, path }, 200)
+  }),
+})
+
+// ---------------------------------------------------------------------------
 // POST /api/attack-surface/scan
 //
 // Triggers an immediate attack surface recalculation for the given repository.

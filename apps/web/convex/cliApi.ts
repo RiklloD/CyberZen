@@ -317,6 +317,18 @@ export const getTenantForCli = internalQuery({
   handler: async (ctx, { tenantId }) => await ctx.db.get(tenantId),
 })
 
+export const getTenantIdForSlug = internalQuery({
+  args: { slug: v.string() },
+  returns: v.union(v.id('tenants'), v.null()),
+  handler: async (ctx, { slug }) => {
+    const tenant = await ctx.db
+      .query('tenants')
+      .withIndex('by_slug', (q) => q.eq('slug', slug))
+      .unique()
+    return tenant?._id ?? null
+  },
+})
+
 export const listApiKeySummariesForTenant = internalQuery({
   args: { tenantId: v.id('tenants') },
   returns: v.array(v.any()),
