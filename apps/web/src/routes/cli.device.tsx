@@ -38,7 +38,20 @@ function CliDeviceAuthorizationPage() {
 		);
 	}
 
-	const choices = (workspaces ?? []) as Array<{ slug: string; name: string }>;
+	const choices = (workspaces ?? []) as Array<{
+		slug: string;
+		name: string;
+		tenantSlug?: string;
+		tenantName?: string;
+	}>;
+	const workspaceSlug = (workspace: {
+		slug?: string;
+		tenantSlug?: string;
+	}) => workspace.tenantSlug ?? workspace.slug ?? "";
+	const workspaceName = (workspace: {
+		name?: string;
+		tenantName?: string;
+	}) => workspace.tenantName ?? workspace.name ?? "";
 	const authorize = async () => {
 		if (!code || !tenantSlug) {
 			setMessage("Choose a workspace before authorizing.");
@@ -69,8 +82,8 @@ function CliDeviceAuthorizationPage() {
 				>
 					<option value="">Select a workspace</option>
 					{choices.map((workspace) => (
-						<option key={workspace.slug} value={workspace.slug}>
-							{workspace.name} ({workspace.slug})
+						<option key={workspaceSlug(workspace)} value={workspaceSlug(workspace)}>
+							{workspaceName(workspace)} ({workspaceSlug(workspace)})
 						</option>
 					))}
 				</select>

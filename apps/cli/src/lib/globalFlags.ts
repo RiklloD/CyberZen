@@ -11,6 +11,7 @@ export interface GlobalFlags {
 	json: boolean;
 	ndjson: boolean;
 	tenant?: string;
+	repo?: string;
 	profile?: string;
 	token?: string;
 	apiUrl?: string;
@@ -25,6 +26,7 @@ export function applyGlobalFlags(program: Command): void {
 		.option("--json", "Output machine-readable JSON", false)
 		.option("--ndjson", "Stream array results as newline-delimited JSON", false)
 		.option("--tenant <slug>", "Tenant slug (overrides env/link/config)")
+		.option("--repo <owner/name>", "Repository full name (overrides env/link)")
 		.option("--profile <name>", "Named credential profile")
 		.option("--token <key>", "API key (czk_/msk_), overrides stored auth")
 		.option("--api-url <url>", "Convex cloud URL (client)")
@@ -43,10 +45,11 @@ export function applyGlobalFlags(program: Command): void {
 /** Read the merged globals for a command action. */
 export function globalsOf(cmd: Command): GlobalFlags {
 	const o = cmd.optsWithGlobals();
-	return {
+	const resolved = {
 		json: Boolean(o.json) || process.env.CYBERZEN_OUTPUT === "json",
 		ndjson: Boolean(o.ndjson),
 		tenant: o.tenant ?? process.env.CYBERZEN_TENANT,
+		repo: o.repo ?? process.env.CYBERZEN_REPO,
 		profile: o.profile ?? process.env.CYBERZEN_PROFILE,
 		token: o.token ?? process.env.CYBERZEN_API_KEY,
 		apiUrl: o.apiUrl ?? process.env.CYBERZEN_API_URL,
@@ -55,4 +58,18 @@ export function globalsOf(cmd: Command): GlobalFlags {
 		color: o.color !== false && !process.env.NO_COLOR,
 		timeout: typeof o.timeout === "number" ? o.timeout : 30000,
 	};
+	activeToken = resolved.token;
+	return resolved;
+}
+
+/**
+ * The token resolved from the active command's globals. Set by `globalsOf`
+ * during action execution and used by the HTTP client so `--token` (and
+ * `CYBERZEN_API_KEY`) reach every command without each call site forwarding
+ * the flag explicitly.
+ */
+let activeToken: string | undefined;
+
+export function activeTokenValue(): string | undefined {
+	return activeToken;
 }

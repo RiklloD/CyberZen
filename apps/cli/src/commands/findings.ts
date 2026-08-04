@@ -1,9 +1,7 @@
 import type { Command } from "commander";
 import { api } from "../lib/api";
-import { UsageError } from "../lib/errors";
 import { globalsOf } from "../lib/globalFlags";
 import { render } from "../lib/output";
-import { requiredTenant } from "../lib/tenant";
 
 export function registerFindings(program: Command): void {
 	const findings = program
@@ -12,8 +10,7 @@ export function registerFindings(program: Command): void {
 
 	findings
 		.command("list")
-		.description("List findings for a tenant")
-		.option("--tenant <slug>")
+		.description("List findings for the authenticated tenant")
 		.option("--status <status>")
 		.option("--severity <severity>")
 		.option(
@@ -25,7 +22,6 @@ export function registerFindings(program: Command): void {
 		.action(
 			async (
 				options: {
-					tenant?: string;
 					status?: string;
 					severity?: string;
 					limit: number;
@@ -34,9 +30,8 @@ export function registerFindings(program: Command): void {
 			) => {
 				const globals = globalsOf(command);
 				const data = await api({
-					path: "/api/findings",
+					path: "/api/cli/findings",
 					query: {
-						tenantSlug: requiredTenant(options.tenant ?? globals.tenant),
 						status: options.status,
 						severity: options.severity,
 						limit: options.limit,

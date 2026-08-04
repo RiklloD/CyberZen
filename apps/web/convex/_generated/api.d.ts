@@ -56,6 +56,8 @@ import type * as checkout from "../checkout.js";
 import type * as cicdPipelineSecurityDriftIntel from "../cicdPipelineSecurityDriftIntel.js";
 import type * as cicdScanIntel from "../cicdScanIntel.js";
 import type * as circleciWebhooks from "../circleciWebhooks.js";
+import type * as cliApi from "../cliApi.js";
+import type * as cliDeviceAuth from "../cliDeviceAuth.js";
 import type * as cloudBlastRadiusIntel from "../cloudBlastRadiusIntel.js";
 import type * as cloudSecurityDriftIntel from "../cloudSecurityDriftIntel.js";
 import type * as commitMessageIntel from "../commitMessageIntel.js";
@@ -407,6 +409,8 @@ declare const fullApi: ApiFromModules<{
   cicdPipelineSecurityDriftIntel: typeof cicdPipelineSecurityDriftIntel;
   cicdScanIntel: typeof cicdScanIntel;
   circleciWebhooks: typeof circleciWebhooks;
+  cliApi: typeof cliApi;
+  cliDeviceAuth: typeof cliDeviceAuth;
   cloudBlastRadiusIntel: typeof cloudBlastRadiusIntel;
   cloudSecurityDriftIntel: typeof cloudSecurityDriftIntel;
   commitMessageIntel: typeof commitMessageIntel;

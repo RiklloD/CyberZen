@@ -10,7 +10,7 @@ function repoQuery(
 ) {
 	return {
 		tenantSlug: requiredTenant(options.tenant ?? globals.tenant),
-		repositoryFullName: repositoryName(options.repo),
+		repositoryFullName: repositoryName(options.repo ?? globals.repo),
 	};
 }
 

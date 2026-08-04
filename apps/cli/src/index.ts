@@ -23,6 +23,7 @@ program.exitOverride();
 function normalizeGlobalArgs(args: string[]): string[] {
 	const flagsWithValues = new Set([
 		"--tenant",
+		"--repo",
 		"--profile",
 		"--token",
 		"--api-url",

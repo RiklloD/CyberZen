@@ -10,14 +10,14 @@ export function registerMemory(program: Command): void {
 		.description("CyberZen neural memory");
 	memory
 		.command("summary")
-		.requiredOption("--repo <owner/name>")
+		.option("--repo <owner/name>")
 		.description("Show real learned-memory statistics for a repository")
 		.action(async (options: { repo?: string }, command: Command) => {
 			const globals = globalsOf(command);
 			render(
 				await cliApi({
 					path: "memory/summary",
-					query: { repo: repositoryName(options.repo) },
+					query: { repo: repositoryName(options.repo ?? globals.repo) },
 					timeout: globals.timeout,
 				}),
 				globals,

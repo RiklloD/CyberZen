@@ -72,7 +72,7 @@ export function registerDrift(program: Command): void {
 						path: `/api/repository/${domain === "posture" ? "drift-posture" : `${domain}-drift`}`,
 						query: {
 							tenantSlug: requiredTenant(options.tenant ?? globals.tenant),
-							repositoryFullName: repositoryName(options.repo),
+							repositoryFullName: repositoryName(options.repo ?? globals.repo),
 						},
 						timeout: globals.timeout,
 					}),

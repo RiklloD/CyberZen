@@ -659,3 +659,67 @@ export const listBreachDisclosuresForTenant = internalQuery({
       .take(max)
   },
 })
+
+// ─── Findings list (API-key authenticated; no Clerk session required) ───────
+
+export const listFindingsForTenant = internalQuery({
+  args: {
+    tenantId: v.id('tenants'),
+    status: v.optional(v.string()),
+    severity: v.optional(v.string()),
+    limit: v.number(),
+  },
+  returns: v.array(v.any()),
+  handler: async (ctx, { tenantId, status, severity, limit }) => {
+    const cap = Math.min(Math.max(limit, 1), 200)
+    const validStatuses = new Set(['open', 'pr_opened', 'merged', 'resolved', 'accepted_risk', 'false_positive', 'ignored', 'snoozed'])
+    const validSeverities = new Set(['critical', 'high', 'medium', 'low', 'informational'])
+    if (status && !validStatuses.has(status)) throw new Error(`Invalid status. Must be one of: ${[...validStatuses].join(', ')}`)
+    if (severity && !validSeverities.has(severity)) throw new Error(`Invalid severity. Must be one of: ${[...validSeverities].join(', ')}`)
+
+    const fetchCap = severity ? cap * 4 : cap
+    let rows = await (async () => {
+      if (status) {
+        return ctx.db
+          .query('findings')
+          .withIndex('by_tenant_and_status', (q) => q.eq('tenantId', tenantId).eq('status', status as any))
+          .order('desc')
+          .take(fetchCap)
+      }
+      return ctx.db
+        .query('findings')
+        .withIndex('by_tenant_and_created_at', (q) => q.eq('tenantId', tenantId))
+        .order('desc')
+        .take(fetchCap)
+    })()
+
+    if (severity) rows = rows.filter((f) => f.severity === severity)
+    rows = rows.slice(0, cap)
+
+    return await Promise.all(
+      rows.map(async (finding) => {
+        const repo = await ctx.db.get(finding.repositoryId)
+        const disclosure = finding.breachDisclosureId ? await ctx.db.get(finding.breachDisclosureId) : null
+        return {
+          findingId: finding._id,
+          title: finding.title,
+          summary: finding.summary,
+          severity: finding.severity,
+          validationStatus: finding.validationStatus,
+          status: finding.status,
+          confidence: finding.confidence,
+          source: finding.source,
+          vulnClass: finding.vulnClass,
+          affectedPackages: finding.affectedPackages,
+          createdAt: finding.createdAt,
+          resolvedAt: finding.resolvedAt ?? null,
+          prUrl: finding.prUrl ?? null,
+          repositoryName: repo?.name ?? null,
+          repositoryFullName: repo?.fullName ?? null,
+          disclosureRef: disclosure?.sourceRef ?? null,
+          fixVersion: disclosure?.fixVersion ?? null,
+        }
+      }),
+    )
+  },
+})

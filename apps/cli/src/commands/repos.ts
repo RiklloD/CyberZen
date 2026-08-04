@@ -23,14 +23,14 @@ export function registerRepos(program: Command): void {
 
 	repos
 		.command("get")
-		.requiredOption("--repo <owner/name>")
+		.option("--repo <owner/name>")
 		.description("Show one repository's stored metadata")
-		.action(async (options: { repo: string }, command: Command) => {
+		.action(async (options: { repo?: string }, command: Command) => {
 			const globals = globalsOf(command);
 			render(
 				await api({
 					path: "/api/cli/repos/detail",
-					query: { repo: options.repo },
+					query: { repo: repositoryName(options.repo ?? globals.repo) },
 					timeout: globals.timeout,
 				}),
 				globals,
@@ -40,12 +40,12 @@ export function registerRepos(program: Command): void {
 	repos
 		.command("scan")
 		.description("Dispatch a real full repository scan")
-		.requiredOption("--repo <owner/name>")
+		.option("--repo <owner/name>")
 		.option("--tenant <slug>")
 		.option("--branch <branch>")
 		.action(
 			async (
-				options: { repo: string; tenant?: string; branch?: string },
+				options: { repo?: string; tenant?: string; branch?: string },
 				command: Command,
 			) => {
 				const globals = globalsOf(command);
@@ -56,7 +56,7 @@ export function registerRepos(program: Command): void {
 						method: "POST",
 						body: {
 							workspace,
-							repository: repositoryName(options.repo),
+							repository: repositoryName(options.repo ?? globals.repo),
 							branch: options.branch,
 						},
 						timeout: globals.timeout,

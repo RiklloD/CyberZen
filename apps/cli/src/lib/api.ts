@@ -1,6 +1,7 @@
 import { requireToken } from "./auth";
 import { apiUrl, siteUrl } from "./config";
 import { ApiError, AuthError } from "./errors";
+import { activeTokenValue } from "./globalFlags";
 
 export interface ApiOptions {
 	path: string;
@@ -27,7 +28,7 @@ function buildUrl(
 }
 
 export async function api<T = unknown>(options: ApiOptions): Promise<T> {
-	const token = options.token ?? requireToken();
+	const token = options.token ?? activeTokenValue() ?? requireToken();
 	const url = buildUrl(
 		options.baseUrl ?? siteUrl(),
 		options.path,

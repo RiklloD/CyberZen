@@ -15,7 +15,7 @@ function scoped(options: ScopedOptions, command: Command) {
 		globals,
 		query: {
 			tenantSlug: requiredTenant(options.tenant ?? globals.tenant),
-			repositoryFullName: repositoryName(options.repo),
+			repositoryFullName: repositoryName(options.repo ?? globals.repo),
 		},
 	};
 }
@@ -222,9 +222,47 @@ export function registerOperations(program: Command): void {
 			"detection-rules": "/api/detection-rules",
 		},
 	);
-	registerReadGroup(program, "traffic", "Traffic anomaly events", {
-		events: "/api/traffic/events",
-	});
+	const traffic = program
+		.command("traffic")
+		.description("Traffic anomaly event ingestion");
+	traffic
+		.command("events")
+		.description("Ingest traffic anomaly events (JSON array body)")
+		.requiredOption("--events <json>", "JSON array of traffic events")
+		.option("--tenant <slug>")
+		.option("--repo <owner/name>")
+		.action(
+			async (
+				options: { events: string; tenant?: string; repo?: string },
+				command: Command,
+			) => {
+				const globals = globalsOf(command);
+				let events: unknown;
+				try {
+					events = JSON.parse(options.events);
+				} catch {
+					throw new Error(
+						"--events must be valid JSON (an array of traffic events)",
+					);
+				}
+				if (!Array.isArray(events)) {
+					throw new Error("--events must be a JSON array");
+				}
+				render(
+					await api({
+						path: "/api/traffic/events",
+						method: "POST",
+						query: {
+							tenantSlug: requiredTenant(options.tenant ?? globals.tenant),
+							repositoryFullName: repositoryName(options.repo ?? globals.repo),
+						},
+						body: events,
+						timeout: globals.timeout,
+					}),
+					globals,
+				);
+			},
+		);
 
 	const webhooks = program
 		.command("webhooks")
@@ -234,7 +272,11 @@ export function registerOperations(program: Command): void {
 		.action(async (_options: unknown, command: Command) => {
 			const globals = globalsOf(command);
 			render(
-				await api({ path: "/api/webhooks", timeout: globals.timeout }),
+				await api({
+					path: "/api/webhooks",
+					query: { tenantSlug: requiredTenant(globals.tenant) },
+					timeout: globals.timeout,
+				}),
 				globals,
 			);
 		});
@@ -245,6 +287,7 @@ export function registerOperations(program: Command): void {
 			render(
 				await api({
 					path: "/api/webhooks/deliveries",
+					query: { tenantSlug: requiredTenant(globals.tenant) },
 					timeout: globals.timeout,
 				}),
 				globals,

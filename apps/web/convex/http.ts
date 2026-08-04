@@ -6417,6 +6417,31 @@ http.route({
 })
 
 http.route({
+  path: '/api/cli/findings',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const auth = await authenticateCliKey(ctx, request)
+    if ('response' in auth) return auth.response
+    const url = new URL(request.url)
+    const rawLimit = Number(url.searchParams.get('limit') ?? '50')
+    const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(Math.floor(rawLimit), 1), 200) : 50
+    const status = url.searchParams.get('status') ?? undefined
+    const severity = url.searchParams.get('severity') ?? undefined
+    try {
+      return jsonResponse(await ctx.runQuery(internal.cliApi.listFindingsForTenant, {
+        tenantId: auth.keyCheck.tenantId as Id<'tenants'>,
+        status,
+        severity,
+        limit,
+      }), 200)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      return jsonResponse({ error: message }, 400)
+    }
+  }),
+})
+
+http.route({
   path: '/api/cli/scans',
   method: 'GET',
   handler: httpAction(async (ctx, request) => {
