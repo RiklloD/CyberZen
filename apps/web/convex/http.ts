@@ -6587,4 +6587,195 @@ http.route({
   }),
 })
 
+// ─── CLI: settings bridge (2FA, IP allowlist, retention, SSO) ───────────────
+// Auth model: tenant API key authorizes the tenant; user-scoped operations
+// (2FA) resolve through the key's createdById owner.
+// ---------------------------------------------------------------------------
+
+async function authenticateCliKey(
+  ctx: { runMutation: Function },
+  request: Request,
+): Promise<{ response: Response } | { keyCheck: { status: string; keyId?: Id<'apiKeys'>; tenantId?: Id<'tenants'> } }> {
+  const authError = await authenticateApiRequest(ctx, request)
+  if (authError) return { response: authError }
+  const authHeader = request.headers.get('authorization')
+  const rawKey = request.headers.get('x-sentinel-api-key') ??
+    (authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null)
+  if (!rawKey) return { response: jsonResponse({ error: 'Authentication required.' }, 401) }
+  const keyCheck = await ctx.runMutation(internal.apiKeys.checkAndRecordTenantKeyUsage, { rawKey })
+  if (keyCheck.status !== 'ok') return { response: jsonResponse({ error: 'Invalid or rate-limited API key.' }, keyCheck.status === 'rate_limited' ? 429 : 401) }
+  return { keyCheck }
+}
+
+http.route({
+  path: '/api/cli/settings/two-factor/status',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const auth = await authenticateCliKey(ctx, request)
+    if ('response' in auth) return auth.response
+    const userId = await ctx.runQuery(internal.cliApi.getApiKeyOwner, { keyId: auth.keyCheck.keyId as Id<'apiKeys'> })
+    if (!userId) return jsonResponse({ error: 'API key has no owner; use a user-created key for 2FA commands.' }, 400)
+    return jsonResponse(await ctx.runQuery(internal.cliApi.getTwoFactorStatusForUser, { userId }), 200)
+  }),
+})
+
+http.route({
+  path: '/api/cli/settings/two-factor/enroll',
+  method: 'POST',
+  handler: httpAction(async (ctx, request) => {
+    const auth = await authenticateCliKey(ctx, request)
+    if ('response' in auth) return auth.response
+    const userId = await ctx.runQuery(internal.cliApi.getApiKeyOwner, { keyId: auth.keyCheck.keyId as Id<'apiKeys'> })
+    if (!userId) return jsonResponse({ error: 'API key has no owner; use a user-created key for 2FA commands.' }, 400)
+    return jsonResponse(await ctx.runMutation(internal.cliApi.startTwoFactorEnrollmentForUser, { userId, tenantId: auth.keyCheck.tenantId as Id<'tenants'> }), 200)
+  }),
+})
+
+http.route({
+  path: '/api/cli/settings/two-factor/verify',
+  method: 'POST',
+  handler: httpAction(async (ctx, request) => {
+    const auth = await authenticateCliKey(ctx, request)
+    if ('response' in auth) return auth.response
+    const userId = await ctx.runQuery(internal.cliApi.getApiKeyOwner, { keyId: auth.keyCheck.keyId as Id<'apiKeys'> })
+    if (!userId) return jsonResponse({ error: 'API key has no owner; use a user-created key for 2FA commands.' }, 400)
+    let body: { code?: string }
+    try { body = await request.json() } catch { return jsonResponse({ error: 'Invalid JSON body.' }, 400) }
+    if (!body.code) return jsonResponse({ error: 'Missing required field: code' }, 400)
+    return jsonResponse(await ctx.runMutation(internal.cliApi.verifyTwoFactorEnrollmentForUser, { userId, code: body.code }), 200)
+  }),
+})
+
+http.route({
+  path: '/api/cli/settings/two-factor/disable',
+  method: 'POST',
+  handler: httpAction(async (ctx, request) => {
+    const auth = await authenticateCliKey(ctx, request)
+    if ('response' in auth) return auth.response
+    const userId = await ctx.runQuery(internal.cliApi.getApiKeyOwner, { keyId: auth.keyCheck.keyId as Id<'apiKeys'> })
+    if (!userId) return jsonResponse({ error: 'API key has no owner; use a user-created key for 2FA commands.' }, 400)
+    let body: { code?: string }
+    try { body = await request.json() } catch { return jsonResponse({ error: 'Invalid JSON body.' }, 400) }
+    if (!body.code) return jsonResponse({ error: 'Missing required field: code' }, 400)
+    return jsonResponse(await ctx.runMutation(internal.cliApi.disableTwoFactorForUser, { userId, code: body.code }), 200)
+  }),
+})
+
+http.route({
+  path: '/api/cli/settings/ip-allowlist',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const auth = await authenticateCliKey(ctx, request)
+    if ('response' in auth) return auth.response
+    return jsonResponse(await ctx.runQuery(internal.cliApi.getIpAllowlistForTenant, { tenantId: auth.keyCheck.tenantId as Id<'tenants'> }), 200)
+  }),
+})
+
+http.route({
+  path: '/api/cli/settings/ip-allowlist',
+  method: 'PUT',
+  handler: httpAction(async (ctx, request) => {
+    const auth = await authenticateCliKey(ctx, request)
+    if ('response' in auth) return auth.response
+    let body: { cidrs?: string[] }
+    try { body = await request.json() } catch { return jsonResponse({ error: 'Invalid JSON body.' }, 400) }
+    if (!Array.isArray(body.cidrs)) return jsonResponse({ error: 'Missing required field: cidrs (array)' }, 400)
+    return jsonResponse(await ctx.runMutation(internal.cliApi.updateIpAllowlistForTenant, { tenantId: auth.keyCheck.tenantId as Id<'tenants'>, cidrs: body.cidrs }), 200)
+  }),
+})
+
+http.route({
+  path: '/api/cli/settings/retention',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const auth = await authenticateCliKey(ctx, request)
+    if ('response' in auth) return auth.response
+    return jsonResponse(await ctx.runQuery(internal.cliApi.getRetentionPoliciesForTenant, { tenantId: auth.keyCheck.tenantId as Id<'tenants'> }), 200)
+  }),
+})
+
+http.route({
+  path: '/api/cli/settings/retention',
+  method: 'PUT',
+  handler: httpAction(async (ctx, request) => {
+    const auth = await authenticateCliKey(ctx, request)
+    if ('response' in auth) return auth.response
+    let body: { findingsDays?: number; auditLogsDays?: number; apiUsageRecordsDays?: number; webhookDeliveriesDays?: number }
+    try { body = await request.json() } catch { return jsonResponse({ error: 'Invalid JSON body.' }, 400) }
+    if (typeof body.findingsDays !== 'number' || typeof body.auditLogsDays !== 'number' ||
+        typeof body.apiUsageRecordsDays !== 'number' || typeof body.webhookDeliveriesDays !== 'number') {
+      return jsonResponse({ error: 'Missing required fields: findingsDays, auditLogsDays, apiUsageRecordsDays, webhookDeliveriesDays' }, 400)
+    }
+    return jsonResponse(await ctx.runMutation(internal.cliApi.updateRetentionPoliciesForTenant, {
+      tenantId: auth.keyCheck.tenantId as Id<'tenants'>,
+      findingsDays: body.findingsDays,
+      auditLogsDays: body.auditLogsDays,
+      apiUsageRecordsDays: body.apiUsageRecordsDays,
+      webhookDeliveriesDays: body.webhookDeliveriesDays,
+    }), 200)
+  }),
+})
+
+http.route({
+  path: '/api/cli/settings/sso',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const auth = await authenticateCliKey(ctx, request)
+    if ('response' in auth) return auth.response
+    return jsonResponse(await ctx.runQuery(internal.cliApi.listSsoConfigsForTenant, { tenantId: auth.keyCheck.tenantId as Id<'tenants'> }), 200)
+  }),
+})
+
+// ─── CLI: admin bridge (audit log, feature flags) ──────────────────────────
+
+http.route({
+  path: '/api/cli/admin/audit-log',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const auth = await authenticateCliKey(ctx, request)
+    if ('response' in auth) return auth.response
+    const url = new URL(request.url)
+    const rawLimit = Number(url.searchParams.get('limit') ?? '100')
+    const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(Math.floor(rawLimit), 1), 500) : 100
+    const actionFilter = url.searchParams.get('action') ?? undefined
+    return jsonResponse(await ctx.runQuery(internal.cliApi.listAuditLogForTenant, { tenantId: auth.keyCheck.tenantId as Id<'tenants'>, limit, actionFilter }), 200)
+  }),
+})
+
+http.route({
+  path: '/api/cli/admin/feature-flags',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const auth = await authenticateCliKey(ctx, request)
+    if ('response' in auth) return auth.response
+    return jsonResponse(await ctx.runQuery(internal.cliApi.listFeatureFlagsForTenant, { tenantId: auth.keyCheck.tenantId as Id<'tenants'> }), 200)
+  }),
+})
+
+// ─── CLI: breach intelligence bridge ────────────────────────────────────────
+
+http.route({
+  path: '/api/cli/breach/advisories',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const auth = await authenticateCliKey(ctx, request)
+    if ('response' in auth) return auth.response
+    const url = new URL(request.url)
+    const rawLimit = Number(url.searchParams.get('limit') ?? '50')
+    const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(Math.floor(rawLimit), 1), 100) : 50
+    return jsonResponse(await ctx.runQuery(internal.cliApi.listBreachDisclosuresForTenant, { tenantId: auth.keyCheck.tenantId as Id<'tenants'>, limit }), 200)
+  }),
+})
+
+http.route({
+  path: '/api/cli/breach/sync',
+  method: 'POST',
+  handler: httpAction(async (ctx, request) => {
+    const auth = await authenticateCliKey(ctx, request)
+    if ('response' in auth) return auth.response
+    const result = await ctx.runMutation(api.advisorySync.runManualSync, { tenantSlug: (await ctx.runQuery(internal.cliApi.getTenantSlugForCli, { tenantId: auth.keyCheck.tenantId as Id<'tenants'> })) ?? '' })
+    return jsonResponse(result, 200)
+  }),
+})
+
 export default http

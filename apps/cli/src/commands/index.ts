@@ -1,5 +1,5 @@
 import type { Command } from "commander";
-
+import { registerAdmin } from "./admin";
 /**
  * Central command registry. Each feature group lives in its own module and
  * exports a `registerX(program)` function. Groups are added here as they are
@@ -8,6 +8,7 @@ import type { Command } from "commander";
 import { registerAgents } from "./agents";
 import { registerAuth } from "./auth";
 import { registerBilling } from "./billing";
+import { registerBreach } from "./breach";
 import { registerDashboard } from "./dashboard";
 import { registerDrift } from "./drift";
 import { registerFindings } from "./findings";
@@ -18,13 +19,16 @@ import { registerMemory } from "./memory";
 import { registerOperations } from "./operations";
 import { registerRepos } from "./repos";
 import { registerSbom } from "./sbom";
+import { registerSettings } from "./settings";
 import { registerSystem } from "./system";
 import { registerTenants } from "./tenants";
 
 export function registerAll(program: Command): void {
 	registerAuth(program);
 	registerAgents(program);
+	registerAdmin(program);
 	registerBilling(program);
+	registerBreach(program);
 	registerIntegrations(program);
 	registerJobs(program);
 	registerTenants(program);
@@ -36,5 +40,6 @@ export function registerAll(program: Command): void {
 	registerSbom(program);
 	registerDrift(program);
 	registerOperations(program);
+	registerSettings(program);
 	registerSystem(program);
 }

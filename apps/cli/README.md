@@ -87,6 +87,7 @@ cyberzen system schema | jq
 - `security`, `crypto`, `traffic`
 - `webhooks`, `siem`, `honeypot`, `sandbox`
 - `marketplace`, `mssp`
+- `settings` (2FA, ip-allowlist, retention, sso), `admin` (audit-log, feature-flags), `breach` (advisories, sync)
 - `system status`, `system schema`, `system version`, `system completions <shell>`
 
 All implemented operations call real CyberZen HTTP endpoints. Scanner and analysis logic remains server-side; the CLI does not simulate findings, scans, or results.

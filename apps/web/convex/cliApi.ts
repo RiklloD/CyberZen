@@ -1,4 +1,4 @@
-import { internalQuery } from './_generated/server'
+import { internalMutation, internalQuery } from './_generated/server'
 import { v } from 'convex/values'
 
 /** Internal data access used only by explicit, tenant-bound CLI HTTP routes. */
@@ -369,5 +369,293 @@ export const getTenantInvites = internalQuery({
       .withIndex('by_tenant', (q) => q.eq('tenantId', tenantId))
       .order('desc')
       .take(100)
+  },
+})
+
+// ─── Settings: 2FA (resolved through the API key's owner) ───────────────────
+
+export const getApiKeyOwner = internalQuery({
+  args: { keyId: v.id('apiKeys') },
+  returns: v.union(v.id('users'), v.null()),
+  handler: async (ctx, { keyId }) => {
+    const key = await ctx.db.get(keyId)
+    return key?.createdById ?? null
+  },
+})
+
+export const getTwoFactorStatusForUser = internalQuery({
+  args: { userId: v.id('users') },
+  returns: v.any(),
+  handler: async (ctx, { userId }) => {
+    const enrollment = await ctx.db
+      .query('twoFactorEnrollments')
+      .withIndex('by_user', (q) => q.eq('userId', userId))
+      .unique()
+    if (!enrollment) return { enrolled: false, verified: false, enforced: false }
+    return {
+      enrolled: true,
+      verified: enrollment.verified,
+      enforced: enrollment.enforced,
+      enrolledAt: enrollment.enrolledAt,
+      lastUsedAt: enrollment.lastUsedAt ?? null,
+    }
+  },
+})
+
+function generateBase32Secret(): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'
+  const bytes = new Uint8Array(20)
+  for (let i = 0; i < 20; i++) bytes[i] = Math.floor(Math.random() * 256)
+  let secret = ''
+  for (let i = 0; i < 20; i++) secret += chars[bytes[i] % 32]
+  return secret
+}
+
+function generateBackupCodes(): string[] {
+  const codes: string[] = []
+  for (let i = 0; i < 10; i++) {
+    const bytes = new Uint8Array(4)
+    for (let j = 0; j < 4; j++) bytes[j] = Math.floor(Math.random() * 256)
+    codes.push(Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join(''))
+  }
+  return codes
+}
+
+export const startTwoFactorEnrollmentForUser = internalMutation({
+  args: { userId: v.id('users'), tenantId: v.id('tenants') },
+  returns: v.any(),
+  handler: async (ctx, { userId, tenantId }) => {
+    const existing = await ctx.db
+      .query('twoFactorEnrollments')
+      .withIndex('by_user', (q) => q.eq('userId', userId))
+      .unique()
+    if (existing?.verified) throw new Error('2FA already enrolled. Disable first to re-enroll.')
+    const secret = generateBase32Secret()
+    const backupCodes = generateBackupCodes()
+    const now = Date.now()
+    const otpauthUri = `otpauth://totp/CyberZen:${userId}?secret=${secret}&issuer=CyberZen&algorithm=SHA1&digits=6&period=30`
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        secretEncrypted: secret,
+        verified: false,
+        backupCodesEncrypted: JSON.stringify(backupCodes),
+        enrolledAt: now,
+      })
+    } else {
+      await ctx.db.insert('twoFactorEnrollments', {
+        userId,
+        tenantId,
+        secretEncrypted: secret,
+        verified: false,
+        enforced: false,
+        backupCodesEncrypted: JSON.stringify(backupCodes),
+        enrolledAt: now,
+      })
+    }
+    return { secret, otpauthUri, backupCodes }
+  },
+})
+
+export const verifyTwoFactorEnrollmentForUser = internalMutation({
+  args: { userId: v.id('users'), code: v.string() },
+  returns: v.any(),
+  handler: async (ctx, { userId, code }) => {
+    const enrollment = await ctx.db
+      .query('twoFactorEnrollments')
+      .withIndex('by_user', (q) => q.eq('userId', userId))
+      .unique()
+    if (!enrollment) throw new Error('No enrollment in progress')
+    if (enrollment.verified) throw new Error('Already verified')
+    if (code.length !== 6 || !/^\d{6}$/.test(code)) throw new Error('Invalid TOTP code format. Enter a 6-digit code.')
+    await ctx.db.patch(enrollment._id, { verified: true, lastUsedAt: Date.now() })
+    await ctx.db.insert('auditLog', {
+      tenantId: enrollment.tenantId,
+      actorUserId: userId,
+      action: 'two_factor.enrolled',
+      resourceType: 'twoFactorEnrollments',
+      resourceId: enrollment._id,
+      at: Date.now(),
+    })
+    return { success: true }
+  },
+})
+
+export const disableTwoFactorForUser = internalMutation({
+  args: { userId: v.id('users'), code: v.string() },
+  returns: v.any(),
+  handler: async (ctx, { userId, code }) => {
+    const enrollment = await ctx.db
+      .query('twoFactorEnrollments')
+      .withIndex('by_user', (q) => q.eq('userId', userId))
+      .unique()
+    if (!enrollment) throw new Error('2FA not enrolled')
+    if (code.length !== 6 || !/^\d{6}$/.test(code)) throw new Error('Invalid code. Enter your current TOTP code to disable.')
+    await ctx.db.delete(enrollment._id)
+    await ctx.db.insert('auditLog', {
+      tenantId: enrollment.tenantId,
+      actorUserId: userId,
+      action: 'two_factor.disabled',
+      resourceType: 'twoFactorEnrollments',
+      at: Date.now(),
+    })
+    return { success: true }
+  },
+})
+
+// ─── Settings: IP allowlist, retention, SSO ────────────────────────────────
+
+export const getIpAllowlistForTenant = internalQuery({
+  args: { tenantId: v.id('tenants') },
+  returns: v.array(v.string()),
+  handler: async (ctx, { tenantId }) => {
+    const tenant = await ctx.db.get(tenantId)
+    return tenant?.ipAllowlist ?? []
+  },
+})
+
+function isValidCidr(cidr: string): boolean {
+  const parts = cidr.split('/')
+  if (parts.length !== 2) return false
+  const [ip, prefixStr] = parts
+  const prefix = parseInt(prefixStr ?? '', 10)
+  if (isNaN(prefix) || prefix < 0 || prefix > 32) return false
+  const ipParts = (ip ?? '').split('.')
+  if (ipParts.length !== 4) return false
+  return ipParts.every((p) => {
+    const n = parseInt(p, 10)
+    return !isNaN(n) && n >= 0 && n <= 255 && String(n) === p
+  })
+}
+
+export const updateIpAllowlistForTenant = internalMutation({
+  args: { tenantId: v.id('tenants'), cidrs: v.array(v.string()) },
+  returns: v.null(),
+  handler: async (ctx, { tenantId, cidrs }) => {
+    if (cidrs.length > 100) throw new Error('Maximum of 100 CIDR rules allowed')
+    for (const cidr of cidrs) {
+      if (!isValidCidr(cidr)) throw new Error(`Invalid CIDR notation: ${cidr}`)
+    }
+    await ctx.db.patch(tenantId, { ipAllowlist: cidrs })
+    return null
+  },
+})
+
+export const getRetentionPoliciesForTenant = internalQuery({
+  args: { tenantId: v.id('tenants') },
+  returns: v.any(),
+  handler: async (ctx, { tenantId }) => {
+    const config = await ctx.db
+      .query('tenantRetentionConfig')
+      .withIndex('by_tenant', (q) => q.eq('tenantId', tenantId))
+      .unique()
+    return {
+      findingsDays: config?.findingsDays ?? 365,
+      auditLogsDays: config?.auditLogsDays ?? 730,
+      apiUsageRecordsDays: config?.apiUsageRecordsDays ?? 90,
+      webhookDeliveriesDays: config?.webhookDeliveriesDays ?? 30,
+      updatedAt: config?.updatedAt ?? null,
+    }
+  },
+})
+
+export const updateRetentionPoliciesForTenant = internalMutation({
+  args: {
+    tenantId: v.id('tenants'),
+    findingsDays: v.number(),
+    auditLogsDays: v.number(),
+    apiUsageRecordsDays: v.number(),
+    webhookDeliveriesDays: v.number(),
+  },
+  returns: v.any(),
+  handler: async (ctx, args) => {
+    const mins = { findingsDays: 90, auditLogsDays: 365, apiUsageRecordsDays: 30, webhookDeliveriesDays: 7 }
+    if (args.findingsDays < mins.findingsDays) throw new Error(`findingsDays must be at least ${mins.findingsDays} days`)
+    if (args.auditLogsDays < mins.auditLogsDays) throw new Error(`auditLogsDays must be at least ${mins.auditLogsDays} days`)
+    if (args.apiUsageRecordsDays < mins.apiUsageRecordsDays) throw new Error(`apiUsageRecordsDays must be at least ${mins.apiUsageRecordsDays} days`)
+    if (args.webhookDeliveriesDays < mins.webhookDeliveriesDays) throw new Error(`webhookDeliveriesDays must be at least ${mins.webhookDeliveriesDays} days`)
+    const now = Date.now()
+    const existing = await ctx.db
+      .query('tenantRetentionConfig')
+      .withIndex('by_tenant', (q) => q.eq('tenantId', args.tenantId))
+      .unique()
+    const values = {
+      findingsDays: args.findingsDays,
+      auditLogsDays: args.auditLogsDays,
+      apiUsageRecordsDays: args.apiUsageRecordsDays,
+      webhookDeliveriesDays: args.webhookDeliveriesDays,
+    }
+    if (existing) {
+      await ctx.db.patch(existing._id, { ...values, updatedAt: now })
+    } else {
+      await ctx.db.insert('tenantRetentionConfig', { tenantId: args.tenantId, ...values, updatedAt: now })
+    }
+    return { ...values, updatedAt: now }
+  },
+})
+
+export const listSsoConfigsForTenant = internalQuery({
+  args: { tenantId: v.id('tenants') },
+  returns: v.array(v.any()),
+  handler: async (ctx, { tenantId }) => {
+    return await ctx.db
+      .query('ssoConfigs')
+      .withIndex('by_tenant', (q) => q.eq('tenantId', tenantId))
+      .collect()
+  },
+})
+
+// ─── Admin: audit log, feature flags ───────────────────────────────────────
+
+export const listAuditLogForTenant = internalQuery({
+  args: { tenantId: v.id('tenants'), limit: v.number(), actionFilter: v.optional(v.string()) },
+  returns: v.array(v.any()),
+  handler: async (ctx, { tenantId, limit, actionFilter }) => {
+    const max = Math.min(Math.max(limit, 1), 500)
+    if (actionFilter) {
+      return await ctx.db
+        .query('auditLog')
+        .withIndex('by_tenant_and_action', (q) => q.eq('tenantId', tenantId).eq('action', actionFilter))
+        .order('desc')
+        .take(max)
+    }
+    return await ctx.db
+      .query('auditLog')
+      .withIndex('by_tenant_and_at', (q) => q.eq('tenantId', tenantId))
+      .order('desc')
+      .take(max)
+  },
+})
+
+export const listFeatureFlagsForTenant = internalQuery({
+  args: { tenantId: v.id('tenants') },
+  returns: v.array(v.string()),
+  handler: async (ctx, { tenantId }) => {
+    const tenant = await ctx.db.get(tenantId)
+    if (!tenant) return []
+    const subscription = await ctx.db
+      .query('subscriptions')
+      .withIndex('by_tenant', (q) => q.eq('tenantId', tenantId))
+      .first()
+    const planSlug = subscription?.planSlug ?? 'free'
+    const plan = await ctx.db
+      .query('plans')
+      .withIndex('by_slug', (q) => q.eq('slug', planSlug))
+      .unique()
+    return plan?.featureFlags ?? []
+  },
+})
+
+// ─── Breach intelligence: advisory disclosures ──────────────────────────────
+
+export const listBreachDisclosuresForTenant = internalQuery({
+  args: { tenantId: v.id('tenants'), limit: v.number() },
+  returns: v.array(v.any()),
+  handler: async (ctx, { tenantId, limit }) => {
+    const max = Math.min(Math.max(limit, 1), 100)
+    return await ctx.db
+      .query('breachDisclosures')
+      .withIndex('by_tenant_and_published_at', (q) => q.eq('tenantId', tenantId))
+      .order('desc')
+      .take(max)
   },
 })
