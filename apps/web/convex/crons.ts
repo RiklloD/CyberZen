@@ -13,7 +13,7 @@ export const monitoredSlaBreachCheck = internalAction({
       jobName: 'sla breach check',
     })
     try {
-      await ctx.runAction(internal.slaIntel.checkAllSlaBreaches, {})
+      await ctx.runMutation(internal.slaIntel.checkAllSlaBreaches, {})
       await ctx.runMutation(internal.jobMonitoring.recordJobEnd, {
         runId,
         status: 'success',
@@ -35,7 +35,7 @@ export const monitoredSeverityEscalation = internalAction({
       jobName: 'severity escalation sweep',
     })
     try {
-      await ctx.runAction(internal.escalationIntel.runAllEscalationSweeps, {})
+      await ctx.runMutation(internal.escalationIntel.runAllEscalationSweeps, {})
       await ctx.runMutation(internal.jobMonitoring.recordJobEnd, {
         runId,
         status: 'success',
