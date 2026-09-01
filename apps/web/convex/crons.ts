@@ -189,11 +189,12 @@ crons.cron(
   { tenantSlug: 'atlas-fintech' },
 )
 
-// Datadog custom metrics push — every 15 minutes.
+// Datadog custom metrics push — every 60 minutes.
 // Silently skips when DD_API_KEY is not configured.
+// Cadence note (2026-09): was every 15 minutes; slowed for Convex free plan.
 crons.interval(
   'push datadog metrics',
-  { minutes: 15 },
+  { minutes: 60 },
   internal.datadog.pushAllTenantMetrics,
   {},
 )
@@ -278,12 +279,11 @@ crons.cron(
   {},
 )
 
-// Integration status recomputation — every 5 minutes (spec §5.5).
-// Walks every tenant × catalog entry, checks env vars + last-success
-// timestamps, and upserts integrationStatus rows with derived health.
+// Integration status recomputation — every 60 minutes (spec §5.5, cadence
+// relaxed 2026-09 for Convex free plan budget).
 crons.interval(
   'recompute integration status',
-  { minutes: 5 },
+  { minutes: 60 },
   internal.integrations.recomputeIntegrationStatus,
   {},
 )
@@ -367,10 +367,13 @@ crons.cron(
   {},
 )
 
-// Webhook retry processor — every 1 minute (monitored for job health dashboard).
+// Webhook retry processor — every 15 minutes (monitored for job health dashboard).
+// Cadence note (2026-09): was every 1 minute; slowed to stay within the Convex
+// free plan. Frequent runs also re-triggered every subscribed dashboard query
+// on each cronJobRuns write (reactivity amplification).
 crons.interval(
   'process webhook retries',
-  { minutes: 1 },
+  { minutes: 15 },
   internal.crons.monitoredWebhookRetries,
   {},
 )
@@ -403,33 +406,36 @@ crons.cron(
   {},
 )
 
-// Integration health checks — every 15 minutes.
+// Integration health checks — every 60 minutes.
 crons.interval(
   'integration health checks',
-  { minutes: 15 },
+  { minutes: 60 },
   internal.integrationHealth.runHealthChecks,
   {},
 )
 
-// Workflow auto-advance — every 30 seconds.
+// Workflow auto-advance — every 5 minutes.
 // Picks up queued/running workflows and advances their tasks through the
 // lifecycle (queued → running → completed). Real scanner results are stored
-// independently; this cron drives the orchestration pipeline forward.
+// independently by the scheduler; this cron only drives orchestration state.
+// Cadence note (2026-09): was every 30 seconds; slowed to stay within the
+// Convex free plan function-call budget.
 crons.interval(
   'advance workflow tasks',
-  { seconds: 30 },
+  { minutes: 5 },
   internal.events.advanceWorkflowTasks,
   {},
 )
 
 // ─── LLM Agent System crons ─────────────────────────────────────────────────
 
-// Auto-remediate new critical/high findings — every 5 minutes.
-// Scans for open critical/high findings without a remediation proposal and
-// triggers the LLM remediation agent automatically.
+// Auto-remediate new critical/high findings — every 60 minutes.
+// Cadence note (2026-09): was every 5 minutes; slowed for Convex free plan
+// budget. The job scans for open critical/high findings without a proposal —
+// hourly is plenty for a P0 draft-proposal pass.
 crons.interval(
   'auto-remediate new findings',
-  { minutes: 5 },
+  { minutes: 60 },
   internal.crons.monitoredAutoRemediate,
   {},
 )
