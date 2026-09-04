@@ -1,0 +1,446 @@
+[
+ {
+  "doc": "LIT",
+  "hint": 1,
+  "quote": "the space where NCCR Muoniverse operates, fundamental physics at TRL 1–3, is precisely where no existing commercialization framework was designed to work",
+  "label": "Theme 0 · The headline finding",
+  "file": "LIT_p01_00.png",
+  "page": 1,
+  "size": [
+   1012,
+   200
+  ]
+ },
+ {
+  "doc": "LIT",
+  "hint": 2,
+  "quote": "Two factors are statistically significant predictors of deep tech concentration: knowledge infrastructure (IRR = 1.48) and talent pools (IRR = 1.66)",
+  "label": "Theme 1 · Deep tech is ecosystem-dependent",
+  "file": "LIT_p02_01.png",
+  "page": 2,
+  "size": [
+   1012,
+   200
+  ]
+ },
+ {
+  "doc": "LIT",
+  "hint": 2,
+  "quote": "Relational and market-oriented support matters more than technical support",
+  "label": "Theme 2 · TTOs: relationships, not transactions",
+  "file": "LIT_p02_02.png",
+  "page": 2,
+  "size": [
+   759,
+   200
+  ]
+ },
+ {
+  "doc": "LIT",
+  "hint": 2,
+  "quote": "This constitutes a natural experiment confirming structured frameworks work, but every system adapted the model to local context",
+  "label": "Theme 3 · Structured frameworks outperform ad hoc",
+  "file": "LIT_p02_03.png",
+  "page": 2,
+  "size": [
+   1011,
+   200
+  ]
+ },
+ {
+  "doc": "LIT",
+  "hint": 2,
+  "quote": "Capital ranks below market access and expertise, suggesting the European ecosystem's scarcest resources are not financial",
+  "label": "Theme 4 · Support must be configured, not provided",
+  "file": "LIT_p02_04.png",
+  "page": 2,
+  "size": [
+   1011,
+   200
+  ]
+ },
+ {
+  "doc": "LIT",
+  "hint": 3,
+  "quote": "market features are the strongest predictor of commercialization success (β = 0.514), ahead of technology features (β = 0.310)",
+  "label": "Theme 5 · Market identification is the binding constraint",
+  "file": "LIT_p03_05.png",
+  "page": 3,
+  "size": [
+   1011,
+   200
+  ]
+ },
+ {
+  "doc": "LIT",
+  "hint": 3,
+  "quote": "in importance from the very outset of spin-off creation",
+  "label": "Theme 5b · Cantner: commercial from day one",
+  "file": "LIT_p03_06.png",
+  "page": 3,
+  "size": [
+   672,
+   200
+  ]
+ },
+ {
+  "doc": "LIT",
+  "hint": 3,
+  "quote": "each additional business advisor increases 'application readiness' by 0.23 units (p = 0.04), while each additional technology advisor decreases it by 0.31 units (p = 0.05)",
+  "label": "Theme 5c · Denoo: business advisors help, tech advisors delay",
+  "file": "LIT_p03_07.png",
+  "page": 3,
+  "size": [
+   1011,
+   200
+  ]
+ },
+ {
+  "doc": "LIT",
+  "hint": 3,
+  "quote": "62% of European investors reject founders with prior failures vs. a US culture treating failure as learning",
+  "label": "Theme 6 · Europe's structural barriers",
+  "file": "LIT_p03_08.png",
+  "page": 3,
+  "size": [
+   1011,
+   200
+  ]
+ },
+ {
+  "doc": "LIT",
+  "hint": 3,
+  "quote": "Deep tech requires 35% more time and 48% more capital than conventional startups",
+  "label": "Theme 6b · UNDP: 35% more time, 48% more capital",
+  "file": "LIT_p03_09.png",
+  "page": 3,
+  "size": [
+   827,
+   200
+  ]
+ },
+ {
+  "doc": "LIT",
+  "hint": 3,
+  "quote": "12 defining attributes across three levels: technology",
+  "label": "Theme 7 · Convergence on a deep tech definition",
+  "file": "LIT_p03_10.png",
+  "page": 3,
+  "size": [
+   672,
+   200
+  ]
+ },
+ {
+  "doc": "FA",
+  "hint": 3,
+  "quote": "The space where NCCR Muoniverse operates, fundamental physics at TRL 1–3 , is precisely where no existing framework was designed to work",
+  "label": "Framework gap · The central finding",
+  "file": "FA_p03_11.png",
+  "page": 3,
+  "size": [
+   1040,
+   200
+  ]
+ },
+ {
+  "doc": "FA",
+  "hint": 4,
+  "quote": "This is a pedagogical exercise, not a spin-off creation mechanism",
+  "label": "RCA/Imperial · What the module actually is",
+  "file": "FA_p04_12.png",
+  "page": 4,
+  "size": [
+   1040,
+   200
+  ]
+ },
+ {
+  "doc": "FA",
+  "hint": 5,
+  "quote": "flipping Lean Startup logic on its head",
+  "label": "RCA/Imperial · Flipped Lean Startup",
+  "file": "FA_p05_13.png",
+  "page": 5,
+  "size": [
+   672,
+   200
+  ]
+ },
+ {
+  "doc": "FA",
+  "hint": 7,
+  "quote": "The CRL scale progresses from recognizing initial commercial opportunities (CRL 1) through measuring market factors (CRL 2), understanding competitiveness (CRL 3)",
+  "label": "CRL · The 9-point scale",
+  "file": "FA_p07_14.png",
+  "page": 7,
+  "size": [
+   1040,
+   200
+  ]
+ },
+ {
+  "doc": "FA",
+  "hint": 8,
+  "quote": "The most significant finding of this assessment concerns the framework's academic standing",
+  "label": "CRL · The documentation problem",
+  "file": "FA_p07_15.png",
+  "page": 7,
+  "size": [
+   901,
+   200
+  ]
+ },
+ {
+  "doc": "FA",
+  "hint": 8,
+  "quote": "the CRL lacks a formal assessment methodology",
+  "label": "CRL · No published methodology",
+  "file": "FA_p08_16.png",
+  "page": 8,
+  "size": [
+   672,
+   200
+  ]
+ },
+ {
+  "doc": "FA",
+  "hint": 10,
+  "quote": "Innosuisse is the most institutionally relevant framework for NCCR Muoniverse because it is the Swiss national framework",
+  "label": "Innosuisse · The native framework",
+  "file": "FA_p10_17.png",
+  "page": 10,
+  "size": [
+   1040,
+   200
+  ]
+ },
+ {
+  "doc": "FA",
+  "hint": 11,
+  "quote": "NOT explicitly based on NSF",
+  "label": "Innosuisse · Custom, not codified",
+  "file": "FA_p11_18.png",
+  "page": 11,
+  "size": [
+   592,
+   200
+  ]
+ },
+ {
+  "doc": "FA",
+  "hint": 12,
+  "quote": "the study finds that Innosuisse funding causes an average 20.7% increase in sales and 17.6% increase in employment over five years",
+  "label": "Innosuisse · KOF causal evidence",
+  "file": "FA_p12_19.png",
+  "page": 12,
+  "size": [
+   1040,
+   200
+  ]
+ },
+ {
+  "doc": "FA",
+  "hint": 13,
+  "quote": "no Innosuisse instrument specifically designed for TRL 1–3 commercialization",
+  "label": "Innosuisse · The TRL 1–3 structural gap",
+  "file": "FA_p12_20.png",
+  "page": 12,
+  "size": [
+   756,
+   200
+  ]
+ },
+ {
+  "doc": "FA",
+  "hint": 17,
+  "quote": "requires TRL 5 or above",
+  "label": "EIC · The accelerator gap",
+  "file": "FA_p03_21.png",
+  "page": 3,
+  "size": [
+   670,
+   200
+  ]
+ },
+ {
+  "doc": "FA",
+  "hint": 16,
+  "quote": "Swiss startups and SMEs are eligible for both EIC Accelerator grants and equity investments",
+  "label": "EIC · Swiss eligibility restored Jan 2025",
+  "file": "FA_p16_22.png",
+  "page": 16,
+  "size": [
+   1040,
+   200
+  ]
+ },
+ {
+  "doc": "FA",
+  "hint": 18,
+  "quote": "CERN faces the identical institutional challenge as NCCR Muoniverse: translating fundamental particle physics research into commercial applications",
+  "label": "Candidates · CERN Venture Connect",
+  "file": "FA_p18_23.png",
+  "page": 18,
+  "size": [
+   1040,
+   200
+  ]
+ },
+ {
+  "doc": "FA",
+  "hint": 18,
+  "quote": "the most internationally validated early-TRL commercialization program",
+  "label": "Candidates · I-Corps",
+  "file": "FA_p18_24.png",
+  "page": 18,
+  "size": [
+   1040,
+   200
+  ]
+ },
+ {
+  "doc": "DC",
+  "hint": 4,
+  "quote": "are the strongest predictor of deep tech commercialization success",
+  "label": "Data · The binding constraint",
+  "file": "DC_p04_25.png",
+  "page": 4,
+  "size": [
+   1084,
+   200
+  ]
+ },
+ {
+  "doc": "DC",
+  "hint": 6,
+  "quote": "Talent pools (R&D FTE share)",
+  "label": "Data · Ecosystem: talent IRR=1.66",
+  "file": "DC_p06_26.png",
+  "page": 6,
+  "size": [
+   540,
+   200
+  ]
+ },
+ {
+  "doc": "DC",
+  "hint": 7,
+  "quote": "University incubators",
+  "label": "Data · Incubation: university r=0.118",
+  "file": "DC_p07_27.png",
+  "page": 7,
+  "size": [
+   534,
+   200
+  ]
+ },
+ {
+  "doc": "DC",
+  "hint": 8,
+  "quote": "Each business advisor increases AR",
+  "label": "Data · Advisors: +0.23 vs −0.31",
+  "file": "DC_p08_28.png",
+  "page": 8,
+  "size": [
+   672,
+   200
+  ]
+ },
+ {
+  "doc": "DC",
+  "hint": 10,
+  "quote": "Close business relationships maintained by TTO",
+  "label": "Data · TTO survival: p=0.0034",
+  "file": "DC_p10_29.png",
+  "page": 10,
+  "size": [
+   562,
+   200
+  ]
+ },
+ {
+  "doc": "DC",
+  "hint": 12,
+  "quote": "Spinout value per capita index",
+  "label": "Data · Switzerland #1 (100 vs 33)",
+  "file": "DC_p12_30.png",
+  "page": 12,
+  "size": [
+   568,
+   200
+  ]
+ },
+ {
+  "doc": "DC",
+  "hint": 14,
+  "quote": "Market launch rate (within 3 years post-funding)",
+  "label": "Data · Innosuisse: 57% market launch",
+  "file": "DC_p14_31.png",
+  "page": 14,
+  "size": [
+   639,
+   200
+  ]
+ },
+ {
+  "doc": "DC",
+  "hint": 15,
+  "quote": "Founding rate",
+  "label": "Data · BRIDGE: 70% founding rate",
+  "file": "DC_p14_32.png",
+  "page": 14,
+  "size": [
+   506,
+   200
+  ]
+ },
+ {
+  "doc": "DC",
+  "hint": 16,
+  "quote": "Sales",
+  "label": "Data · KOF DiD: +20.7% sales",
+  "file": "DC_p16_33.png",
+  "page": 16,
+  "size": [
+   471,
+   200
+  ]
+ },
+ {
+  "doc": "DC",
+  "hint": 17,
+  "quote": "The central finding of the framework assessment: every framework has a structural gap at TRL 1–3",
+  "label": "Data · TRL coverage gap",
+  "file": "DC_p17_34.png",
+  "page": 17,
+  "size": [
+   991,
+   200
+  ]
+ },
+ {
+  "doc": "DC",
+  "hint": 19,
+  "quote": "3.7× gap",
+  "label": "Data · EU vs US: €58B vs €215B",
+  "file": "DC_p19_35.png",
+  "page": 19,
+  "size": [
+   672,
+   200
+  ]
+ },
+ {
+  "doc": "DC",
+  "hint": 20,
+  "quote": "+35%",
+  "label": "Data · Deep tech: +35% time, +48% capital",
+  "file": "DC_p20_36.png",
+  "page": 20,
+  "size": [
+   672,
+   200
+  ]
+ }
+]

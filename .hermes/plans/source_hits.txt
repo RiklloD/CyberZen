@@ -1,0 +1,51 @@
+
+### TERM knowledge infrastructure
+NO HITS
+
+### TERM talent pools
+16_RAEng_2023.pdf p 6 : universities and research institutions, | as well as links with investors and highquality talent pools. This has proven true for | companies like London-based Quantum | Motion, which received equity funding from
+19_UNDP_2025.pdf p 61 : exposure to real-world challenges, bridging the disconnect between academic theory and | industrial practice. In addition, companies can benefit by helping to shape future talent pools, | reducing skill gaps, and accelerating workforce readiness in deep tech sectors. | Beyond talent development, industry-integrated research initiatives are fostering deeper
+
+### TERM formal institutions
+raff_springer.pdf p 1 : the quality of the generic entrepreneurial ecosystem and the presence of specific deep-tech enabling | formal institutions. The results of our study thus provide timely guidance to support public | administrations in facilitating the emergence of deep-tech startups in regions. | Log in
+
+### TERM close business relationships
+NO HITS
+
+### TERM customer introductions
+25b_Hello_Tomorrow_2019.pdf p 14 : While many accelerators acknowledge the | importance of customer introductions, they | report difficulties in engaging big corporates | and their innovation units. Although some
+
+### TERM I-Corps
+17_Kortsch_2024.pdf p 39 : Bellavitis, C., M. H. Tran and J. Wiklund. "Strategic Pivoting in Deep Tech: An Investigation | of NSF I-Corps Teams." Strategic Change (2024). | "Eine Milliarde für Zukunftstechnologien im Deep-Tech-Bereich [Online]." Accessed | 03.12.2025.
+38_Hayter_2025_lean.pdf p 1 : and evolution of such initiatives across eight countries, most of which are modeled on the | U.S. National Science Foundation’s Innovation Corps (I-Corps) program but have been | adapted to reflect regional contexts and institutional needs. Through cross-case analysis, | we demonstrate that these programs constitute a multi-tiered infrastructure that strengthens
+36_Denoo_2024_advisors.pdf p 2 : several well-regarded scientific commercialization programs, such as Y-Combinator and | the National Science Foundation (NSF) I-Corps program, require advisor participation | (Huang-Saad, et al., 2017). | Moreover, the growing literature on advisors has largely focused on the effectiveness
+bares_playbook.pdf p 19 : incubators and sector labs. | National/Regional: co-fund I-Corps-style programs, certify curricula, and | maintain a national mentor/EIR registry to support smaller campuses. | Founders: commit to evidence-based milestones (customer discovery, pilot
+blank_wicked.pdf p 2 : The pedagogy of the class (our teaching methods and the learning activities) were | similar to all the Lean/I-Corps and Hacking for Defense classes we’ve previously taught. | This meant the class was team-based, Lean-driven (hypothesis testing/business | model/customer development/agile engineering) and experiential – where the students,
+blank_wicked_v2.pdf p 2 : The pedagogy of the class (our teaching methods and the learning activities) were | similar to all the Lean/I-Corps and Hacking for Defense classes we’ve previously taught. | This meant the class was team-based, Lean-driven (hypothesis testing/business | model/customer development/agile engineering) and experiential – where the students,
+blank_wicked_v3.pdf p 9 : The Class | The pedagogy of the class (our teaching methods and the learning activities) were similar to all the Lean/I-Corps | and Hacking for Defense classes we’ve previously taught. This meant the class was team-based, Lean-driven | (hypothesis testing/business model/customer development/agile engineering) and experiential – where the
+
+### TERM customer discovery
+38_Hayter_2025_lean.pdf p 1 : findings highlight how program choices can be used as levers to strengthen entrepreneurial | capacity, align interventions with the diverse needs of scientists, and improve the integration of customer discovery and related forms of training withing broader ecosystems. | Keywords Academic entrepreneurship · Commercialization · University spinoffs · Lean | LaunchPad · Lean startup method · Customer discovery · Entrepreneurship ecosystems
+36_Denoo_2024_advisors.pdf p 3 : graduate students, post-doctoral fellows, and faculty members associated with universities | participating in the US National Science Foundation (NSF) I-Corps Program. These founders, primarily scientists, participated in a two-week introduction to customer discovery and | thus represent a group of self-identified entrepreneurial researchers interested in forming | SBVs.
+bares_playbook.pdf p 3 : Critical actions: Stand up stage-gated PoC/SBIR-style grants with 8â12 week | decisions; require customer discovery and pilot LoIs; pair cohorts with investor | hand-offs/demo days; match private money; run place-based allocations. | Success signals (KPIs): Time-to-award; PoCâcompany formation rate; followon financing within 12â18 months; pilot/first-revenue within 12â18 months;
+venturewell.pdf p 6 : value chains and identifying the paying audience. They have since learned about | customer discovery and conducted product pilot tests. | BUSINESS MODEL: | Since formation, the team knew they wanted to license or sell their product. They
+
+### TERM market features
+capatina_foresight.pdf p 1 : with lack of marketing skills to communicate their unique value proposition for targeted customers. Incorporating technological foresight as an essential component of strategic foresight, this study explores how the | interplay between firm internal technological, environmental, and market features influences enhanced foresight capabilities. The model is tested with Partial Least Square-Structural Equation Modelling (PLS-SEM) and | uses survey data from managers of European deep-tech companies
+
+### TERM 0.514
+capatina_foresight.pdf p 10 : The structural model outlines that market features (MF) have the | strongest impact enhanced foresight capabilities (EFC) (path coefficient = 0.514), followed by environmental features (EF) on firm’s | internal features (FIF) (path coefficient = 0.480). The lowest impact | on enhanced foresight capabilities (EFC) corresponds to technological
+
+### TERM 0.310
+39_Cantner_2024_aso.pdf p 15 : Basic research 0.408∗∗∗ (0.126) 0.097 (0.225) -0.017 (0.302) | Applied research 0.376∗∗∗ (0.099) 0.064 (0.222) 0.015 (0.310) | Joint R2 | A 0.046 (35.2%) 0.057 (29.6%) 0.022 (15.8%)
+
+### TERM commercial sphere
+39_Cantner_2024_aso.pdf p 1 : the changing relative importance of the academic | and the commercial sphere | Uwe Cantner · Philip Doerr · | Maximilian Goethner · Matthias Huegel ·
+
+### TERM day one
+27_Miozzo_2016.pdf p 17 : ”We received 1.1 million pounds as [an initial] investment. That is what we | started with on day one.” (1999) | 1999 | UK-PNI (1998) “. . . there were a bunch of angel investors at [university]. They had a VC arm, a
+bares_playbook.pdf p 4 : Critical actions: Co-locate wet labs/cleanrooms/shops with TTO; build | compliance/QMS from day one; hire cross-trained technicians; buy equipment | based on pipeline demand; publish transparent pricing + vouchers; provide | HPC/cloud.
+
+### TERM business advisor
+38_Hayter_2025_lean.pdf p 15 : The signature intervention, “Explore,” is a full-time, 12-week program where teams of | four—including an entrepreneurial lead, a principal scientific advisor, a business advisor, | and a technology transfer officer—conduct customer discovery. Each team receives up to | £35,000 to cover travel expenses and the salary of the entrepreneurial lead. Based on customer discovery outcomes, teams recommended for spinoff can receive up to £20,000 for an
+36_Denoo_2024_advisors.pdf p 1 : in combination with the founder’s entrepreneurial and technology experience. We measure | early-stage success in an SBV using application readiness, a novel concept that encompasses progress in both technology discovery and validation as well as market identification and application. Using hand-collected longitudinal data from 112 emerging sciencebased ventures associated with American universities, we find that business advisors have | a positive impact on application readiness, while techno

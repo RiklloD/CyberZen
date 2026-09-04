@@ -1,0 +1,668 @@
+[
+  {
+    "key": [
+      "LIT",
+      "Theme 0 · The headline finding"
+    ],
+    "file": "C:\\Users\\lorik\\AppData\\Local\\Temp\\realsrc\\eic_workprogramme_2026.pdf",
+    "hint": 26,
+    "query": "earliest stages of scientific, technological or deep tech research and development",
+    "ref": "European Commission (2026), EIC Work Programme 2026, p. 26 (EIC Pathfinder).",
+    "file_out": "source_01.png",
+    "page": 26,
+    "size": [
+      2146,
+      1140
+    ],
+    "source_file": "eic_workprogramme_2026.pdf",
+    "source_file_local": "eic_workprogramme_2026.pdf"
+  },
+  {
+    "key": [
+      "LIT",
+      "Theme 1 · Deep tech is ecosystem-dependent"
+    ],
+    "file": "C:\\Users\\lorik\\AppData\\Local\\Temp\\realsrc\\raff_springer.pdf",
+    "hint": 1,
+    "query": "knowledge and talent is more important",
+    "ref": "Micol, F., Leendertse, J. & van Rijnsoever, F. (2026), Journal of Technology Transfer 51, pp. 2886–2915.",
+    "file_out": "source_02.png",
+    "page": 1,
+    "size": [
+      1344,
+      893
+    ],
+    "source_file": "raff_springer.pdf",
+    "source_file_local": "raff_direct.pdf"
+  },
+  {
+    "key": [
+      "LIT",
+      "Theme 2 · TTOs: relationships, not transactions"
+    ],
+    "file": "G:\\Mon Drive\\ZHermes Agent\\Bachelor Thesis\\literature\\papers\\37_Chen_2024_tto_playmakers.pdf",
+    "hint": 16,
+    "query": "TTOs are rapidly becoming playmakers",
+    "ref": "Chen, Z., Little, V. & Thuan, N. (2025), Journal of Technology Transfer 50, pp. 1060–1079.",
+    "file_out": "source_03.png",
+    "page": 16,
+    "size": [
+      791,
+      1055
+    ],
+    "source_file": "37_Chen_2024_tto_playmakers.pdf",
+    "source_file_local": "37_Chen_2024_tto_playmakers.pdf"
+  },
+  {
+    "key": [
+      "LIT",
+      "Theme 3 · Structured frameworks outperform ad hoc"
+    ],
+    "file": "G:\\Mon Drive\\ZHermes Agent\\Bachelor Thesis\\literature\\papers\\38_Hayter_2025_lean.pdf",
+    "hint": 1,
+    "query": "modeled on the U.S. National Science Foundation’s Innovation Corps",
+    "ref": "Hayter, C. S. et al. (2025), Journal of Technology Transfer, DOI 10.1007/s10961-025-10288-6.",
+    "file_out": "source_04.png",
+    "page": 1,
+    "size": [
+      1709,
+      1093
+    ],
+    "source_file": "38_Hayter_2025_lean.pdf",
+    "source_file_local": "38_Hayter_2025_lean.pdf"
+  },
+  {
+    "key": [
+      "LIT",
+      "Theme 4 · Support must be configured, not provided"
+    ],
+    "file": "G:\\Mon Drive\\ZHermes Agent\\Bachelor Thesis\\literature\\papers\\04_Seitz_2026.pdf",
+    "hint": 32,
+    "query": "University incubator",
+    "ref": "Seitz, N. et al. (2026), Review of Managerial Science, DOI 10.1007/s11846-026-01017-w, Table of moderator effects.",
+    "file_out": "source_05.png",
+    "page": 32,
+    "size": [
+      1999,
+      1319
+    ],
+    "source_file": "04_Seitz_2026.pdf",
+    "source_file_local": "04_Seitz_2026.pdf"
+  },
+  {
+    "key": [
+      "LIT",
+      "Theme 5 · Market identification is the binding constraint"
+    ],
+    "file": "C:\\Users\\lorik\\AppData\\Local\\Temp\\realsrc\\capatina_foresight.pdf",
+    "hint": 10,
+    "query": "strongest impact enhanced foresight",
+    "ref": "Capatina, A., Bleoju, G. & Kalisz, D. (2024), Journal of Innovation & Knowledge 9, 100515.",
+    "file_out": "source_06.png",
+    "page": 10,
+    "size": [
+      814,
+      521
+    ],
+    "source_file": "capatina_foresight.pdf",
+    "source_file_local": "capatina_foresight.pdf"
+  },
+  {
+    "key": [
+      "LIT",
+      "Theme 5b · Cantner: commercial from day one"
+    ],
+    "file": "G:\\Mon Drive\\ZHermes Agent\\Bachelor Thesis\\literature\\papers\\39_Cantner_2024_aso.pdf",
+    "hint": 2,
+    "query": "greater importance than the academic sphere",
+    "ref": "Cantner, U. et al. (2024), Small Business Economics 62, pp. 1555–1590.",
+    "file_out": "source_07.png",
+    "page": 2,
+    "size": [
+      949,
+      1056
+    ],
+    "source_file": "39_Cantner_2024_aso.pdf",
+    "source_file_local": "39_Cantner_2024_aso.pdf"
+  },
+  {
+    "key": [
+      "LIT",
+      "Theme 5c · Denoo: business advisors help, tech advisors delay"
+    ],
+    "file": "G:\\Mon Drive\\ZHermes Agent\\Bachelor Thesis\\literature\\papers\\36_Denoo_2024_advisors.pdf",
+    "hint": 19,
+    "query": "AR goes down by about 0.31",
+    "ref": "Denoo, L., Van Boxstael, A. & Belz, A. (2024), Journal of Technology Transfer 49, pp. 1567–1605.",
+    "file_out": "source_08.png",
+    "page": 19,
+    "size": [
+      1690,
+      1034
+    ],
+    "source_file": "36_Denoo_2024_advisors.pdf",
+    "source_file_local": "36_Denoo_2024_advisors.pdf"
+  },
+  {
+    "key": [
+      "LIT",
+      "Theme 6 · Europe's structural barriers"
+    ],
+    "file": "C:\\Users\\lorik\\AppData\\Local\\Temp\\realsrc\\stryber.pdf",
+    "hint": 3,
+    "query": "European Deep Tech firms secured just",
+    "ref": "Stryber (2025), Deep Tech commercialization in Europe: the gap, the challenge, and the fix.",
+    "file_out": "source_09.png",
+    "page": 3,
+    "size": [
+      1694,
+      2588
+    ],
+    "source_file": "stryber.pdf",
+    "source_file_local": "stryber.pdf"
+  },
+  {
+    "key": [
+      "LIT",
+      "Theme 6b · UNDP: 35% more time, 48% more capital"
+    ],
+    "file": "G:\\Mon Drive\\ZHermes Agent\\Bachelor Thesis\\literature\\papers\\19_UNDP_2025.pdf",
+    "hint": 54,
+    "query": "35% more time and 48% more capital",
+    "ref": "UNDP (2025), Global Deep Tech Ecosystems: Catalyzing Innovation for Sustainable Development, p. 54.",
+    "file_out": "source_10.png",
+    "page": 54,
+    "size": [
+      1216,
+      1058
+    ],
+    "source_file": "19_UNDP_2025.pdf",
+    "source_file_local": "19_UNDP_2025.pdf"
+  },
+  {
+    "key": [
+      "LIT",
+      "Theme 7 · Convergence on a deep tech definition"
+    ],
+    "file": "G:\\Mon Drive\\ZHermes Agent\\Bachelor Thesis\\literature\\papers\\17_Kortsch_2024.pdf",
+    "hint": 1,
+    "query": "twelve defining attributes structured across three levels",
+    "ref": "Kortsch, J. et al. (2024), Deep-Tech Innovation: A Multi-Method Study, MIT Sloan / University of Münster.",
+    "file_out": "source_11.png",
+    "page": 1,
+    "size": [
+      2115,
+      1117
+    ],
+    "source_file": "17_Kortsch_2024.pdf",
+    "source_file_local": "17_Kortsch_2024.pdf"
+  },
+  {
+    "key": [
+      "FA",
+      "Framework gap · The central finding"
+    ],
+    "file": "C:\\Users\\lorik\\AppData\\Local\\Temp\\realsrc\\eic_accelerator.pdf",
+    "hint": 1,
+    "query": "TRL 6-8",
+    "ref": "European Innovation Council (2026), EIC Accelerator official programme page.",
+    "file_out": "source_12.png",
+    "page": 1,
+    "size": [
+      951,
+      1125
+    ],
+    "source_file": "eic_accelerator.pdf",
+    "source_file_local": "eic_accelerator.pdf"
+  },
+  {
+    "key": [
+      "FA",
+      "RCA/Imperial · What the module actually is"
+    ],
+    "file": "C:\\Users\\lorik\\AppData\\Local\\Temp\\realsrc\\imperial_dtprime_v2.pdf",
+    "hint": 1,
+    "query": "Turning breakthrough research into investable ventures",
+    "ref": "Imperial College London, DT Prime, Institute for Deep Tech Entrepreneurship (official page).",
+    "file_out": "source_13.png",
+    "page": 1,
+    "size": [
+      1053,
+      1599
+    ],
+    "source_file": "imperial_dtprime_v2.pdf",
+    "source_file_local": "imperial_dtprime_v2.pdf"
+  },
+  {
+    "key": [
+      "FA",
+      "RCA/Imperial · Flipped Lean Startup"
+    ],
+    "file": "C:\\Users\\lorik\\AppData\\Local\\Temp\\realsrc\\blank_wicked_v3.pdf",
+    "hint": 8,
+    "query": "combine the tenets of Lean",
+    "ref": "Blank, S. (2023), Lean Meets Wicked Problems, Steve Blank blog / Imperial College Business School class account.",
+    "file_out": "source_14.png",
+    "page": 8,
+    "size": [
+      731,
+      1022
+    ],
+    "source_file": "blank_wicked_v3.pdf",
+    "source_file_local": "blank_wicked_v3.pdf"
+  },
+  {
+    "key": [
+      "FA",
+      "CRL · The 9-point scale"
+    ],
+    "file": "C:\\Users\\lorik\\AppData\\Local\\Temp\\realsrc\\niti_tcrm_v2.pdf",
+    "hint": 31,
+    "query": "CRL 1 Basic value proposition of technology identified and reported",
+    "ref": "NITI Aayog (2023), A New Lens for Innovation in New India: TCRM Matrix, p. 31.",
+    "file_out": "source_15.png",
+    "page": 31,
+    "size": [
+      1912,
+      2652
+    ],
+    "source_file": "niti_tcrm_v2.pdf",
+    "source_file_local": "niti_tcrm_v2.pdf"
+  },
+  {
+    "key": [
+      "FA",
+      "CRL · The documentation problem"
+    ],
+    "file": "C:\\Users\\lorik\\AppData\\Local\\Temp\\realsrc\\deeptechleaders_crl.pdf",
+    "hint": 8,
+    "query": "Commercial Readiness Level framework",
+    "ref": "Deep Tech Leaders (2025), TRL, MRL & CRL Explained, Part 1, p. 8.",
+    "file_out": "source_16.png",
+    "page": 8,
+    "size": [
+      900,
+      1206
+    ],
+    "source_file": "deeptechleaders_crl.pdf",
+    "source_file_local": "deeptechleaders_crl.pdf"
+  },
+  {
+    "key": [
+      "FA",
+      "CRL · No published methodology"
+    ],
+    "file": "C:\\Users\\lorik\\AppData\\Local\\Temp\\realsrc\\niti_tcrm_v2.pdf",
+    "hint": 32,
+    "query": "TRLs only take into account a technology’s technical readiness",
+    "ref": "NITI Aayog (2023), TCRM Matrix, p. 32 (identifying the limits of TRL and the need for commercial readiness).",
+    "file_out": "source_17.png",
+    "page": 32,
+    "size": [
+      1737,
+      1279
+    ],
+    "source_file": "niti_tcrm_v2.pdf",
+    "source_file_local": "niti_tcrm_v2.pdf"
+  },
+  {
+    "key": [
+      "FA",
+      "Innosuisse · The native framework"
+    ],
+    "file": "C:\\Users\\lorik\\AppData\\Local\\Temp\\realsrc\\innosuisse_coaching.pdf",
+    "hint": 1,
+    "query": "The Start-up Coaching is aimed at young companies and their founders",
+    "ref": "Innosuisse (official), Start-up Coaching overview.",
+    "file_out": "source_18.png",
+    "page": 1,
+    "size": [
+      1835,
+      2686
+    ],
+    "source_file": "innosuisse_coaching.pdf",
+    "source_file_local": "innosuisse_coaching.pdf"
+  },
+  {
+    "key": [
+      "FA",
+      "Innosuisse · Custom, not codified"
+    ],
+    "file": "C:\\Users\\lorik\\AppData\\Local\\Temp\\realsrc\\innosuisse_coaching.pdf",
+    "hint": 2,
+    "query": "Initial Coaching grants you a voucher worth up to CHF 10 000",
+    "ref": "Innosuisse (official), Start-up Coaching overview, voucher-based programme description.",
+    "file_out": "source_19.png",
+    "page": 2,
+    "size": [
+      1645,
+      1663
+    ],
+    "source_file": "innosuisse_coaching.pdf",
+    "source_file_local": "innosuisse_coaching.pdf"
+  },
+  {
+    "key": [
+      "FA",
+      "Innosuisse · KOF causal evidence"
+    ],
+    "file": "C:\\Users\\lorik\\AppData\\Local\\Temp\\realsrc\\kof_innosuisse.pdf",
+    "hint": 21,
+    "query": "average effect of 20.7% after five years",
+    "ref": "Hulfeld, F., Spescha, A. & Wörter, M. (KOF ETH Zurich, 2024), Funding R&D Cooperation between Firms and Universities.",
+    "file_out": "source_20.png",
+    "page": 21,
+    "size": [
+      1156,
+      683
+    ],
+    "source_file": "kof_innosuisse.pdf",
+    "source_file_local": "kof_innosuisse.pdf"
+  },
+  {
+    "key": [
+      "FA",
+      "Innosuisse · The TRL 1–3 structural gap"
+    ],
+    "file": "C:\\Users\\lorik\\AppData\\Local\\Temp\\realsrc\\innosuisse_coaching.pdf",
+    "hint": 2,
+    "query": "Scale-up Coaching grants you a voucher",
+    "ref": "Innosuisse (official), Start-up Coaching overview — stage-specific support and durations.",
+    "file_out": "source_21.png",
+    "page": 2,
+    "size": [
+      931,
+      1051
+    ],
+    "source_file": "innosuisse_coaching.pdf",
+    "source_file_local": "innosuisse_coaching.pdf"
+  },
+  {
+    "key": [
+      "FA",
+      "EIC · The accelerator gap"
+    ],
+    "file": "C:\\Users\\lorik\\AppData\\Local\\Temp\\realsrc\\eic_accelerator.pdf",
+    "hint": 1,
+    "query": "TRL 6-8",
+    "ref": "European Innovation Council (official), EIC Accelerator programme page.",
+    "file_out": "source_22.png",
+    "page": 1,
+    "size": [
+      951,
+      1125
+    ],
+    "source_file": "eic_accelerator.pdf",
+    "source_file_local": "eic_accelerator.pdf"
+  },
+  {
+    "key": [
+      "FA",
+      "EIC · Swiss eligibility restored Jan 2025"
+    ],
+    "file": "C:\\Users\\lorik\\AppData\\Local\\Temp\\realsrc\\switzerland_horizon_europe.pdf",
+    "hint": 2,
+    "query": "on similar terms with EU Member States",
+    "ref": "European Commission (official), International cooperation with Switzerland in research and innovation.",
+    "file_out": "source_23.png",
+    "page": 2,
+    "size": [
+      1082,
+      885
+    ],
+    "source_file": "switzerland_horizon_europe.pdf",
+    "source_file_local": "switzerland_horizon_europe.pdf"
+  },
+  {
+    "key": [
+      "FA",
+      "Candidates · CERN Venture Connect"
+    ],
+    "file": "C:\\Users\\lorik\\AppData\\Local\\Temp\\realsrc\\stryber.pdf",
+    "hint": 3,
+    "query": "CERN Venture Connect Programme Lead at CERN",
+    "ref": "Stryber (2025), Deep Tech commercialization in Europe — source identifying CERN Venture Connect as a relevant institutional actor.",
+    "file_out": "source_24.png",
+    "page": 3,
+    "size": [
+      1139,
+      1069
+    ],
+    "source_file": "stryber.pdf",
+    "source_file_local": "stryber.pdf"
+  },
+  {
+    "key": [
+      "FA",
+      "Candidates · I-Corps"
+    ],
+    "file": "G:\\Mon Drive\\ZHermes Agent\\Bachelor Thesis\\literature\\papers\\38_Hayter_2025_lean.pdf",
+    "hint": 4,
+    "query": "structured customer discovery and business model development",
+    "ref": "Hayter, C. S. et al. (2025), Journal of Technology Transfer, p. 4.",
+    "file_out": "source_25.png",
+    "page": 4,
+    "size": [
+      1689,
+      1094
+    ],
+    "source_file": "38_Hayter_2025_lean.pdf",
+    "source_file_local": "38_Hayter_2025_lean.pdf"
+  },
+  {
+    "key": [
+      "DC",
+      "Data · The binding constraint"
+    ],
+    "file": "C:\\Users\\lorik\\AppData\\Local\\Temp\\realsrc\\capatina_foresight.pdf",
+    "hint": 10,
+    "query": "path coefficient = 0.514",
+    "ref": "Capatina, A., Bleoju, G. & Kalisz, D. (2024), Journal of Innovation & Knowledge 9, 100515, structural model.",
+    "file_out": "source_26.png",
+    "page": 10,
+    "size": [
+      999,
+      1052
+    ],
+    "source_file": "capatina_foresight.pdf",
+    "source_file_local": "capatina_foresight.pdf"
+  },
+  {
+    "key": [
+      "DC",
+      "Data · Ecosystem: talent IRR=1.66"
+    ],
+    "file": "C:\\Users\\lorik\\AppData\\Local\\Temp\\realsrc\\raff_springer.pdf",
+    "hint": 40,
+    "query": "Specificknowledge",
+    "ref": "Micol, F., Leendertse, J. & van Rijnsoever, F. (2026), Journal of Technology Transfer, Table 4.",
+    "file_out": "source_27.png",
+    "page": 40,
+    "size": [
+      1836,
+      2376
+    ],
+    "source_file": "raff_springer.pdf",
+    "source_file_local": "raff_direct.pdf"
+  },
+  {
+    "key": [
+      "DC",
+      "Data · Incubation: university r=0.118"
+    ],
+    "file": "G:\\Mon Drive\\ZHermes Agent\\Bachelor Thesis\\literature\\papers\\04_Seitz_2026.pdf",
+    "hint": 32,
+    "query": "University incubator 10 1520 0.118",
+    "ref": "Seitz, N. et al. (2026), Review of Managerial Science, moderator table.",
+    "file_out": "source_28.png",
+    "page": 32,
+    "size": [
+      1999,
+      1319
+    ],
+    "source_file": "04_Seitz_2026.pdf",
+    "source_file_local": "04_Seitz_2026.pdf"
+  },
+  {
+    "key": [
+      "DC",
+      "Data · Advisors: +0.23 vs −0.31"
+    ],
+    "file": "G:\\Mon Drive\\ZHermes Agent\\Bachelor Thesis\\literature\\papers\\36_Denoo_2024_advisors.pdf",
+    "hint": 19,
+    "query": "roughly 4 business advisors can advance AR by a full unit",
+    "ref": "Denoo, L., Van Boxstael, A. & Belz, A. (2024), Journal of Technology Transfer, p. 1585.",
+    "file_out": "source_29.png",
+    "page": 19,
+    "size": [
+      1709,
+      1101
+    ],
+    "source_file": "36_Denoo_2024_advisors.pdf",
+    "source_file_local": "36_Denoo_2024_advisors.pdf"
+  },
+  {
+    "key": [
+      "DC",
+      "Data · TTO survival: p=0.0034"
+    ],
+    "file": "G:\\Mon Drive\\ZHermes Agent\\Bachelor Thesis\\literature\\papers\\37_Chen_2024_tto_playmakers.pdf",
+    "hint": 16,
+    "query": "building relationships within the wider university innovation service ecosystem",
+    "ref": "Chen, Z., Little, V. & Thuan, N. (2025), Journal of Technology Transfer, p. 1075.",
+    "file_out": "source_30.png",
+    "page": 16,
+    "size": [
+      1433,
+      1039
+    ],
+    "source_file": "37_Chen_2024_tto_playmakers.pdf",
+    "source_file_local": "37_Chen_2024_tto_playmakers.pdf"
+  },
+  {
+    "key": [
+      "DC",
+      "Data · Switzerland #1 (100 vs 33)"
+    ],
+    "file": "C:\\Users\\lorik\\AppData\\Local\\Temp\\realsrc\\swiss_deeptech_2025.pdf",
+    "hint": 3,
+    "query": "60 percent of all domestic venture funding",
+    "ref": "Deep Tech Nation Switzerland / Dealroom.co (2025), Swiss Deep Tech Report 2025, via Swiss Startup Association reproduction.",
+    "file_out": "source_31.png",
+    "page": 3,
+    "size": [
+      2448,
+      1137
+    ],
+    "source_file": "swiss_deeptech_2025.pdf",
+    "source_file_local": "swiss_deeptech_2025.pdf"
+  },
+  {
+    "key": [
+      "DC",
+      "Data · Innosuisse: 57% market launch"
+    ],
+    "file": "C:\\Users\\lorik\\AppData\\Local\\Temp\\realsrc\\innosuisse_impact.pdf",
+    "hint": 2,
+    "query": "Market launch: Three years after the funding has ended",
+    "ref": "Innosuisse (2025), Impact monitoring 2021–2023.",
+    "file_out": "source_32.png",
+    "page": 2,
+    "size": [
+      2108,
+      1108
+    ],
+    "source_file": "innosuisse_impact.pdf",
+    "source_file_local": "innosuisse_impact.pdf"
+  },
+  {
+    "key": [
+      "DC",
+      "Data · BRIDGE: 70% founding rate"
+    ],
+    "file": "C:\\Users\\lorik\\AppData\\Local\\Temp\\realsrc\\innosuisse_impact.pdf",
+    "hint": 3,
+    "query": "Around 70% of the supported researchers found astart-up",
+    "ref": "Innosuisse (2025), Impact monitoring 2021–2023, BRIDGE Proof of Concept.",
+    "file_out": "source_33.png",
+    "page": 3,
+    "size": [
+      1225,
+      1060
+    ],
+    "source_file": "innosuisse_impact.pdf",
+    "source_file_local": "innosuisse_impact.pdf"
+  },
+  {
+    "key": [
+      "DC",
+      "Data · KOF DiD: +20.7% sales"
+    ],
+    "file": "C:\\Users\\lorik\\AppData\\Local\\Temp\\realsrc\\kof_innosuisse.pdf",
+    "hint": 21,
+    "query": "sales that increase over time, with an average effect of 20.7%",
+    "ref": "Hulfeld, F., Spescha, A. & Wörter, M. (KOF ETH Zurich, 2024), causal difference-in-differences result.",
+    "file_out": "source_34.png",
+    "page": 21,
+    "size": [
+      1586,
+      683
+    ],
+    "source_file": "kof_innosuisse.pdf",
+    "source_file_local": "kof_innosuisse.pdf"
+  },
+  {
+    "key": [
+      "DC",
+      "Data · TRL coverage gap"
+    ],
+    "file": "C:\\Users\\lorik\\AppData\\Local\\Temp\\realsrc\\niti_tcrm_v2.pdf",
+    "hint": 30,
+    "query": "TRL 1 Basic principles observed and reported",
+    "ref": "NITI Aayog (2023), TCRM Matrix, p. 30 (TRL scale).",
+    "file_out": "source_35.png",
+    "page": 30,
+    "size": [
+      1912,
+      2652
+    ],
+    "source_file": "niti_tcrm_v2.pdf",
+    "source_file_local": "niti_tcrm_v2.pdf"
+  },
+  {
+    "key": [
+      "DC",
+      "Data · EU vs US: €58B vs €215B"
+    ],
+    "file": "C:\\Users\\lorik\\AppData\\Local\\Temp\\realsrc\\stryber.pdf",
+    "hint": 3,
+    "query": "European Deep Tech firms secured just",
+    "ref": "Stryber (2025), Deep Tech commercialization in Europe.",
+    "file_out": "source_36.png",
+    "page": 3,
+    "size": [
+      1694,
+      2588
+    ],
+    "source_file": "stryber.pdf",
+    "source_file_local": "stryber.pdf"
+  },
+  {
+    "key": [
+      "DC",
+      "Data · Deep tech: +35% time, +48% capital"
+    ],
+    "file": "G:\\Mon Drive\\ZHermes Agent\\Bachelor Thesis\\literature\\papers\\19_UNDP_2025.pdf",
+    "hint": 54,
+    "query": "deep tech startups often require 35% more time and 48% more capital",
+    "ref": "UNDP (2025), Global Deep Tech Ecosystems, p. 54.",
+    "file_out": "source_37.png",
+    "page": 54,
+    "size": [
+      1407,
+      1059
+    ],
+    "source_file": "19_UNDP_2025.pdf",
+    "source_file_local": "19_UNDP_2025.pdf"
+  }
+]

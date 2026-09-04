@@ -1,0 +1,149 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080" font-family="Calibri, Segoe UI, Arial, sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0F1B2D"/>
+      <stop offset="1" stop-color="#0A1220"/>
+    </linearGradient>
+    <linearGradient id="teal" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#14B8A6"/>
+      <stop offset="1" stop-color="#0D9488"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="130%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <!-- background -->
+  <rect width="1920" height="1080" fill="url(#bg)"/>
+  <rect x="0" y="0" width="14" height="1080" fill="url(#teal)"/>
+
+  <!-- header -->
+  <text x="80" y="72" font-size="26" font-weight="bold" fill="#14B8A6" letter-spacing="3">NCCR MUONIVERSE · BACHELOR THESIS · HSG</text>
+  <text x="80" y="130" font-size="52" font-weight="bold" fill="#FFFFFF">The Interview Engine</text>
+  <text x="80" y="172" font-size="22" fill="#9FB3C8">Deep tech commercialization at early TRL in the Swiss innovation ecosystem — Milestone 2 (September 1, 2026)</text>
+  <rect x="80" y="196" width="180" height="5" rx="2.5" fill="#14B8A6"/>
+
+  <!-- ============ FLOW: 5 stages ============ -->
+  <!-- stage 1: gaps -->
+  <g filter="url(#shadow)">
+    <rect x="80" y="250" width="330" height="330" rx="16" fill="#152238"/>
+    <circle cx="140" cy="310" r="30" fill="#14B8A6"/>
+    <text x="140" y="319" font-size="26" font-weight="bold" fill="#0F1B2D" text-anchor="middle">1</text>
+    <text x="185" y="320" font-size="24" font-weight="bold" fill="#FFFFFF">Research gaps</text>
+    <text x="110" y="370" font-size="17" fill="#C9D6E3">8 gaps from the literature map</text>
+    <text x="110" y="400" font-size="15" fill="#9FB3C8">· Early-TRL (1–3) processes</text>
+    <text x="110" y="425" font-size="15" fill="#9FB3C8">· Swiss-specific evidence</text>
+    <text x="110" y="450" font-size="15" fill="#9FB3C8">· Support mechanism effects</text>
+    <text x="110" y="475" font-size="15" fill="#9FB3C8">· "Universe of markets" problem</text>
+    <text x="110" y="500" font-size="15" fill="#9FB3C8">· Framework validity at TRL 1–3</text>
+    <text x="110" y="540" font-size="14" fill="#6B7F96">Source: Milestone 1 — 53 sources, 7 themes</text>
+  </g>
+
+  <!-- arrow 1 -->
+  <path d="M 430 415 L 500 415" stroke="#14B8A6" stroke-width="4" fill="none" marker-end="url(#arrow)"/>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 Z" fill="#14B8A6"/></marker></defs>
+
+  <!-- stage 2: 7 questions -->
+  <g filter="url(#shadow)">
+    <rect x="520" y="250" width="330" height="330" rx="16" fill="#152238"/>
+    <circle cx="580" cy="310" r="30" fill="#14B8A6"/>
+    <text x="580" y="319" font-size="26" font-weight="bold" fill="#0F1B2D" text-anchor="middle">2</text>
+    <text x="625" y="320" font-size="24" font-weight="bold" fill="#FFFFFF">7 questions</text>
+    <text x="550" y="370" font-size="17" fill="#C9D6E3">One 60-minute interview</text>
+    <text x="550" y="400" font-size="15" fill="#9FB3C8">· Journey &amp; motivation</text>
+    <text x="550" y="425" font-size="15" fill="#9FB3C8">· Support mechanisms</text>
+    <text x="550" y="450" font-size="15" fill="#9FB3C8">· Framework exposure</text>
+    <text x="550" y="475" font-size="15" fill="#9FB3C8">· The early-TRL gap</text>
+    <text x="550" y="500" font-size="15" fill="#9FB3C8">· Swiss ecosystem</text>
+    <text x="550" y="525" font-size="15" fill="#9FB3C8">· Market discovery</text>
+    <text x="550" y="550" font-size="15" fill="#9FB3C8">· Open reflection</text>
+  </g>
+
+  <!-- arrow 2 -->
+  <path d="M 870 415 L 940 415" stroke="#14B8A6" stroke-width="4" fill="none" marker-end="url(#arrow)"/>
+
+  <!-- stage 3: candidates -->
+  <g filter="url(#shadow)">
+    <rect x="960" y="250" width="330" height="330" rx="16" fill="#152238"/>
+    <circle cx="1020" cy="310" r="30" fill="#14B8A6"/>
+    <text x="1020" y="319" font-size="26" font-weight="bold" fill="#0F1B2D" text-anchor="middle">3</text>
+    <text x="1065" y="320" font-size="24" font-weight="bold" fill="#FFFFFF">16 candidates</text>
+    <text x="990" y="370" font-size="17" fill="#C9D6E3">5 tiers, verified names</text>
+    <text x="990" y="400" font-size="15" fill="#9FB3C8">· TTOs &amp; funders (6)</text>
+    <text x="990" y="425" font-size="15" fill="#9FB3C8">· Muon &amp; physics owners (4)</text>
+    <text x="990" y="450" font-size="15" fill="#9FB3C8">· Ecosystem builders (3)</text>
+    <text x="990" y="475" font-size="15" fill="#9FB3C8">· Academics (3)</text>
+    <text x="990" y="500" font-size="15" fill="#9FB3C8">· Venture founders (3 slots)</text>
+    <text x="990" y="540" font-size="14" fill="#6B7F96">PSI · EPFL · ETH · CERN · Innosuisse · DECTRIS</text>
+  </g>
+
+  <!-- arrow 3 -->
+  <path d="M 1310 415 L 1380 415" stroke="#14B8A6" stroke-width="4" fill="none" marker-end="url(#arrow)"/>
+
+  <!-- stage 4: interviews -->
+  <g filter="url(#shadow)">
+    <rect x="1400" y="250" width="440" height="330" rx="16" fill="#152238"/>
+    <circle cx="1460" cy="310" r="30" fill="#14B8A6"/>
+    <text x="1460" y="319" font-size="26" font-weight="bold" fill="#0F1B2D" text-anchor="middle">4</text>
+    <text x="1505" y="320" font-size="24" font-weight="bold" fill="#FFFFFF">6–10 interviews</text>
+    <text x="1430" y="370" font-size="17" fill="#C9D6E3">Sep–Dec 2026 · 45–60 min each</text>
+    <text x="1430" y="400" font-size="15" fill="#9FB3C8">· Consent + recording (opt-in)</text>
+    <text x="1430" y="425" font-size="15" fill="#9FB3C8">· Memo within 24 hours</text>
+    <text x="1430" y="450" font-size="15" fill="#9FB3C8">· Transcript shared for review</text>
+    <text x="1430" y="475" font-size="15" fill="#9FB3C8">· Anonymization options</text>
+    <text x="1430" y="515" font-size="14" fill="#6B7F96">~50% acceptance → 16 candidates</text>
+  </g>
+
+  <!-- ============ BOTTOM: outputs ============ -->
+  <rect x="80" y="640" width="1760" height="3" rx="1.5" fill="#1E3A5F"/>
+
+  <text x="80" y="700" font-size="24" font-weight="bold" fill="#FFFFFF">What comes out</text>
+
+  <!-- output cards -->
+  <g filter="url(#shadow)">
+    <rect x="80" y="730" width="410" height="250" rx="16" fill="#152238"/>
+    <rect x="80" y="730" width="410" height="6" rx="3" fill="#14B8A6"/>
+    <text x="110" y="790" font-size="22" font-weight="bold" fill="#FFFFFF">Part 3 draft</text>
+    <text x="110" y="830" font-size="16" fill="#C9D6E3">8–10 pages of thematic analysis</text>
+    <text x="110" y="860" font-size="15" fill="#9FB3C8">· Codes → themes → narrative</text>
+    <text x="110" y="885" font-size="15" fill="#9FB3C8">· Evidence table (interviewee × theme)</text>
+    <text x="110" y="910" font-size="15" fill="#9FB3C8">· Verbatim quotes, traceable</text>
+    <text x="110" y="950" font-size="14" fill="#6B7F96">Due: Nov–Dec 2026</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="520" y="730" width="410" height="250" rx="16" fill="#152238"/>
+    <rect x="520" y="730" width="410" height="6" rx="3" fill="#14B8A6"/>
+    <text x="550" y="790" font-size="22" font-weight="bold" fill="#FFFFFF">Framework design input</text>
+    <text x="550" y="830" font-size="16" fill="#C9D6E3">The thesis's core contribution</text>
+    <text x="550" y="860" font-size="15" fill="#9FB3C8">· What's missing at TRL 1–3</text>
+    <text x="550" y="885" font-size="15" fill="#9FB3C8">· What practitioners actually use</text>
+    <text x="550" y="910" font-size="15" fill="#9FB3C8">· Requirements for a new support model</text>
+    <text x="550" y="950" font-size="14" fill="#6B7F96">Feeds Part 4 synthesis (May 2027)</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="960" y="730" width="410" height="250" rx="16" fill="#152238"/>
+    <rect x="960" y="730" width="410" height="6" rx="3" fill="#14B8A6"/>
+    <text x="990" y="790" font-size="22" font-weight="bold" fill="#FFFFFF">NCCR Muoniverse value</text>
+    <text x="990" y="830" font-size="16" fill="#C9D6E3">Direct input to the Innovation Platform</text>
+    <text x="990" y="860" font-size="15" fill="#9FB3C8">· What support physics ventures need</text>
+    <text x="990" y="885" font-size="15" fill="#9FB3C8">· How to find markets for muons</text>
+    <text x="990" y="910" font-size="15" fill="#9FB3C8">· Ecosystem gaps, first-hand</text>
+    <text x="990" y="950" font-size="14" fill="#6B7F96">"Muons can do many things we don't know yet"</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="1400" y="730" width="440" height="250" rx="16" fill="#152238"/>
+    <rect x="1400" y="730" width="440" height="6" rx="3" fill="#14B8A6"/>
+    <text x="1430" y="790" font-size="22" font-weight="bold" fill="#FFFFFF">Benchmarking synergy</text>
+    <text x="1430" y="830" font-size="16" fill="#C9D6E3">Interviews test the 4+4 frameworks</text>
+    <text x="1430" y="860" font-size="15" fill="#9FB3C8">· RCA/Imperial · CRL · Innosuisse · EIC</text>
+    <text x="1430" y="885" font-size="15" fill="#9FB3C8">· I-Corps · CERN VC · Stage-Gate · DTON</text>
+    <text x="1430" y="910" font-size="15" fill="#9FB3C8">· "Guidance or paperwork?" — answered live</text>
+    <text x="1430" y="950" font-size="14" fill="#6B7F96">Convergence matrix in Part 4</text>
+  </g>
+
+  <!-- footer -->
+  <text x="80" y="1040" font-size="15" fill="#6B7F96">Lorik Dalloshi · HSG · Draft v1.0 · August 9, 2026 · Full kit: interviews/ in the Bachelor Thesis workspace</text>
+</svg>
