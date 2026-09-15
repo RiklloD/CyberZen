@@ -102,7 +102,7 @@ export const voteOnContribution = mutation({
     // Resolve tenant from slug
     const tenant = await ctx.db
       .query('tenants')
-      .withIndex('slug', (q: any) => q.eq('slug', voterTenantSlug))
+      .withIndex('by_slug', (q: any) => q.eq('slug', voterTenantSlug))
       .first()
     if (!tenant) throw new Error('Tenant not found.')
 

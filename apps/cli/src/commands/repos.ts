@@ -79,7 +79,7 @@ export function registerRepos(program: Command): void {
 						path: "/api/repository/health-score",
 						query: {
 							tenantSlug: requiredTenant(options.tenant ?? globals.tenant),
-							repositoryFullName: repositoryName(options.repo),
+							repositoryFullName: repositoryName(options.repo ?? globals.repo),
 						},
 						timeout: globals.timeout,
 					}),
@@ -101,7 +101,7 @@ export function registerRepos(program: Command): void {
 						path: "/api/repository/drift-posture",
 						query: {
 							tenantSlug: requiredTenant(options.tenant ?? globals.tenant),
-							repositoryFullName: repositoryName(options.repo),
+							repositoryFullName: repositoryName(options.repo ?? globals.repo),
 						},
 						timeout: globals.timeout,
 					}),

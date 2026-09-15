@@ -562,7 +562,7 @@ export function registerOperations(program: Command): void {
 	marketplace
 		.command("vote")
 		.requiredOption("--id <id>")
-		.requiredOption("--value <value>")
+		.requiredOption("--value <value>", "upvote or downvote")
 		.action(
 			async (options: { id: string; value: string }, command: Command) => {
 				const globals = globalsOf(command);
@@ -570,7 +570,11 @@ export function registerOperations(program: Command): void {
 					await api({
 						path: "/api/marketplace/contributions/vote",
 						method: "POST",
-						body: { contributionId: options.id, value: options.value },
+						body: {
+							contributionId: options.id,
+							voterTenantSlug: requiredTenant(globals.tenant),
+							voteType: options.value === "downvote" ? "downvote" : "upvote",
+						},
 						timeout: globals.timeout,
 					}),
 					globals,
@@ -596,13 +600,13 @@ export function registerOperations(program: Command): void {
 		});
 	mssp
 		.command("tenant-summary")
-		.requiredOption("--tenant <slug>")
-		.action(async (options: { tenant: string }, command: Command) => {
+		.option("--tenant <slug>")
+		.action(async (options: { tenant?: string }, command: Command) => {
 			const globals = globalsOf(command);
 			render(
 				await api({
 					path: "/api/mssp/tenant/summary",
-					query: { tenantSlug: options.tenant },
+					query: { tenantSlug: requiredTenant(options.tenant ?? globals.tenant) },
 					mssp: true,
 					timeout: globals.timeout,
 				}),
@@ -611,13 +615,13 @@ export function registerOperations(program: Command): void {
 		});
 	mssp
 		.command("tenant-get")
-		.requiredOption("--tenant <slug>")
-		.action(async (options: { tenant: string }, command: Command) => {
+		.option("--tenant <slug>")
+		.action(async (options: { tenant?: string }, command: Command) => {
 			const globals = globalsOf(command);
 			render(
 				await api({
 					path: "/api/mssp/tenant",
-					query: { tenantSlug: options.tenant },
+					query: { tenantSlug: requiredTenant(options.tenant ?? globals.tenant) },
 					mssp: true,
 					timeout: globals.timeout,
 				}),

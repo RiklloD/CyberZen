@@ -26,9 +26,12 @@ export function registerLink(program: Command): void {
 				);
 			const path = linkProject({
 				tenantSlug: tenant,
-				repoFullName: options.repo,
+				repoFullName: options.repo ?? globals.repo,
 			});
-			render({ linked: true, tenant, repo: options.repo, path }, globals);
+			render(
+				{ linked: true, tenant, repo: options.repo ?? globals.repo, path },
+				globals,
+			);
 		});
 
 	program

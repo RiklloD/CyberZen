@@ -92,9 +92,9 @@ export function registerAuth(program: Command): void {
 	auth
 		.command("logout")
 		.description("Remove the locally stored credential")
-		.action(() => {
+		.action((_options: unknown, command: Command) => {
 			const removed = deleteAuth();
-			render({ loggedOut: true, removed });
+			render({ loggedOut: true, removed }, globalsOf(command));
 		});
 
 	auth
