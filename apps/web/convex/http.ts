@@ -1,4 +1,5 @@
 import { httpRouter } from 'convex/server'
+import { ConvexError } from 'convex/values'
 import { api, internal } from './_generated/api'
 import { httpAction } from './_generated/server'
 import type { Id } from './_generated/dataModel'
@@ -79,7 +80,7 @@ http.route({
                 expiresAt: token.expiresAt,
             });
         } catch (err) {
-            const message = err instanceof Error ? err.message : 'unknown_error';
+            const message = publicErrorMessage(err, 'unknown_error');
             return Response.redirect(
                 target(
                     `/onboarding?github=error&reason=${encodeURIComponent(message.slice(0, 200))}`,
@@ -122,6 +123,19 @@ function escapeHtml(s: unknown): string {
 
 function safeParse<T>(json: string | undefined, fallback: T): T {
   try { return json ? JSON.parse(json) as T : fallback } catch { return fallback }
+}
+
+/**
+ * Client-safe error text. Errors thrown in a called mutation/query arrive as
+ * "Uncaught Error: msg\n    at handler (../convex/x.ts:1:2)"; strip the
+ * runtime prefix and stack frames so internals never reach API consumers.
+ */
+function publicErrorMessage(err: unknown, fallback: string): string {
+  if (err instanceof ConvexError && typeof err.data === 'string') return err.data
+  const raw = err instanceof Error ? err.message : typeof err === 'string' ? err : ''
+  const firstLine = raw.split('\n')[0] ?? ''
+  const message = firstLine.replace(/^Uncaught (?:\w*Error): /, '').trim()
+  return message || fallback
 }
 
 function jsonResponse(body: unknown, status: number) {
@@ -244,6 +258,14 @@ async function requireMsspApiKey(
     return new Response(
       JSON.stringify({ error: 'Invalid or expired MSSP API key.' }),
       { status: 401, headers: { ...securityHeaders(), 'Content-Type': 'application/json' } },
+    )
+  }
+
+  // Tenant keys are scoped to one tenant and never grant MSSP access.
+  if (key.startsWith('czk_')) {
+    return new Response(
+      JSON.stringify({ error: 'MSSP endpoints require an MSSP (msk_) API key; tenant (czk_) keys are not accepted.' }),
+      { status: 403, headers: { ...securityHeaders(), 'Content-Type': 'application/json' } },
     )
   }
 
@@ -789,7 +811,7 @@ http.route({
       })
       return jsonResponse(result, 200)
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Status update failed.'
+      const message = publicErrorMessage(err, 'Status update failed.')
       return jsonResponse({ error: message }, 400)
     }
   }),
@@ -1151,7 +1173,7 @@ http.route({
       )
       return jsonResponse({ scheduled: result.scheduled, repositoryId: result.repositoryId }, 202)
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Scan trigger failed.'
+      const message = publicErrorMessage(err, 'Scan trigger failed.')
       return jsonResponse({ error: message }, 400)
     }
   }),
@@ -1264,7 +1286,7 @@ http.route({
       })
       return jsonResponse(result, 201)
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Registration failed.'
+      const message = publicErrorMessage(err, 'Registration failed.')
       return jsonResponse({ error: message }, 400)
     }
   }),
@@ -1317,7 +1339,7 @@ http.route({
       })
       return jsonResponse(result, 200)
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Deletion failed.'
+      const message = publicErrorMessage(err, 'Deletion failed.')
       return jsonResponse({ error: message }, 400)
     }
   }),
@@ -1811,7 +1833,7 @@ http.route({
         },
       )
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Report generation failed.'
+      const message = publicErrorMessage(err, 'Report generation failed.')
       return jsonResponse({ error: message }, 500)
     }
   }),
@@ -1887,7 +1909,7 @@ http.route({
       })
       return jsonResponse({ ...result, honeypotPath, honeypotKind }, 200)
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to record trigger.'
+      const message = publicErrorMessage(err, 'Failed to record trigger.')
       return jsonResponse({ error: message }, 400)
     }
   }),
@@ -1957,7 +1979,7 @@ http.route({
 
       return jsonResponse(result, 200)
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Query failed'
+      const message = publicErrorMessage(err, 'Query failed')
       return jsonResponse({ error: message }, 400)
     }
   }),
@@ -1989,7 +2011,7 @@ http.route({
       })
       return jsonResponse({ environment: env }, 200)
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Query failed'
+      const message = publicErrorMessage(err, 'Query failed')
       return jsonResponse({ error: message }, 400)
     }
   }),
@@ -2027,7 +2049,7 @@ http.route({
       if (!summary) return jsonResponse({ error: 'Repository not found' }, 404)
       return jsonResponse(summary, 200)
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Query failed'
+      const message = publicErrorMessage(err, 'Query failed')
       return jsonResponse({ error: message }, 400)
     }
   }),
@@ -2068,7 +2090,7 @@ http.route({
       })
       return jsonResponse({ ...result, provisioned: true }, 201)
     } catch (err) {
-      return jsonResponse({ error: err instanceof Error ? err.message : 'Operation failed' }, 400)
+      return jsonResponse({ error: publicErrorMessage(err, 'Operation failed') }, 400)
     }
   }),
 })
@@ -2123,7 +2145,7 @@ http.route({
       const result = await ctx.runMutation(internal.mssp.deprovisionTenant, { slug })
       return jsonResponse(result, 200)
     } catch (err) {
-      return jsonResponse({ error: err instanceof Error ? err.message : 'Operation failed' }, 400)
+      return jsonResponse({ error: publicErrorMessage(err, 'Operation failed') }, 400)
     }
   }),
 })
@@ -2395,7 +2417,7 @@ http.route({
       })
       return jsonResponse(result, 200)
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Triage action failed.'
+      const message = publicErrorMessage(err, 'Triage action failed.')
       return jsonResponse({ error: message }, 400)
     }
   }),
@@ -2432,7 +2454,7 @@ http.route({
         headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
       })
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Query failed.'
+      const message = publicErrorMessage(err, 'Query failed.')
       return jsonResponse({ error: message }, 400)
     }
   }),
@@ -2620,7 +2642,7 @@ http.route({
       )
       return jsonResponse(result, 201)
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Unknown error'
+      const msg = publicErrorMessage(err, 'Unknown error')
       return jsonResponse({ error: msg }, 400)
     }
   }),
@@ -2654,7 +2676,7 @@ http.route({
       )
       return jsonResponse(result, 200)
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Unknown error'
+      const msg = publicErrorMessage(err, 'Unknown error')
       return jsonResponse({ error: msg }, 400)
     }
   }),
@@ -2972,7 +2994,7 @@ http.route({
       )
       return jsonResponse({ id: result.id }, 201)
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err)
+      const msg = publicErrorMessage(err, 'Request failed.')
       return jsonResponse({ error: msg }, 400)
     }
   }),
@@ -3056,7 +3078,7 @@ http.route({
       )
       return jsonResponse(result, 200)
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err)
+      const msg = publicErrorMessage(err, 'Request failed.')
       return jsonResponse({ error: msg }, 400)
     }
   }),
@@ -3178,7 +3200,7 @@ http.route({
         headers: { 'Content-Type': 'application/json' },
       })
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err)
+      const msg = publicErrorMessage(err, 'Request failed.')
       return new Response(JSON.stringify({ error: msg }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' },
@@ -6483,7 +6505,7 @@ http.route({
         limit,
       }), 200)
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
+      const message = publicErrorMessage(err, 'Request failed.')
       return jsonResponse({ error: message }, 400)
     }
   }),
@@ -6582,6 +6604,25 @@ http.route({
   }),
 })
 
+// GET /api/cli/tenants — the tenant bound to this API key. Tenant keys see
+// exactly one tenant; cross-tenant listing is the MSSP API (msk_ keys).
+http.route({
+  path: '/api/cli/tenants',
+  method: 'GET',
+  handler: httpAction(async (ctx, request) => {
+    const authError = await authenticateApiRequest(ctx, request)
+    if (authError) return authError
+    const authHeader = request.headers.get('authorization')
+    const rawKey = request.headers.get('x-sentinel-api-key') ??
+      (authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null)
+    if (!rawKey) return jsonResponse({ error: 'Authentication required.' }, 401)
+    const keyCheck = await ctx.runMutation(internal.apiKeys.checkAndRecordTenantKeyUsage, { rawKey })
+    if (keyCheck.status !== 'ok') return jsonResponse({ error: 'Invalid or rate-limited API key.' }, keyCheck.status === 'rate_limited' ? 429 : 401)
+    const tenant = await ctx.runQuery(internal.cliApi.getTenantSummary, { tenantId: keyCheck.tenantId })
+    return jsonResponse(tenant ? [tenant] : [], 200)
+  }),
+})
+
 http.route({
   path: '/api/cli/tenants/members',
   method: 'GET',
@@ -6654,7 +6695,7 @@ http.route({
         200,
       )
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
+      const message = publicErrorMessage(err, 'Request failed.')
       return jsonResponse({ error: message }, 500)
     }
   }),
@@ -6756,7 +6797,7 @@ http.route({
     try {
       return jsonResponse(await ctx.runMutation(internal.cliApi.updateIpAllowlistForTenant, { tenantId: auth.keyCheck.tenantId as Id<'tenants'>, cidrs: body.cidrs }), 200)
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
+      const message = publicErrorMessage(err, 'Request failed.')
       return jsonResponse({ error: message }, 400)
     }
   }),
@@ -6793,7 +6834,7 @@ http.route({
         webhookDeliveriesDays: body.webhookDeliveriesDays,
       }), 200)
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
+      const message = publicErrorMessage(err, 'Request failed.')
       return jsonResponse({ error: message }, 400)
     }
   }),

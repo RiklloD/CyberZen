@@ -161,10 +161,14 @@ export const getScanContext = internalQuery({
 
 // ── GitHub API helpers ───────────────────────────────────────────────────
 
-async function githubFetch(url: string, token: string): Promise<Response> {
+async function githubFetch(
+  url: string,
+  token: string,
+  accept = 'application/vnd.github+json',
+): Promise<Response> {
   const res = await fetch(url, {
     headers: {
-      Accept: 'application/vnd.github+json',
+      Accept: accept,
       Authorization: `Bearer ${token}`,
       'User-Agent': 'CyberZen-Sentinel',
       'X-GitHub-Api-Version': '2022-11-28',
@@ -172,6 +176,38 @@ async function githubFetch(url: string, token: string): Promise<Response> {
   })
   return res
 }
+
+/**
+ * Resolve a branch (or any ref) to its commit SHA so snapshots record the
+ * real commit instead of the branch name. Falls back to the ref on failure.
+ */
+async function resolveCommitSha(
+  owner: string,
+  repo: string,
+  ref: string,
+  token: string,
+): Promise<string> {
+  const url = `${GITHUB_API}/repos/${owner}/${repo}/commits/${encodeURIComponent(ref)}`
+  const res = await githubFetch(url, token, 'application/vnd.github.sha')
+  if (!res.ok) return ref
+  const sha = (await res.text()).trim()
+  return /^[0-9a-f]{40}$/.test(sha) ? sha : ref
+}
+
+// Directories that hold copies of other code (agent worktrees, vendored deps,
+// build output). Scanning them duplicates components and findings.
+const EXCLUDED_TREE_DIRS = [
+  'node_modules/',
+  '.git/',
+  '.claude/worktrees/',
+  'vendor/',
+  '__pycache__/',
+  '.next/',
+  'dist/',
+  'build/',
+  'target/',
+  '.cache/',
+]
 
 /** Fetch the recursive git tree for a repo+branch. Returns blob entries. */
 async function fetchRepoTree(
@@ -192,15 +228,7 @@ async function fetchRepoTree(
   const blobs = (data.tree as GitTreeEntry[]).filter(
     (e) =>
       e.type === 'blob' &&
-      !e.path.includes('node_modules/') &&
-      !e.path.includes('.git/') &&
-      !e.path.includes('vendor/') &&
-      !e.path.includes('__pycache__/') &&
-      !e.path.includes('.next/') &&
-      !e.path.includes('dist/') &&
-      !e.path.includes('build/') &&
-      !e.path.includes('target/') &&
-      !e.path.includes('.cache/'),
+      !EXCLUDED_TREE_DIRS.some((dir) => e.path.includes(dir)),
   )
   return blobs
 }
@@ -626,11 +654,14 @@ export const runRealScan = internalAction({
     }
 
     // 4. Fetch the real repo tree
-    const ref =
+    const isSyntheticSha =
       args.commitSha.startsWith('rescan-') ||
       args.commitSha.startsWith('onboarding-')
-        ? scanCtx.defaultBranch
-        : args.commitSha
+    // Pin the scan to one commit so every scanner sees the same tree and the
+    // stored commitSha is a real SHA rather than the branch name.
+    const ref = isSyntheticSha
+      ? await resolveCommitSha(owner, repoName, scanCtx.defaultBranch, token)
+      : args.commitSha
 
     await log('fetch_tree', 'info', `Fetching repository tree from GitHub`, `${owner}/${repoName}:${ref}`)
 
@@ -723,7 +754,7 @@ export const runRealScan = internalAction({
         await ctx.runMutation(internal.sbom.ingestRepositoryInventoryInternal, {
           tenantSlug: scanCtx.tenantSlug,
           repositoryFullName: scanCtx.repositoryFullName,
-          branch: ref,
+          branch: scanCtx.defaultBranch,
           commitSha: ref,
           sourceFiles: manifestPaths,
           components: uniqueDeps.map((d) => ({
@@ -748,7 +779,7 @@ export const runRealScan = internalAction({
     }
 
     // 8. Dispatch scanners with REAL file content
-    const branch = ref
+    const branch = scanCtx.defaultBranch
     const tenantId = args.tenantId
     const repositoryId = args.repositoryId
 

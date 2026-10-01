@@ -384,6 +384,29 @@ export const getTenantInvites = internalQuery({
   },
 })
 
+export const getTenantSummary = internalQuery({
+  args: { tenantId: v.id('tenants') },
+  returns: v.union(
+    v.object({
+      slug: v.string(),
+      name: v.string(),
+      status: v.union(v.literal('active'), v.literal('paused')),
+      createdAt: v.number(),
+    }),
+    v.null(),
+  ),
+  handler: async (ctx, { tenantId }) => {
+    const tenant = await ctx.db.get(tenantId)
+    if (!tenant) return null
+    return {
+      slug: tenant.slug,
+      name: tenant.name,
+      status: tenant.status,
+      createdAt: tenant.createdAt,
+    }
+  },
+})
+
 // ─── Settings: 2FA (resolved through the API key's owner) ───────────────────
 
 export const getApiKeyOwner = internalQuery({
