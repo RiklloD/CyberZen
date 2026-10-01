@@ -1,5 +1,6 @@
 import type { Command } from "commander";
 import { api } from "../lib/api";
+import { UsageError } from "../lib/errors";
 import { globalsOf } from "../lib/globalFlags";
 import { render } from "../lib/output";
 import { repositoryName, requiredTenant } from "../lib/tenant";
@@ -66,7 +67,10 @@ export function registerDrift(program: Command): void {
 			) => {
 				const globals = globalsOf(command);
 				if (!(DOMAINS as readonly string[]).includes(domain))
-					throw new Error(`Unknown drift domain: ${domain}`);
+					throw new UsageError(
+						`Unknown drift domain: ${domain}`,
+						"Run `cyberzen drift list` for supported domains.",
+					);
 				render(
 					await api({
 						path: `/api/repository/${domain === "posture" ? "drift-posture" : `${domain}-drift`}`,

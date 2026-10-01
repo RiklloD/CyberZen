@@ -13,7 +13,9 @@ export function registerAuth(program: Command): void {
 
 	auth
 		.command("login")
-		.description("Authenticate with an existing tenant API key")
+		.description(
+			"Authenticate via browser device flow, or with --token for an existing API key",
+		)
 		.option("--token <key>", "Tenant API key (czk_) or MSSP key (msk_)")
 		.option("--tenant <slug>", "Default tenant slug")
 		.option("--email <email>", "Email label for this credential")

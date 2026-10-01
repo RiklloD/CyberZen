@@ -1,8 +1,9 @@
 import type { Command } from "commander";
 import { api } from "../lib/api";
+import { requireToken } from "../lib/auth";
 import { readAuth, writeConfig } from "../lib/config";
 import { UsageError } from "../lib/errors";
-import { globalsOf } from "../lib/globalFlags";
+import { activeTokenValue, globalsOf } from "../lib/globalFlags";
 import { render } from "../lib/output";
 import { resolveTenant } from "../lib/project";
 
@@ -42,15 +43,18 @@ export function registerTenants(program: Command): void {
 		.description("List tenants visible to the current credential")
 		.action(async (_options: unknown, command: Command) => {
 			const globals = globalsOf(command);
-			// This endpoint is MSSP-scoped; regular tenant discovery is provided by
-			// the authenticated bridge in the next phase. Keep this command real by
-			// exposing the existing endpoint and its explicit credential requirement.
+			// MSSP keys can see every managed tenant; tenant keys see their own.
+			const isMssp = (activeTokenValue() ?? requireToken()).startsWith("msk_");
 			render(
-				await api({
-					path: "/api/mssp/tenants",
-					mssp: true,
-					timeout: globals.timeout,
-				}),
+				await api(
+					isMssp
+						? {
+								path: "/api/mssp/tenants",
+								mssp: true,
+								timeout: globals.timeout,
+							}
+						: { path: "/api/cli/tenants", timeout: globals.timeout },
+				),
 				globals,
 			);
 		});

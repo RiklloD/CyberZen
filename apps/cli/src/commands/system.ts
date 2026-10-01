@@ -308,7 +308,9 @@ export function registerSystem(program: Command): void {
 	system
 		.command("completions <shell>")
 		.description("Print shell completion script")
-		.action((shell: string) => process.stdout.write(completionScript(shell)));
+		.action((shell: string) => {
+			process.stdout.write(completionScript(shell));
+		});
 	system.command("version").action((_options: unknown, command: Command) => {
 		render(
 			{ cli: process.env.CYBERZEN_CLI_VERSION ?? "0.1.0" },

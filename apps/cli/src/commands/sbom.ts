@@ -93,17 +93,29 @@ export function registerSbom(program: Command): void {
 
 	sbom
 		.command("diff")
-		.requiredOption("--from <snapshot-id>")
-		.requiredOption("--to <snapshot-id>")
-		.action(async (options: { from: string; to: string }, command: Command) => {
-			const globals = globalsOf(command);
-			render(
-				await api({
-					path: "/api/sbom/diff",
-					query: { fromSnapshotId: options.from, toSnapshotId: options.to },
-					timeout: globals.timeout,
-				}),
-				globals,
-			);
-		});
+		.description("Diff two SBOM snapshots by commit SHA")
+		.requiredOption("--from <commit-sha>")
+		.requiredOption("--to <commit-sha>")
+		.option("--tenant <slug>")
+		.option("--repo <owner/name>")
+		.action(
+			async (
+				options: { from: string; to: string; tenant?: string; repo?: string },
+				command: Command,
+			) => {
+				const globals = globalsOf(command);
+				render(
+					await api({
+						path: "/api/sbom/diff",
+						query: {
+							...repoQuery(options, globals),
+							from: options.from,
+							to: options.to,
+						},
+						timeout: globals.timeout,
+					}),
+					globals,
+				);
+			},
+		);
 }

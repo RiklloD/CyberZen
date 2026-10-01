@@ -1,8 +1,23 @@
+import { randomBytes } from "node:crypto";
 import type { Command } from "commander";
 import { api } from "../lib/api";
 import { globalsOf } from "../lib/globalFlags";
 import { render } from "../lib/output";
 import { repositoryName, requiredTenant } from "../lib/tenant";
+
+interface EpssResponse {
+	snapshot: { topCves?: Array<{ cveId: string }> } | null;
+	enriched: unknown[];
+}
+
+/** /api/threat-intel/epss has no CVE filter, so narrow the snapshot client-side. */
+function filterEpss(result: EpssResponse, cve: string | undefined) {
+	if (!cve) return result;
+	const wanted = cve.toUpperCase();
+	return (result.snapshot?.topCves ?? []).filter(
+		(entry) => entry.cveId.toUpperCase() === wanted,
+	);
+}
 
 interface ScopedOptions {
 	tenant?: string;
@@ -227,11 +242,13 @@ export function registerOperations(program: Command): void {
 		.action(async (options: { cve?: string }, command: Command) => {
 			const globals = globalsOf(command);
 			render(
-				await api({
-					path: "/api/threat-intel/epss",
-					query: { cve: options.cve },
-					timeout: globals.timeout,
-				}),
+				filterEpss(
+					await api<EpssResponse>({
+						path: "/api/threat-intel/epss",
+						timeout: globals.timeout,
+					}),
+					options.cve,
+				),
 				globals,
 			);
 		});
@@ -428,27 +445,31 @@ export function registerOperations(program: Command): void {
 		.command("create")
 		.requiredOption("--url <url>")
 		.requiredOption("--events <events>")
-		.option("--secret <secret>", "Optional webhook secret")
+		.option(
+			"--secret <secret>",
+			"Signing secret (generated and printed once if omitted)",
+		)
 		.action(
 			async (
 				options: { url: string; events: string; secret?: string },
 				command: Command,
 			) => {
 				const globals = globalsOf(command);
-				render(
-					await api({
-						path: "/api/webhooks",
-						method: "POST",
-						body: {
-							tenantSlug: requiredTenant(globals.tenant),
-							url: options.url,
-							events: options.events.split(",").map((event) => event.trim()),
-							secret: options.secret,
-						},
-						timeout: globals.timeout,
-					}),
-					globals,
-				);
+				// The API requires a signing secret; generate one so the flag stays
+				// optional, and surface it since it is never retrievable later.
+				const secret = options.secret ?? randomBytes(32).toString("hex");
+				const result = await api<Record<string, unknown>>({
+					path: "/api/webhooks",
+					method: "POST",
+					body: {
+						tenantSlug: requiredTenant(globals.tenant),
+						url: options.url,
+						events: options.events.split(",").map((event) => event.trim()),
+						secret,
+					},
+					timeout: globals.timeout,
+				});
+				render(options.secret ? result : { ...result, secret }, globals);
 			},
 		);
 	webhooks
@@ -606,22 +627,9 @@ export function registerOperations(program: Command): void {
 			render(
 				await api({
 					path: "/api/mssp/tenant/summary",
-					query: { tenantSlug: requiredTenant(options.tenant ?? globals.tenant) },
-					mssp: true,
-					timeout: globals.timeout,
-				}),
-				globals,
-			);
-		});
-	mssp
-		.command("tenant-get")
-		.option("--tenant <slug>")
-		.action(async (options: { tenant?: string }, command: Command) => {
-			const globals = globalsOf(command);
-			render(
-				await api({
-					path: "/api/mssp/tenant",
-					query: { tenantSlug: requiredTenant(options.tenant ?? globals.tenant) },
+					query: {
+						tenantSlug: requiredTenant(options.tenant ?? globals.tenant),
+					},
 					mssp: true,
 					timeout: globals.timeout,
 				}),
