@@ -1,8 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { BookOpen, GitPullRequestArrow } from "lucide-react";
 import { useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import type { Id } from "../../convex/_generated/dataModel";
-import { GitMerge } from "lucide-react";
 import { useState } from "react";
 import StatusPill from "../components/StatusPill";
 import GateDecisionListPanel from "../components/panels/GateDecisionListPanel";
@@ -17,7 +17,11 @@ import DepLockPanel from "../components/panels/DepLockPanel";
 import TestCoverageGapPanel from "../components/panels/TestCoverageGapPanel";
 import RepositoryIacScanPanel from "../components/panels/RepositoryIacScanPanel";
 import { api } from "../lib/convex";
-import { formatTimestamp } from "../lib/utils";
+import { absoluteTime, humanize, relativeTime } from "../lib/format";
+import PageHeader from "../components/ui/PageHeader";
+import Section from "../components/ui/Section";
+import EmptyState from "../components/ui/EmptyState";
+import RepoPicker, { useSelectedRepo } from "../components/ui/RepoPicker";
 import { useTenantSlug } from "../lib/workspace";
 import RouteErrorBoundary from "../components/RouteErrorBoundary";
 
@@ -33,69 +37,148 @@ type OverviewRepository = OverviewData["repositories"][number];
 function CiCdPage() {
 	const TENANT = useTenantSlug();
 	const overview = useQuery(api.dashboard.overview, { tenantSlug: TENANT });
-	const [selectedRepo, setSelectedRepo] = useState<string | null>(null);
 	const [activeTab, setActiveTab] = useState<"overview" | "gate-decisions">("overview");
 	const [selectedDecisionId, setSelectedDecisionId] = useState<string | null>(null);
+	const repositories: OverviewRepository[] = overview?.repositories ?? [];
+	const [activeRepo, selectRepo] = useSelectedRepo(repositories);
 
 	if (!overview) {
 		return (
 			<main className="page-body-padded">
-				<div className="grid gap-3">
-					{["a", "b"].map((k) => (
-						<div key={k} className="loading-panel h-40 rounded-2xl" />
-					))}
-				</div>
+				<div className="skeleton mb-6 h-8 w-56" />
+				<div className="skeleton h-72" />
 			</main>
 		);
 	}
 
-	const { ciGateEnforcement, repositories } = overview;
-	const activeRepo = selectedRepo
-		? repositories.find((r: OverviewRepository) => r._id === selectedRepo)
-		: repositories[0];
+	const { ciGateEnforcement } = overview;
+	const decisionCount =
+		ciGateEnforcement.blockedCount + ciGateEnforcement.approvedCount + ciGateEnforcement.overrideCount;
 
 	return (
 		<main>
-			<div className="page-header">
-				<div className="flex items-center gap-3">
-					<GitMerge size={20} className="text-[var(--signal)]" />
-					<div>
-						<h1 className="page-title">CI / CD Gates</h1>
-						<p className="page-subtitle">
-							Policy-driven gate enforcement · {ciGateEnforcement.blockedCount}{" "}
-							blocked · {ciGateEnforcement.approvedCount} approved
-						</p>
+			<PageHeader
+				title="CI/CD gates"
+				description="Policy checks that block risky changes before they merge or deploy"
+				actions={
+					<>
+						<RepoPicker repositories={repositories} active={activeRepo} onSelect={selectRepo} />
+						<Link to="/docs/github-integration" className="btn">
+							<BookOpen size={14} />
+							Set up GitHub Action
+						</Link>
+					</>
+				}
+			>
+				<div className="kpi-strip">
+					<div className="kpi">
+						<span className="kpi-label">Blocked</span>
+						<span
+							className="kpi-value block"
+							style={ciGateEnforcement.blockedCount > 0 ? { color: "var(--danger)" } : undefined}
+						>
+							{ciGateEnforcement.blockedCount}
+						</span>
+						<span className="kpi-hint block">Changes stopped by policy</span>
+					</div>
+					<div className="kpi">
+						<span className="kpi-label">Passed</span>
+						<span className="kpi-value block">{ciGateEnforcement.approvedCount}</span>
+						<span className="kpi-hint block">Cleared all checks</span>
+					</div>
+					<div className="kpi">
+						<span className="kpi-label">Overridden</span>
+						<span
+							className="kpi-value block"
+							style={ciGateEnforcement.overrideCount > 0 ? { color: "var(--warning)" } : undefined}
+						>
+							{ciGateEnforcement.overrideCount}
+						</span>
+						<span className="kpi-hint block">Merged despite a block</span>
 					</div>
 				</div>
-			</div>
+			</PageHeader>
 
-			{/* Tab bar */}
-			<div className="tab-bar mb-4">
+			<div className="hub-tabs">
 				<button
 					type="button"
-					className={`tab-btn ${activeTab === "overview" ? "is-active" : ""}`}
+					className={`hub-tab ${activeTab === "overview" ? "is-active" : ""}`}
 					onClick={() => setActiveTab("overview")}
 				>
 					Overview
 				</button>
 				<button
 					type="button"
-					className={`tab-btn ${activeTab === "gate-decisions" ? "is-active" : ""}`}
+					className={`hub-tab ${activeTab === "gate-decisions" ? "is-active" : ""}`}
 					onClick={() => setActiveTab("gate-decisions")}
 				>
-					Gate Decisions
+					Decision log
+					<span className="tab-count">{decisionCount}</span>
 				</button>
 			</div>
 
 			{activeTab === "overview" ? (
-				<OverviewTab
-					TENANT={TENANT}
-					ciGateEnforcement={ciGateEnforcement}
-					repositories={repositories}
-					activeRepo={activeRepo}
-					selectedRepo={selectedRepo}
-					setSelectedRepo={setSelectedRepo}
-				/>
+				<div className="page-body">
+					<div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]">
+						<Section title="Recent decisions">
+							{ciGateEnforcement.recentDecisions.length === 0 ? (
+								<div className="list">
+									<EmptyState
+										icon={GitPullRequestArrow}
+										title="No gate decisions yet"
+										description="Add the CyberZen GitHub Action to your workflow and every pull request gets a pass/block verdict here."
+										actions={
+											<Link to="/docs/github-integration" className="btn btn-primary">
+												Set up GitHub Action
+											</Link>
+										}
+									/>
+								</div>
+							) : (
+								<div className="list">
+									{ciGateEnforcement.recentDecisions.map((d: OverviewGateDecision) => (
+										<div key={d._id} className="list-row !items-start">
+											<StatusPill
+												label={d.decision === "approved" ? "Passed" : d.decision}
+												tone={d.decision === "blocked" ? "danger" : d.decision === "approved" ? "success" : "warning"}
+											/>
+											<div className="min-w-0 flex-1">
+												<p className="truncate text-[0.84rem] font-medium">{d.findingTitle}</p>
+												<p className="truncate text-xs text-[var(--text-3)]">
+													{d.repositoryName} · {humanize(d.stage)} · {humanize(d.actorId)}
+												</p>
+												{d.justification && (
+													<p className="mt-0.5 text-xs text-[var(--text-2)]">“{d.justification}”</p>
+												)}
+												{d.expiresAt && (
+													<p className="mt-0.5 text-xs text-[var(--warning)]">
+														Override expires {relativeTime(d.expiresAt)}
+													</p>
+												)}
+											</div>
+											<span className="shrink-0 text-xs text-[var(--text-3)]" title={absoluteTime(d.createdAt)}>
+												{relativeTime(d.createdAt)}
+											</span>
+										</div>
+									))}
+								</div>
+							)}
+						</Section>
+
+						<Section
+							title="Pipeline checks"
+							description={activeRepo ? `Latest results for ${activeRepo.fullName}` : undefined}
+						>
+							{activeRepo ? (
+								<RepoCiCdIntelligence tenantSlug={TENANT} repositoryFullName={activeRepo.fullName} />
+							) : (
+								<div className="list">
+									<EmptyState title="No repositories" description="Add a repository to see its pipeline checks." />
+								</div>
+							)}
+						</Section>
+					</div>
+				</div>
 			) : (
 				<GateDecisionsTab
 					tenantSlug={TENANT}
@@ -106,133 +189,6 @@ function CiCdPage() {
 				/>
 			)}
 		</main>
-	);
-}
-
-/* -------------------------------------------------------------------------- */
-/* Overview Tab — original CI/CD page content                                 */
-/* -------------------------------------------------------------------------- */
-
-function OverviewTab({
-	TENANT,
-	ciGateEnforcement,
-	repositories,
-	activeRepo,
-	selectedRepo: _selectedRepo,
-	setSelectedRepo }: {
-	TENANT: string;
-	ciGateEnforcement: OverviewData["ciGateEnforcement"];
-	repositories: OverviewData["repositories"];
-	activeRepo: OverviewRepository | undefined;
-	selectedRepo: string | null;
-	setSelectedRepo: (id: string | null) => void;
-}) {
-	return (
-		<div className="page-body">
-			<div className="grid gap-4 xl:grid-cols-[1fr_1.2fr]">
-				{/* Left: Gate summary + recent decisions */}
-				<div>
-					{/* Summary stats */}
-					<div className="card mb-4">
-						<p className="panel-label mb-2">Gate Summary</p>
-						<div className="flex flex-wrap gap-2">
-							<StatusPill
-								label={`${ciGateEnforcement.blockedCount} blocked`}
-								tone={
-									ciGateEnforcement.blockedCount > 0 ? "danger" : "success"
-								}
-							/>
-							<StatusPill
-								label={`${ciGateEnforcement.approvedCount} approved`}
-								tone="success"
-							/>
-							{ciGateEnforcement.overrideCount > 0 && (
-								<StatusPill
-									label={`${ciGateEnforcement.overrideCount} overridden`}
-									tone="warning"
-								/>
-							)}
-						</div>
-					</div>
-
-					{/* Recent decisions */}
-					<h2 className="section-title mb-3">Recent Decisions</h2>
-					<div className="space-y-3">
-						{ciGateEnforcement.recentDecisions.map(
-							(d: OverviewGateDecision) => (
-								<div key={d._id} className="card card-sm">
-									<div className="flex flex-wrap items-center gap-2">
-										<StatusPill
-											label={d.decision}
-											tone={
-												d.decision === "blocked"
-													? "danger"
-													: d.decision === "approved"
-														? "success"
-														: "warning"
-											}
-										/>
-										<StatusPill
-											label={d.stage.replace(/_/g, " ")}
-											tone="neutral"
-										/>
-										<StatusPill
-											label={d.actorId.replace(/_/g, " ")}
-											tone="info"
-										/>
-									</div>
-									<h3 className="mt-2 text-sm font-semibold text-[var(--sea-ink)]">
-										{d.findingTitle}
-									</h3>
-									<p className="mt-0.5 text-xs text-[var(--sea-ink-soft)]">
-										{d.repositoryName} · {formatTimestamp(d.createdAt)}
-									</p>
-									{d.justification && (
-										<p className="mt-1 text-xs text-[var(--sea-ink-soft)]">
-											{d.justification}
-										</p>
-									)}
-									{d.expiresAt && (
-										<p className="mt-0.5 text-xs text-[var(--warning)]">
-											Expires: {formatTimestamp(d.expiresAt)}
-										</p>
-									)}
-								</div>
-							),
-						)}
-						{ciGateEnforcement.recentDecisions.length === 0 && (
-							<div className="empty-state border border-dashed border-[var(--line)] rounded-2xl">
-								<p>No gate decisions recorded yet.</p>
-							</div>
-						)}
-					</div>
-				</div>
-
-				{/* Right: Per-repo CI/CD intelligence */}
-				<div>
-					{repositories.length > 1 && (
-						<div className="tab-bar mb-4">
-							{repositories.map((r: OverviewRepository) => (
-								<button
-									key={r._id}
-									type="button"
-									className={`tab-btn ${activeRepo?._id === r._id ? "is-active" : ""}`}
-									onClick={() => setSelectedRepo(r._id)}
-								>
-									{r.fullName.split("/").pop()}
-								</button>
-							))}
-						</div>
-					)}
-					{activeRepo && (
-						<RepoCiCdIntelligence
-							tenantSlug={TENANT}
-							repositoryFullName={activeRepo.fullName}
-						/>
-					)}
-				</div>
-			</div>
-		</div>
 	);
 }
 
@@ -319,6 +275,27 @@ function RepoCiCdIntelligence({
 	const iacScan = useQuery(api.iacScanIntel.getLatestIacScan, {
 		tenantSlug,
 		repositoryFullName });
+
+	const results = [cicdScan, branchProtection, buildConfig, commitMsg, gitIntegrity, highRisk, depLock, testCoverage, iacScan];
+	if (results.some((r) => r === undefined)) {
+		return (
+			<div className="grid gap-3 sm:grid-cols-2">
+				{[1, 2, 3, 4].map((k) => (
+					<div key={k} className="skeleton h-32" />
+				))}
+			</div>
+		);
+	}
+	if (results.every((r) => !r)) {
+		return (
+			<div className="list">
+				<EmptyState
+					title="No pipeline checks yet"
+					description="Checks run on each push and pull request once the repository has been scanned."
+				/>
+			</div>
+		);
+	}
 
 	return (
 		<div className="grid gap-3 sm:grid-cols-2">

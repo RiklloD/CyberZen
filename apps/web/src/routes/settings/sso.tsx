@@ -35,7 +35,6 @@ function SsoPage() {
 		<main>
 			<div className="page-header">
 				<div className="flex items-center gap-3">
-					<Shield size={20} className="text-[var(--signal)]" />
 					<div>
 						<h1 className="page-title">SSO / SAML Configuration</h1>
 						<p className="page-subtitle">

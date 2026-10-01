@@ -1,7 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useAction, useMutation, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
-import { CheckCircle, Loader2, MessageSquare, Plug, XCircle } from "lucide-react";
+import {
+	CheckCircle,
+	Loader2,
+	MessageSquare,
+	XCircle,
+} from "lucide-react";
 import { useState } from "react";
 import StatusPill from "../components/StatusPill";
 import ObservabilityIntelPanel from "../components/panels/ObservabilityIntelPanel";
@@ -60,7 +65,6 @@ function IntegrationsPage() {
 		<main>
 			<div className="page-header">
 				<div className="flex items-center gap-3">
-					<Plug size={20} className="text-[var(--signal)]" />
 					<div>
 						<h1 className="page-title">Integrations</h1>
 						<p className="page-subtitle">

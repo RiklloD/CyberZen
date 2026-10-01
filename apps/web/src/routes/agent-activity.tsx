@@ -1,6 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
-import { Bot, Brain, Shield, Crosshair, Eye, Zap, Activity, DollarSign, ChevronDown, ChevronRight, Code2, FileJson, Cpu, GraduationCap } from "lucide-react";
+import { AlertTriangle, Bot, Brain, Shield, Crosshair, Eye, Zap, Activity, DollarSign, ChevronDown, ChevronRight, Code2, FileJson, Cpu, GraduationCap } from "lucide-react";
 import { useState } from "react";
 import HubTabs from "../components/HubTabs";
 import StatusPill from "../components/StatusPill";
@@ -15,9 +15,9 @@ export const Route = createFileRoute("/agent-activity")({
 	component: AgentsPage });
 
 const AGENTS_TABS = [
-	{ key: "agents", label: "AI Agent System", icon: Cpu, to: "/agent-activity" },
-	{ key: "neural-memory", label: "Neural Memory", icon: Brain, to: "/neural-memory" },
-	{ key: "learning", label: "Agents & Learning", icon: Bot, to: "/agents" },
+	{ key: "agents", label: "Activity", icon: Cpu, to: "/agent-activity" },
+	{ key: "neural-memory", label: "Memory", icon: Brain, to: "/neural-memory" },
+	{ key: "learning", label: "Learning", icon: Bot, to: "/agents" },
 ];
 
 function AgentsPage() {
@@ -36,12 +36,11 @@ function AgentsPage() {
 		<main>
 			<div className="page-header">
 				<div className="flex items-center gap-3">
-					<Bot size={24} className="text-[var(--signal)]" />
 					<div>
-						<h1 className="page-title">AI Agent System</h1>
+						<h1 className="page-title">Agents</h1>
 						<p className="page-subtitle">
-							Autonomous LLM-powered security analysis · Remediation ·
-							Exploit validation · Adversarial Red-Blue · Prompt injection
+							LLM agents that validate exploits, draft fixes, red-team your code and
+							screen for prompt injection
 						</p>
 					</div>
 				</div>
@@ -77,6 +76,8 @@ function AgentsPage() {
 						sublabel="this period"
 					/>
 				</div>
+
+				<AgentHealthCallout tasks={agentTasks} llmCallCount={llmUsage?.records.length ?? 0} />
 
 				{/* Tabs */}
 				<div className="tab-bar mb-5">
@@ -652,4 +653,49 @@ function severityToneLocal(severity: string): "success" | "warning" | "danger" |
 		case "low": return "info";
 		default: return "neutral";
 	}
+}
+
+/**
+ * When agents are failing en masse it is almost always configuration (no LLM
+ * provider, bad key, quota). Say so plainly and link to the fix instead of
+ * leaving the user to infer it from a wall of failed tasks.
+ */
+function AgentHealthCallout({
+	tasks,
+	llmCallCount,
+}: {
+	tasks: { status: string; error?: string }[] | undefined;
+	llmCallCount: number;
+}) {
+	if (!tasks || tasks.length === 0) return null;
+	const failed = tasks.filter((t) => t.status === "failed");
+	const completed = tasks.filter((t) => t.status === "completed").length;
+	if (failed.length === 0 || completed > failed.length) return null;
+
+	const reasons = new Map<string, number>();
+	for (const t of failed) {
+		const reason = (t.error ?? "Unknown error").split("\n")[0].slice(0, 160);
+		reasons.set(reason, (reasons.get(reason) ?? 0) + 1);
+	}
+	const [topReason] = [...reasons.entries()].sort((a, b) => b[1] - a[1])[0];
+	const likelyConfig = llmCallCount === 0;
+
+	return (
+		<div className="callout mb-6" data-tone="danger">
+			<AlertTriangle size={15} />
+			<div className="min-w-0 flex-1">
+				<p className="font-medium text-[var(--text)]">
+					{failed.length} of {tasks.length} recent agent tasks failed
+					{likelyConfig ? " without making a single LLM call" : ""}
+				</p>
+				<p className="mt-0.5 truncate">Most common error: {topReason}</p>
+				{likelyConfig && (
+					<p className="mt-0.5">This usually means no LLM provider is configured or its API key is invalid.</p>
+				)}
+			</div>
+			<Link to="/settings/llm-providers" className="btn btn-sm shrink-0 self-center">
+				Configure LLM provider
+			</Link>
+		</div>
+	);
 }

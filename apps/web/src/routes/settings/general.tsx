@@ -1,6 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
-import { Loader2, Save, Settings } from "lucide-react";
+import {
+	Loader2,
+	Save,
+} from "lucide-react";
 import { useState } from "react";
 import { api } from "../../lib/convex";
 import { useTenantSlug } from "../../lib/workspace";
@@ -101,7 +104,6 @@ function GeneralSettingsPage() {
 		<main>
 			<div className="page-header">
 				<div className="flex items-center gap-3">
-					<Settings size={20} className="text-[var(--signal)]" />
 					<div>
 						<h1 className="page-title">General Settings</h1>
 						<p className="page-subtitle">

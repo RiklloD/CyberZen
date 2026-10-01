@@ -1,20 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useAction } from "convex/react";
 import {
-  Plug,
-  Plus,
-  Trash2,
-  X,
-  CheckCircle2,
-  XCircle,
-  ExternalLink,
-  Eye,
-  EyeOff,
-  Loader2,
-  Zap,
-  Cpu,
-  RefreshCw,
-  AlertTriangle,
+	Plug,
+	Plus,
+	Trash2,
+	X,
+	CheckCircle2,
+	XCircle,
+	ExternalLink,
+	Eye,
+	EyeOff,
+	Loader2,
+	Zap,
+	RefreshCw,
+	AlertTriangle,
 } from "lucide-react";
 import { useState, useTransition, type ReactNode } from "react";
 import StatusPill from "../../components/StatusPill";
@@ -51,7 +50,6 @@ function LlmProvidersPage() {
     <main>
       <div className="page-header">
         <div className="flex items-center gap-3">
-          <Cpu size={20} className="text-[var(--signal)]" />
           <div>
             <h1 className="page-title">LLM Providers</h1>
             <p className="page-subtitle">

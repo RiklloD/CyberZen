@@ -2,13 +2,13 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { useState } from "react";
 import {
-	BookOpen,
 	ChevronDown,
 	ChevronRight,
 	Copy,
 	Download,
 	Github,
-	Play } from "lucide-react";
+	Play,
+} from "lucide-react";
 import StatusPill from "../../components/StatusPill";
 import RouteErrorBoundary from "../../components/RouteErrorBoundary";
 import { api } from "../../lib/convex";
@@ -518,7 +518,6 @@ function ApiDocsPage() {
 		<main>
 			<div className="page-header">
 				<div className="flex items-center gap-3">
-					<BookOpen size={20} className="text-[var(--signal)]" />
 					<div>
 						<h1 className="page-title">API Documentation</h1>
 						<p className="page-subtitle">

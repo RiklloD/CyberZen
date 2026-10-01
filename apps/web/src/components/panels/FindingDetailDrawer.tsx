@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from "convex/react";
-import type { FunctionReturnType } from "convex/server";
 import {
 	BookOpen,
+	GitPullRequest,
 	Check,
 	ChevronDown,
 	ChevronUp,
@@ -16,89 +16,14 @@ import type { Id } from "../../lib/convex";
 import { api } from "../../lib/convex";
 import { formatTimestamp, priorityTierTone } from "../../lib/utils";
 import { useTenantSlug } from "../../lib/workspace";
-import BlastRadiusPanel from "./BlastRadiusPanel";
-import FindingTriageActionBar from "./FindingTriageActionBar";
-
-type OverviewData = NonNullable<
-	FunctionReturnType<typeof api.dashboard.overview>
->;
-type OverviewFinding = OverviewData["findings"][number];
-
-export default function FindingDetailDrawer({
-	findingId,
-	finding }: {
-	findingId: Id<"findings">;
-	finding: OverviewFinding;
-}) {
-	const blastRadius = useQuery(api.blastRadiusIntel.getBlastRadius, {
-		findingId });
-
-	return (
-		<div className="mt-2 card border-l-2 border-l-[var(--lagoon)] rounded-tl-none rounded-bl-none">
-			<div className="grid gap-4 sm:grid-cols-2">
-				{/* Blast Radius */}
-				{blastRadius && <BlastRadiusPanel blastRadius={blastRadius} />}
-
-				{/* Triage Actions */}
-				<div>
-					<p className="panel-label mb-2">Triage</p>
-					<div className="space-y-2">
-						<div className="text-xs text-[var(--sea-ink-soft)]">
-							<span className="font-semibold text-[var(--sea-ink)]">
-								Status:
-							</span>{" "}
-							{finding.status.replace(/_/g, " ")}
-						</div>
-						<div className="text-xs text-[var(--sea-ink-soft)]">
-							<span className="font-semibold text-[var(--sea-ink)]">
-								Validation:
-							</span>{" "}
-							{finding.validationStatus}
-						</div>
-						<div className="text-xs text-[var(--sea-ink-soft)]">
-							<span className="font-semibold text-[var(--sea-ink)]">
-								Source:
-							</span>{" "}
-							{finding.source}
-						</div>
-						<div className="text-xs text-[var(--sea-ink-soft)]">
-							<span className="font-semibold text-[var(--sea-ink)]">
-								Confidence:
-							</span>{" "}
-							{Math.round(finding.confidence * 100)}%
-						</div>
-						<FindingTriageActionBar findingId={findingId} />
-					</div>
-				</div>
-			</div>
-
-			{/* §3.10 — Generate PR CTA */}
-			<GeneratePrButton findingId={findingId} />
-
-			{/* Remediation Queue entry for this finding */}
-			<FindingRemediationEntry findingId={findingId} />
-
-			{/* D2 — Threat Intelligence */}
-			<ThreatIntelSection findingId={findingId} />
-
-			{/* D6 — Security Education */}
-			<SecurityEducationSection
-				findingType={finding.vulnClass}
-				findingId={findingId}
-			/>
-
-			{/* D3 — Remediation Playbook */}
-			<RemediationPlaybookSection findingId={findingId} />
-		</div>
-	);
-}
 
 /**
- * §3.10 — Generate PR button for an individual finding.
- * Calls `api.prGeneration.generatePrForFinding` action, shows a spinner,
- * then displays the PR link when the proposal is created.
+ * Detail sections for a single finding. Composed by `FindingSheet`; each
+ * section renders nothing when it has no data so the sheet stays dense.
  */
-function GeneratePrButton({ findingId }: { findingId: Id<"findings"> }) {
+
+/** §3.10 — Generate a fix PR for an individual finding. */
+export function GeneratePrButton({ findingId }: { findingId: Id<"findings"> }) {
 	const generatePr = useMutation(api.prGeneration.generatePrForFinding);
 	const [loading, setLoading] = useState(false);
 	const [result, setResult] = useState<{
@@ -122,78 +47,37 @@ function GeneratePrButton({ findingId }: { findingId: Id<"findings"> }) {
 		}
 	};
 
+	if (result) {
+		return (
+			<div className="flex flex-wrap items-center gap-2">
+				<StatusPill
+					label={result.status === "open" ? "PR opened" : result.status === "draft" ? "Draft PR" : result.status ?? "Created"}
+					tone={result.status === "open" ? "success" : result.status === "failed" ? "danger" : "neutral"}
+				/>
+				{result.prUrl ? (
+					<a href={result.prUrl} target="_blank" rel="noopener noreferrer" className="btn btn-sm">
+						<ExternalLink size={12} />
+						View PR
+					</a>
+				) : (
+					<span className="text-xs text-[var(--text-2)]">{result.message}</span>
+				)}
+			</div>
+		);
+	}
+
 	return (
-		<div className="mt-3 pt-3 border-t border-[var(--line)]">
-			<p className="panel-label mb-2">PR Generation</p>
-
-			{!result && !error && (
-				<button
-					type="button"
-					onClick={handleGenerate}
-					disabled={loading}
-					className="signal-button"
-					style={{ padding: "0.5rem 0.9rem", fontSize: "0.78rem" }}
-				>
-					{loading ? (
-						<>
-							<Loader2 size={12} className="animate-spin inline mr-1.5" />
-							Generating PR…
-						</>
-					) : (
-						"Generate PR"
-					)}
-				</button>
-			)}
-
-			{loading && (
-				<p className="mt-2 text-xs text-[var(--sea-ink-soft)]">
-					Analyzing finding and preparing fix proposal…
-				</p>
-			)}
-
-			{result && (
-				<div className="mt-1 flex flex-wrap items-center gap-2">
-					<StatusPill
-						label={result.status === "open" ? "✅ PR Opened" : result.status === "draft" ? "📝 Draft" : result.status ?? "Created"}
-						tone={result.status === "open" ? "success" : result.status === "failed" ? "danger" : "neutral"}
-					/>
-					{result.prUrl && (
-						<a
-							href={result.prUrl}
-							target="_blank"
-							rel="noopener noreferrer"
-							className="inline-flex items-center gap-1 text-xs font-medium text-[var(--signal)] hover:underline"
-						>
-							<ExternalLink size={11} />
-							View PR
-						</a>
-					)}
-					{!result.prUrl && (
-						<span className="text-xs text-[var(--sea-ink-soft)]">
-							{result.message}
-						</span>
-					)}
-				</div>
-			)}
-
-			{error && (
-				<div className="mt-1 flex items-center gap-2">
-					<span className="text-xs text-[var(--danger)]">{error}</span>
-					<button
-						type="button"
-						onClick={handleGenerate}
-						className="signal-button secondary-button"
-						style={{ padding: "0.25rem 0.6rem", fontSize: "0.72rem" }}
-					>
-						Retry
-					</button>
-				</div>
-			)}
+		<div className="flex flex-wrap items-center gap-2">
+			<button type="button" onClick={handleGenerate} disabled={loading} className="btn btn-primary">
+				{loading ? <Loader2 size={13} className="animate-spin" /> : <GitPullRequest size={13} />}
+				{loading ? "Preparing fix…" : error ? "Retry" : "Generate fix PR"}
+			</button>
+			{error && <span className="text-xs text-[var(--danger)]">{error}</span>}
 		</div>
 	);
 }
 
-function ThreatIntelSection({ findingId }: { findingId: Id<"findings"> }) {
+export function ThreatIntelSection({ findingId }: { findingId: Id<"findings"> }) {
 	const intelList = useQuery(api.threatIntelligence.getThreatIntelForFinding, {
 		findingId });
 
@@ -314,7 +198,7 @@ function ThreatIntelSection({ findingId }: { findingId: Id<"findings"> }) {
 	);
 }
 
-function SecurityEducationSection({
+export function SecurityEducationSection({
 	findingType }: {
 	findingType: string;
 	findingId: Id<"findings">;
@@ -494,7 +378,7 @@ function difficultyTone(diff: string) {
 			: "neutral";
 }
 
-function RemediationPlaybookSection({
+export function RemediationPlaybookSection({
 	findingId }: {
 	findingId: Id<"findings">;
 }) {
@@ -738,13 +622,16 @@ function RemediationPlaybookSection({
 	);
 }
 
-function FindingRemediationEntry({ findingId }: { findingId: Id<"findings"> }) {
-	const TENANT = useTenantSlug();
-	const repos = useQuery(api.dashboard.overview, { tenantSlug: TENANT });
-	const firstRepo = repos?.repositories[0];
+export function FindingRemediationEntry({
+	findingId,
+	repositoryId,
+}: {
+	findingId: Id<"findings">;
+	repositoryId: Id<"repositories">;
+}) {
 	const queue = useQuery(
 		api.remediationQueueIntel.getRemediationQueueForRepository,
-		firstRepo ? { repositoryId: firstRepo._id as Id<"repositories"> } : "skip",
+		{ repositoryId },
 	);
 
 	if (!queue) return null;

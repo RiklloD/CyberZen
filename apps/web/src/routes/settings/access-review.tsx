@@ -1,6 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
-import { CheckCircle, Flag, Plus, ClipboardList } from "lucide-react";
+import {
+	CheckCircle,
+	Flag,
+	Plus,
+} from "lucide-react";
 import { useState, useTransition } from "react";
 import StatusPill from "../../components/StatusPill";
 import { api } from "../../lib/convex";
@@ -100,7 +104,6 @@ function AccessReviewPage() {
     <main>
       <div className="page-header">
         <div className="flex items-center gap-3">
-          <ClipboardList size={20} className="text-[var(--signal)]" />
           <div>
             <h1 className="page-title">Access Review</h1>
             <p className="page-subtitle">

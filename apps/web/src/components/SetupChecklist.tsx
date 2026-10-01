@@ -1,172 +1,185 @@
 import { Link } from "@tanstack/react-router";
-import {
-	AlertTriangle,
-	CheckCircle2,
-	Circle,
-	Github,
-	Key,
-	Plus,
-	Rocket,
-	Shield,
-	Users,
-} from "lucide-react";
+import { useQuery } from "convex/react";
+import { ArrowRight, Check, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { api } from "../lib/convex";
+import { useTenantSlug } from "../lib/workspace";
 
 /**
- * Setup checklist shown on the dashboard when the workspace
- * hasn't completed basic configuration. Each step links to the
- * relevant page so the user knows exactly what to do next.
- *
- * Steps collapse (entire checklist hidden) once all are complete.
+ * Onboarding checklist for the overview page. Each step is derived from real
+ * workspace state; the first incomplete step is promoted as the next action.
+ * Hidden once complete or when dismissed (per workspace, persisted locally).
  */
 
-type ChecklistStep = {
+type Step = {
 	key: string;
 	label: string;
 	hint: string;
 	done: boolean;
-	linkTo?: string;
-	linkLabel?: string;
-	icon: React.ComponentType<{ size?: number; className?: string }>;
+	to: string;
+	cta: string;
 };
 
+const DISMISS_KEY = "cyberzen.setup.dismissed";
+
 export default function SetupChecklist({
-	hasRepos,
-	hasGithub,
-	hasFindings,
-	hasGatePolicy,
-	hasTeamMembers,
-	hasApiKey,
+	repositoryCount,
+	scannedRepositoryCount,
+	gateDecisionCount,
 }: {
-	hasRepos: boolean;
-	hasGithub: boolean;
-	hasFindings: boolean;
-	hasGatePolicy: boolean;
-	hasTeamMembers: boolean;
-	hasApiKey: boolean;
+	repositoryCount: number;
+	scannedRepositoryCount: number;
+	gateDecisionCount: number;
 }) {
-	const steps: ChecklistStep[] = [
-		{
-			key: "workspace",
-			label: "Create workspace",
-			hint: "Tenant provisioned and ready",
-			done: true, // if we're past onboarding, this is done
-			icon: Shield,
-		},
+	const tenantSlug = useTenantSlug();
+	const profile = useQuery(api.userProfile.getProfile);
+	const members = useQuery(api.workspaceAuth.listMembers, { tenantSlug });
+	const apiKeys = useQuery(api.apiKeys.listApiKeys, { tenantSlug });
+	const [dismissed, setDismissed] = useState(true);
+
+	useEffect(() => {
+		try {
+			const raw = localStorage.getItem(DISMISS_KEY);
+			setDismissed(raw ? (JSON.parse(raw) as string[]).includes(tenantSlug) : false);
+		} catch {
+			setDismissed(false);
+		}
+	}, [tenantSlug]);
+
+	if (dismissed || profile === undefined || members === undefined || apiKeys === undefined) {
+		return null;
+	}
+
+	const steps: Step[] = [
 		{
 			key: "github",
 			label: "Connect GitHub",
-			hint: "Link your GitHub account for repo access",
-			done: hasGithub,
-			linkTo: "/connect/github",
-			linkLabel: "Connect →",
-			icon: Github,
+			hint: "Lets CyberZen read repos and open fix PRs",
+			done: !!profile?.githubConnected || repositoryCount > 0,
+			to: "/connect/github",
+			cta: "Connect",
 		},
 		{
 			key: "repos",
-			label: "Link repositories",
-			hint: "Add at least one repository to monitor",
-			done: hasRepos,
-			linkTo: "/repositories",
-			linkLabel: "Add →",
-			icon: Plus,
+			label: "Add a repository",
+			hint: "Pick the codebases you want monitored",
+			done: repositoryCount > 0,
+			to: "/repositories",
+			cta: "Add",
 		},
 		{
 			key: "scan",
-			label: "Run first scan",
-			hint: "Trigger an initial security scan",
-			done: hasFindings || hasRepos,
-			linkTo: "/repositories",
-			linkLabel: "Scan →",
-			icon: Rocket,
+			label: "Run the first scan",
+			hint: "Builds the SBOM and runs every scanner",
+			done: scannedRepositoryCount > 0,
+			to: "/repositories",
+			cta: "Scan",
 		},
 		{
 			key: "gate",
-			label: "Configure CI/CD gate",
-			hint: "Set up gate policies to block risky PRs",
-			done: hasGatePolicy,
-			linkTo: "/settings/policies",
-			linkLabel: "Set up →",
-			icon: AlertTriangle,
+			label: "Enforce a CI/CD gate",
+			hint: "Block merges that introduce critical risk",
+			done: gateDecisionCount > 0,
+			to: "/docs/github-integration",
+			cta: "Set up",
 		},
 		{
 			key: "team",
-			label: "Invite team",
-			hint: "Add teammates to collaborate",
-			done: hasTeamMembers,
-			linkTo: "/settings/team",
-			linkLabel: "Invite →",
-			icon: Users,
+			label: "Invite your team",
+			hint: "Share triage and assign owners",
+			done: members.length > 1,
+			to: "/settings/team",
+			cta: "Invite",
 		},
 		{
 			key: "apikey",
-			label: "Create API key",
-			hint: "Generate an API key for CI integration",
-			done: hasApiKey,
-			linkTo: "/settings/api-keys",
-			linkLabel: "Create →",
-			icon: Key,
+			label: "Create an API key",
+			hint: "For the CLI, CI, and integrations",
+			done: apiKeys.length > 0,
+			to: "/settings/api-keys",
+			cta: "Create",
 		},
 	];
 
-	const completedCount = steps.filter((s) => s.done).length;
-	const totalCount = steps.length;
-	const allDone = completedCount === totalCount;
+	const doneCount = steps.filter((s) => s.done).length;
+	if (doneCount === steps.length) return null;
+	const nextKey = steps.find((s) => !s.done)?.key;
 
-	// Don't render if everything is complete
-	if (allDone) return null;
+	function dismiss() {
+		setDismissed(true);
+		try {
+			const raw = localStorage.getItem(DISMISS_KEY);
+			const list = raw ? (JSON.parse(raw) as string[]) : [];
+			localStorage.setItem(DISMISS_KEY, JSON.stringify([...new Set([...list, tenantSlug])]));
+		} catch {
+			/* ignore */
+		}
+	}
 
 	return (
-		<div className="setup-checklist">
-			<div className="setup-checklist-header">
-				<div className="flex items-center gap-2">
-					<Rocket size={16} className="text-[var(--signal)]" />
-					<h2 className="text-sm font-semibold text-[var(--sea-ink)]">
-						Get started
-					</h2>
-					<span className="text-xs text-[var(--sea-ink-soft)]">
-						({completedCount}/{totalCount})
-					</span>
+		<div className="card !p-0">
+			<div className="flex items-center justify-between gap-3 px-4 pt-3.5 pb-3">
+				<div>
+					<h2 className="section-title">Finish setting up</h2>
+					<p className="text-xs text-[var(--text-3)]">
+						{doneCount} of {steps.length} complete
+					</p>
 				</div>
-				<div className="setup-checklist-progress">
-					<div
-						className="setup-checklist-progress-bar"
-						style={{ width: `${(completedCount / totalCount) * 100}%` }}
-					/>
-				</div>
+				<button
+					type="button"
+					className="icon-button !h-7 !w-7"
+					onClick={dismiss}
+					aria-label="Dismiss setup checklist"
+					title="Dismiss"
+				>
+					<X size={14} />
+				</button>
 			</div>
-			<div className="setup-checklist-steps">
-				{steps.map((step) => (
-					<div
-						key={step.key}
-						className={`setup-checklist-item${step.done ? " is-done" : ""}`}
-					>
-						<div className="flex items-center gap-3">
-							{step.done ? (
-								<CheckCircle2 size={16} className="text-[var(--success, #22c55e)] flex-shrink-0" />
-							) : (
-								<Circle size={16} className="text-[var(--sea-ink-dim)] flex-shrink-0" />
-							)}
-							<step.icon size={14} className={step.done ? "opacity-40" : "text-[var(--signal)]"} />
-							<div className="min-w-0">
-								<p className={`text-xs font-medium ${step.done ? "text-[var(--sea-ink-soft)] line-through" : "text-[var(--sea-ink)]"}`}>
-									{step.label}
-								</p>
-								<p className="text-[11px] text-[var(--sea-ink-dim)]">
-									{step.hint}
-								</p>
-							</div>
-						</div>
-						{!step.done && step.linkTo && (
+			<div className="meter mx-4 mb-2">
+				<span style={{ width: `${(doneCount / steps.length) * 100}%` }} />
+			</div>
+			<ul className="pb-1.5">
+				{steps.map((step) => {
+					const isNext = step.key === nextKey;
+					return (
+						<li key={step.key}>
 							<Link
-								to={step.linkTo as "/"}
-								className="setup-checklist-link"
+								to={step.to as "/"}
+								className={`flex items-center gap-3 px-4 py-2 hover:bg-[var(--surface-2)] ${step.done ? "pointer-events-none" : ""}`}
+								tabIndex={step.done ? -1 : undefined}
 							>
-								{step.linkLabel}
+								<span
+									className={`flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border ${
+										step.done
+											? "border-transparent bg-[var(--accent)] text-[var(--accent-fg)]"
+											: isNext
+												? "border-[var(--accent)]"
+												: "border-[var(--line-strong)]"
+									}`}
+								>
+									{step.done && <Check size={11} strokeWidth={3} />}
+								</span>
+								<span className="min-w-0 flex-1">
+									<span
+										className={`block text-[0.82rem] ${step.done ? "text-[var(--text-3)] line-through" : "font-medium text-[var(--text)]"}`}
+									>
+										{step.label}
+									</span>
+									{isNext && (
+										<span className="block text-xs text-[var(--text-3)]">{step.hint}</span>
+									)}
+								</span>
+								{isNext && (
+									<span className="btn btn-primary btn-sm">
+										{step.cta}
+										<ArrowRight size={12} />
+									</span>
+								)}
 							</Link>
-						)}
-					</div>
-				))}
-			</div>
+						</li>
+					);
+				})}
+			</ul>
 		</div>
 	);
 }

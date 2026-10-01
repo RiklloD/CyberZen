@@ -20,9 +20,9 @@ export const Route = createFileRoute("/neural-memory")({
   component: NeuralMemoryPage });
 
 const AGENTS_TABS = [
-	{ key: "agents", label: "AI Agent System", icon: Cpu, to: "/agent-activity" },
-	{ key: "neural-memory", label: "Neural Memory", icon: Brain, to: "/neural-memory" },
-	{ key: "learning", label: "Agents & Learning", icon: Bot, to: "/agents" },
+	{ key: "agents", label: "Activity", icon: Cpu, to: "/agent-activity" },
+	{ key: "neural-memory", label: "Memory", icon: Brain, to: "/neural-memory" },
+	{ key: "learning", label: "Learning", icon: Bot, to: "/agents" },
 ];
 
 type Tab = "dashboard" | "patterns" | "predictions" | "episodes" | "insights" | "settings";
@@ -67,7 +67,6 @@ function NeuralMemoryPage() {
     <main>
       <div className="page-header">
         <div className="flex items-center gap-3">
-          <Brain size={20} className="text-[var(--signal)]" />
           <div>
             <h1 className="page-title">Neural Memory</h1>
             <p className="page-subtitle">

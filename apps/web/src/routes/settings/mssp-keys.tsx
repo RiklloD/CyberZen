@@ -1,6 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
-import { Plus, RefreshCw, Trash2, Copy, Shield } from "lucide-react";
+import {
+	Plus,
+	RefreshCw,
+	Trash2,
+	Copy,
+} from "lucide-react";
 import { useState, useTransition } from "react";
 import StatusPill from "../../components/StatusPill";
 import { api } from "../../lib/convex";
@@ -89,7 +94,6 @@ function MsspKeysPage() {
     <main>
       <div className="page-header">
         <div className="flex items-center gap-3">
-          <Shield size={20} className="text-[var(--signal)]" />
           <div>
             <h1 className="page-title">MSSP API Keys</h1>
             <p className="page-subtitle">

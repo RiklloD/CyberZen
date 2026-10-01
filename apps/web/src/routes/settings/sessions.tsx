@@ -2,12 +2,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
 import {
 	Globe,
-	Laptop,
 	Loader2,
 	LogOut,
 	Monitor,
 	Smartphone,
-	Tablet } from "lucide-react";
+	Tablet,
+} from "lucide-react";
 import { useState } from "react";
 import { api } from "../../lib/convex";
 import { useTenantSlug } from "../../lib/workspace";
@@ -91,7 +91,6 @@ function SessionsPage() {
 		<main>
 			<div className="page-header">
 				<div className="flex items-center gap-3">
-					<Laptop size={20} className="text-[var(--signal)]" />
 					<div>
 						<h1 className="page-title">Active Sessions</h1>
 						<p className="page-subtitle">

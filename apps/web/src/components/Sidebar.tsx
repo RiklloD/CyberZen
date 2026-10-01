@@ -1,23 +1,25 @@
 import { Link, useRouterState } from "@tanstack/react-router";
+import { useQuery } from "convex/react";
 import {
 	AlertTriangle,
 	BarChart3,
 	Bot,
-	GitBranch,
-	GitMerge,
-	Link2,
+	FolderGit2,
+	GitPullRequestArrow,
+	Home,
 	Lock,
-	LayoutDashboard,
 	Menu,
+	Network,
+	Package,
+	Radar,
 	Settings,
-	Shield,
-	ShieldCheck,
 	Wrench,
 	X,
-	ChevronRight,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { api } from "../lib/convex";
 import { useFeatureFlag } from "../lib/featureFlags";
+import { useTenantSlug } from "../lib/workspace";
 import ThemeToggle from "./ThemeToggle";
 import UserProfileButton from "./UserProfileButton";
 import WorkspaceSwitcher from "./WorkspaceSwitcher";
@@ -27,189 +29,108 @@ type NavItem = {
 	label: string;
 	icon: React.ComponentType<{ size?: number; className?: string }>;
 	featureFlag?: string;
+	/** Extra path prefixes that should light this item up. */
+	match?: string[];
+	countKey?: "findings";
 };
 
-type NavGroup = {
-	label: string;
-	items: NavItem[];
-	/** When true, this group sits in the footer area below a divider. */
-	isFooter?: boolean;
-};
+type NavGroup = { label?: string; items: NavItem[] };
 
 /**
- * Progressive-disclosure navigation.
+ * Navigation is organised around the job a security engineer is doing,
+ * not around the product's internal modules:
  *
- * Only daily-use destinations appear at the top level. Everything else
- * (settings, reports, hub pages) is reachable from those pages or from
- * the footer links. This keeps the sidebar scannable and the mental model
- * clear: the 5 top items are "what needs my attention", the rest is
- * deeper analysis and configuration.
+ *   triage   → what's wrong right now (Overview, Findings, Repositories)
+ *   respond  → getting it fixed and keeping it from coming back
+ *   intel    → why it matters and where it might come from next
  */
-const navGroups: NavGroup[] = [
+const NAV: NavGroup[] = [
 	{
-		label: "Main",
 		items: [
-			{ to: "/", label: "Dashboard", icon: LayoutDashboard },
-			{ to: "/findings", label: "Findings", icon: AlertTriangle },
-			{ to: "/repositories", label: "Repositories", icon: GitBranch },
-			{ to: "/breach-intel", label: "Breach Intel", icon: Shield },
+			{ to: "/", label: "Overview", icon: Home },
+			{
+				to: "/findings",
+				label: "Findings",
+				icon: AlertTriangle,
+				match: ["/timeline"],
+				countKey: "findings",
+			},
+			{ to: "/repositories", label: "Repositories", icon: FolderGit2 },
 		],
 	},
 	{
-		label: "Analysis",
+		label: "Respond",
 		items: [
-			{ to: "/attack-paths", label: "Attack Paths", icon: ShieldCheck },
-			{ to: "/supply-chain", label: "Supply Chain", icon: Link2 },
-		],
-	},
-	{
-		label: "Automation",
-		items: [
-			{ to: "/ci-cd", label: "CI / CD Gates", icon: GitMerge },
 			{ to: "/remediation", label: "Remediation", icon: Wrench },
+			{ to: "/ci-cd", label: "CI/CD gates", icon: GitPullRequestArrow },
 		],
 	},
 	{
 		label: "Intelligence",
 		items: [
-			{ to: "/agent-activity", label: "Agents", icon: Bot },
+			{ to: "/breach-intel", label: "Breach intel", icon: Radar },
+			{
+				to: "/supply-chain",
+				label: "Supply chain",
+				icon: Package,
+				match: ["/sbom", "/cross-repo", "/zero-day", "/exploit-validation"],
+			},
+			{ to: "/attack-paths", label: "Attack paths", icon: Network },
+			{
+				to: "/agent-activity",
+				label: "Agents",
+				icon: Bot,
+				match: ["/agents", "/neural-memory"],
+			},
 		],
 	},
-	// ── Footer links (below a divider) ────────────────────────────────────
 	{
-		label: "More",
-		isFooter: true,
+		label: "Workspace",
 		items: [
-			{ to: "/reports", label: "Reports", icon: BarChart3 },
-			{ to: "/settings", label: "Settings", icon: Settings },
+			{
+				to: "/reports",
+				label: "Reports",
+				icon: BarChart3,
+				match: [
+					"/posture",
+					"/executive-report",
+					"/maturity",
+					"/business-impact",
+					"/compliance",
+					"/dashboards",
+				],
+			},
+			{
+				to: "/settings",
+				label: "Settings",
+				icon: Settings,
+				match: ["/integrations", "/audit-log"],
+			},
 		],
 	},
 ];
 
-// ── Collapsible group state ───────────────────────────────────────────────
-
-const COLLAPSED_KEY = "cyberzen.sidebar.collapsed";
-
-function useCollapsedGroups() {
-	const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
-
-	// Load persisted state on mount
-	useEffect(() => {
-		try {
-			const raw = localStorage.getItem(COLLAPSED_KEY);
-			if (raw) setCollapsed(new Set(JSON.parse(raw)));
-		} catch { /* ignore parse errors */ }
-	}, []);
-
-	const toggle = (label: string) => {
-		setCollapsed((prev) => {
-			const next = new Set(prev);
-			if (next.has(label)) next.delete(label);
-			else next.add(label);
-			try { localStorage.setItem(COLLAPSED_KEY, JSON.stringify([...next])); } catch { /* ignore */ }
-			return next;
-		});
-	};
-
-	return { collapsed, toggle };
-}
-
-// ── Component ─────────────────────────────────────────────────────────────
-
 export default function Sidebar() {
 	const [mobileOpen, setMobileOpen] = useState(false);
-	const routerState = useRouterState();
-	const currentPath = routerState.location.pathname;
-	const { collapsed, toggle } = useCollapsedGroups();
+	const currentPath = useRouterState({ select: (s) => s.location.pathname });
+	const tenantSlug = useTenantSlug();
+	const findingStats = useQuery(api.findings.stats, { tenantSlug });
 
-	function isActive(to: string) {
-		if (to === "/") return currentPath === "/";
-		return currentPath === to || currentPath.startsWith(`${to}/`);
+	// Close the mobile sheet whenever the route changes.
+	useEffect(() => {
+		setMobileOpen(false);
+	}, [currentPath]);
+
+	const counts: Record<NonNullable<NavItem["countKey"]>, number | undefined> = {
+		findings: findingStats?.openAndCritical,
+	};
+
+	function isActive(item: NavItem) {
+		const prefixes = [item.to, ...(item.match ?? [])];
+		return prefixes.some((p) =>
+			p === "/" ? currentPath === "/" : currentPath === p || currentPath.startsWith(`${p}/`),
+		);
 	}
-
-	/** Auto-expand a group if any of its items is active. */
-	function isGroupAutoExpanded(group: NavGroup) {
-		return group.items.some((item) => isActive(item.to));
-	}
-
-	// Split into main groups and footer links
-	const mainGroups = navGroups.filter((g) => !g.isFooter);
-	const footerGroup = navGroups.find((g) => g.isFooter);
-
-	const nav = (
-		<div className="sidebar-inner">
-			<div className="sidebar-brand">
-				<span className="sidebar-brand-icon">
-					<Shield size={18} />
-				</span>
-				<div className="sidebar-brand-text">
-					<div className="sidebar-brand-name">CyberZen</div>
-					<div className="sidebar-brand-sub">Sentinel control plane</div>
-				</div>
-			</div>
-
-			<div className="sidebar-workspace">
-				<WorkspaceSwitcher />
-			</div>
-
-			<nav className="sidebar-nav">
-				{mainGroups.map((group) => {
-					const isCollapsed = collapsed.has(group.label) && !isGroupAutoExpanded(group);
-					return (
-						<div key={group.label} className="sidebar-group">
-							<button
-								type="button"
-								className="sidebar-group-label"
-								onClick={() => toggle(group.label)}
-								aria-expanded={!isCollapsed}
-								aria-label={`Toggle ${group.label} section`}
-							>
-								<span>{group.label}</span>
-								<ChevronRight
-									size={12}
-									className="sidebar-group-chevron"
-									style={{ transform: isCollapsed ? "rotate(0deg)" : "rotate(90deg)", transition: "transform 160ms ease" }}
-								/>
-							</button>
-							{!isCollapsed && (
-								<div className="sidebar-group-items">
-									{group.items.map((item) => (
-										<SidebarItem
-											key={item.to}
-											item={item}
-											isActive={isActive(item.to)}
-											onNavigate={() => setMobileOpen(false)}
-										/>
-									))}
-								</div>
-							)}
-						</div>
-					);
-				})}
-
-				{footerGroup && (
-					<>
-						<div className="sidebar-divider" />
-						<div className="sidebar-group-items">
-							{footerGroup.items.map((item) => (
-								<SidebarItem
-									key={item.to}
-									item={item}
-									isActive={isActive(item.to)}
-									onNavigate={() => setMobileOpen(false)}
-								/>
-							))}
-						</div>
-					</>
-				)}
-			</nav>
-
-			<div className="sidebar-footer">
-				<UserProfileButton />
-				<ThemeToggle />
-			</div>
-		</div>
-	);
 
 	return (
 		<>
@@ -224,7 +145,7 @@ export default function Sidebar() {
 				aria-expanded={mobileOpen}
 				aria-controls="sidebar-nav"
 			>
-				{mobileOpen ? <X size={20} /> : <Menu size={20} />}
+				{mobileOpen ? <X size={16} /> : <Menu size={16} />}
 			</button>
 
 			{mobileOpen && (
@@ -238,10 +159,38 @@ export default function Sidebar() {
 			<aside
 				id="sidebar-nav"
 				className={`sidebar${mobileOpen ? " is-open" : ""}`}
-				role="navigation"
 				aria-label="Main navigation"
 			>
-				{nav}
+				<div className="sidebar-inner">
+					<div className="sidebar-top">
+						<WorkspaceSwitcher />
+					</div>
+
+					<nav className="sidebar-nav">
+						{NAV.map((group, gi) => (
+							<div key={group.label ?? gi}>
+								{group.label && (
+									<div className="sidebar-group-label">{group.label}</div>
+								)}
+								<div className="sidebar-group-items">
+									{group.items.map((item) => (
+										<SidebarItem
+											key={item.to}
+											item={item}
+											isActive={isActive(item)}
+											count={item.countKey ? counts[item.countKey] : undefined}
+										/>
+									))}
+								</div>
+							</div>
+						))}
+					</nav>
+
+					<div className="sidebar-footer">
+						<UserProfileButton />
+						<ThemeToggle />
+					</div>
+				</div>
 			</aside>
 		</>
 	);
@@ -250,23 +199,21 @@ export default function Sidebar() {
 function SidebarItem({
 	item,
 	isActive,
-	onNavigate }: {
+	count,
+}: {
 	item: NavItem;
 	isActive: boolean;
-	onNavigate: () => void;
+	count?: number;
 }) {
 	const flagEnabled = useFeatureFlag(item.featureFlag ?? "");
-	const isGated = !!item.featureFlag;
-	const isLocked = isGated && flagEnabled === false;
+	const isLocked = !!item.featureFlag && flagEnabled === false;
 
 	if (isLocked) {
 		return (
 			<Link
 				to="/pricing"
-				className={`sidebar-item is-locked${isActive ? " is-active" : ""}`}
-				onClick={onNavigate}
+				className="sidebar-item"
 				title={`${item.label} requires an Enterprise plan`}
-				aria-label={`${item.label} (Enterprise — locked, click to view pricing)`}
 			>
 				<item.icon size={15} />
 				<span>{item.label}</span>
@@ -279,10 +226,18 @@ function SidebarItem({
 		<Link
 			to={item.to as "/"}
 			className={`sidebar-item${isActive ? " is-active" : ""}`}
-			onClick={onNavigate}
+			aria-current={isActive ? "page" : undefined}
 		>
 			<item.icon size={15} />
 			<span>{item.label}</span>
+			{count !== undefined && count > 0 && (
+				<span
+					className="sidebar-item-count is-danger"
+					title={`${count} open critical/high findings`}
+				>
+					{count > 99 ? "99+" : count}
+				</span>
+			)}
 		</Link>
 	);
 }

@@ -1,30 +1,29 @@
-/* Linear-style chip: transparent backgrounds, colored text, subtle borders */
+import type { ReactNode } from "react";
+import { humanize } from "../lib/format";
 
 type Tone = "neutral" | "success" | "warning" | "danger" | "info";
 
-const toneStyles: Record<Tone, string> = {
-	neutral:
-		"border-[rgba(130,122,110,0.22)] bg-[rgba(130,122,110,0.07)] text-[var(--sea-ink-soft)]",
-	success:
-		"border-[rgba(5,150,105,0.26)] bg-[rgba(5,150,105,0.08)] text-[var(--success)]",
-	warning:
-		"border-[rgba(217,119,6,0.28)] bg-[rgba(217,119,6,0.09)] text-[var(--warning)]",
-	danger:
-		"border-[rgba(220,38,38,0.26)] bg-[rgba(220,38,38,0.09)] text-[var(--danger)]",
-	info:
-		"border-[rgba(30,157,154,0.26)] bg-[rgba(30,157,154,0.08)] text-[var(--teal)]" };
-
+/**
+ * Small tinted badge. Labels are humanized (`version_unaffected` →
+ * "Version unaffected") so call sites can pass raw enum values.
+ */
 export default function StatusPill({
 	label,
-	tone = "neutral" }: {
-	label: string;
+	tone = "neutral",
+	dot = false,
+	children,
+}: {
+	label?: string;
 	tone?: Tone;
+	dot?: boolean;
+	children?: ReactNode;
 }) {
+	const content =
+		label !== undefined ? humanize(label) : typeof children === "string" ? humanize(children) : children;
 	return (
-		<span
-			className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[0.65rem] font-semibold tracking-[0.12em] uppercase leading-none ${toneStyles[tone]}`}
-		>
-			{label}
+		<span className="badge" data-tone={tone}>
+			{dot && <span className="badge-dot" />}
+			{content}
 		</span>
 	);
 }

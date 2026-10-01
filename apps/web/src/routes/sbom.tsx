@@ -13,11 +13,11 @@ import RouteErrorBoundary from "../components/RouteErrorBoundary";
 export const Route = createFileRoute("/sbom")({ errorComponent: RouteErrorBoundary, component: SbomPage });
 
  const SUPPLY_CHAIN_TABS = [
- { key: "overview", label: "Supply Chain", icon: ShieldCheck, to: "/supply-chain" },
+ { key: "overview", label: "Overview", icon: ShieldCheck, to: "/supply-chain" },
  { key: "sbom", label: "SBOM", icon: Boxes, to: "/sbom" },
- { key: "cross-repo", label: "Cross-Repo", icon: GitCompare, to: "/cross-repo" },
- { key: "zero-day", label: "Zero-Day", icon: Eye, to: "/zero-day" },
- { key: "exploit", label: "Exploit Validation", icon: FlaskConical, to: "/exploit-validation" },
+ { key: "cross-repo", label: "Cross-repo", icon: GitCompare, to: "/cross-repo" },
+ { key: "zero-day", label: "Zero-day", icon: Eye, to: "/zero-day" },
+ { key: "exploit", label: "Exploit validation", icon: FlaskConical, to: "/exploit-validation" },
  ];
 
 type OverviewData = NonNullable<
@@ -69,7 +69,6 @@ function SbomPage() {
 		<main>
 			<div className="page-header">
 				<div className="flex items-center gap-3">
-					<Boxes size={20} className="text-[var(--signal)]" />
 					<div>
 						<h1 className="page-title">SBOM Explorer</h1>
 						<p className="page-subtitle">

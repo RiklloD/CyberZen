@@ -8,14 +8,15 @@ import {
 	useNavigate } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { useMutation, useQuery } from "convex/react";
+import { ShieldCheck } from "lucide-react";
 import { useEffect, useState } from "react";
 import AnalyticsConsentBanner from "../components/AnalyticsConsentBanner";
-import Breadcrumbs from "../components/Breadcrumbs";
 import CommandPalette from "../components/CommandPalette";
 import RouteErrorBoundary from "../components/RouteErrorBoundary";
 import ShortcutsModal from "../components/ShortcutsModal";
 import Sidebar from "../components/Sidebar";
 import Toaster from "../components/Toaster";
+import Topbar from "../components/Topbar";
 import { env } from "../env";
 import ConvexProvider from "../integrations/convex/provider";
 import PostHogProvider from "../integrations/posthog/provider";
@@ -89,29 +90,23 @@ function UnauthenticatedShell() {
 		<div className="auth-screen">
 			<div className="auth-card">
 				<div className="auth-card-header">
-					<div className="auth-card-badge" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "3rem", height: "3rem", borderRadius: "50%", background: "rgba(59,130,246,0.15)", marginBottom: "1rem" }}>
-						<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-							<rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-							<path d="M7 11V7a5 5 0 0110 0v4" />
-						</svg>
-					</div>
-					<p className="auth-card-eyebrow">CyberZen</p>
-					<h1 className="auth-card-title">Sign in to your workspace</h1>
+					<span className="ws-logo mb-4 !h-9 !w-9 !rounded-[10px]">
+						<ShieldCheck size={18} />
+					</span>
+					<h1 className="auth-card-title">Sign in to CyberZen</h1>
 				</div>
-
 				<p className="auth-card-copy">
-					Create or join a company workspace, invite teammates, and manage
-					red-team automation from one place.
+					Find what's exploitable in your code and dependencies, fix it with
+					generated PRs, and stop regressions at the merge gate.
 				</p>
-
-				<div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", marginTop: "1.5rem" }}>
+				<div className="mt-6 flex flex-col gap-2">
 					<SignInButton mode="modal">
 						<button type="button" className="auth-submit">
 							Sign in
 						</button>
 					</SignInButton>
-					<a href="/sign-up" className="auth-submit" style={{ textAlign: "center", background: "transparent", border: "1px solid var(--border, #30363d)", color: "var(--sea-ink, #e6edf3)", textDecoration: "none" }}>
-						Create account
+					<a href="/sign-up" className="btn h-9 w-full">
+						Create an account
 					</a>
 				</div>
 			</div>
@@ -227,8 +222,8 @@ function RootGate() {
 				/>
 				<div className="app-shell">
 						<Sidebar />
-						<div className="app-content">
-							<Breadcrumbs />
+						<div className="app-content" id="main-content">
+							<Topbar />
 							<RouteErrorBoundary>
 								<Outlet />
 							</RouteErrorBoundary>
@@ -256,13 +251,12 @@ function RootGate() {
 
 function LoadingShell() {
 	return (
-		<div className="auth-screen">
-			<div className="auth-card">
-				<p className="auth-card-eyebrow">CyberZen</p>
-				<h1 className="auth-card-title">Loading workspace</h1>
-				<p className="auth-card-copy">
-					We are checking your authentication session and workspace membership.
-				</p>
+		<div className="auth-screen" aria-busy="true">
+			<div className="flex flex-col items-center gap-4 text-[var(--text-3)]">
+				<span className="ws-logo !h-10 !w-10 !rounded-xl animate-pulse">
+					<ShieldCheck size={20} />
+				</span>
+				<p className="text-sm">Loading your workspace…</p>
 			</div>
 		</div>
 	);

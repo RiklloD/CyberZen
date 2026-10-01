@@ -52,13 +52,15 @@ interface RescanButtonProps {
 	tenantSlug: string;
 	repositoryFullName: string;
 	label?: string;
+	variant?: "default" | "primary" | "menu";
 }
 
 export default function RescanButton({
 	scannerType,
 	tenantSlug,
 	repositoryFullName,
-	label = "Re-scan" }: RescanButtonProps) {
+	label = "Re-scan",
+	variant = "default" }: RescanButtonProps) {
 	const dispatch = useMutation(api.events.dispatchScannerForRepository);
 	const [loading, setLoading] = useState(false);
 	const [lastResult, setLastResult] = useState<
@@ -87,26 +89,31 @@ export default function RescanButton({
 		}
 	};
 
-	const toneClass =
-		lastResult === "success"
-			? "text-[var(--success)]"
-			: lastResult === "error"
-				? "text-[var(--danger)]"
-				: "text-[var(--sea-ink-soft)]";
+	const className =
+		variant === "menu" ? "menu-item" : variant === "primary" ? "btn btn-primary" : "btn";
 
 	return (
 		<button
 			type="button"
 			onClick={handleClick}
 			disabled={loading}
-			className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-md border border-[var(--line)] bg-transparent hover:bg-[var(--surface)] transition-colors disabled:opacity-50 ${toneClass}`}
+			className={className}
 			title={`Re-run ${scannerType.replace(/_/g, " ")} scanner`}
 		>
-			<RefreshCw
-				size={12}
-				className={loading ? "animate-spin" : ""}
-			/>
-			<span>{lastResult === "success" ? "Queued" : lastResult === "error" ? "Failed" : label}</span>
+			<RefreshCw size={13} className={loading ? "animate-spin" : ""} />
+			<span
+				className={
+					variant === "primary"
+						? undefined
+						: lastResult === "success"
+						? "text-[var(--success)]"
+						: lastResult === "error"
+							? "text-[var(--danger)]"
+							: undefined
+				}
+			>
+				{loading ? "Queuing…" : lastResult === "success" ? "Scan queued" : lastResult === "error" ? "Failed, retry" : label}
+			</span>
 		</button>
 	);
 }

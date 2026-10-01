@@ -5,9 +5,9 @@ import {
 	ChevronRight,
 	Copy,
 	Download,
-	Github,
 	Key,
-	Terminal } from "lucide-react";
+	Terminal,
+} from "lucide-react";
 import RouteErrorBoundary from "../../components/RouteErrorBoundary";
 import { ACTION_YML, ENTRYPOINT_SH, README_MD } from "../../data/github-action-scaffold";
 
@@ -168,7 +168,6 @@ export default function GithubIntegrationPage() {
 		<main>
 			<div className="page-header">
 				<div className="flex items-center gap-3">
-					<Github size={20} className="text-[var(--signal)]" />
 					<div>
 						<h1 className="page-title">GitHub Actions Integration</h1>
 						<p className="page-subtitle">

@@ -1,6 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
-import { Check, CreditCard, Sparkles } from "lucide-react";
+import {
+	Check,
+	Sparkles,
+} from "lucide-react";
 import { api } from "../lib/convex";
 import RouteErrorBoundary from "../components/RouteErrorBoundary";
 
@@ -15,7 +18,6 @@ function PricingPage() {
 		<main>
 			<div className="page-header">
 				<div className="flex items-center gap-3">
-					<CreditCard size={20} className="text-[var(--signal)]" />
 					<div>
 						<h1 className="page-title">Pricing</h1>
 						<p className="page-subtitle">

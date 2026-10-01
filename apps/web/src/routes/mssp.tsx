@@ -1,7 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
-import { Building2, Pause, Play, Save } from "lucide-react";
+import {
+	Pause,
+	Play,
+	Save,
+} from "lucide-react";
 import { useState } from "react";
 import RouteErrorBoundary from "../components/RouteErrorBoundary";
 import StatusPill from "../components/StatusPill";
@@ -25,7 +29,6 @@ function MsspPortalPage() {
 		<main>
 			<div className="page-header">
 				<div className="flex items-center gap-3">
-					<Building2 size={20} className="text-[var(--signal)]" />
 					<div>
 						<h1 className="page-title">MSSP Partner Portal</h1>
 						<p className="page-subtitle">

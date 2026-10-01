@@ -214,7 +214,6 @@ function JobMonitoringPage() {
 		<main>
 			<div className="page-header">
 				<div className="flex items-center gap-3">
-					<Activity size={20} className="text-[var(--signal)]" />
 					<div>
 						<h1 className="page-title">Background Jobs</h1>
 						<p className="page-subtitle">

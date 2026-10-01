@@ -1,12 +1,18 @@
+import RepoPicker, { useSelectedRepo } from "../components/ui/RepoPicker";
+import PageHeader from "../components/ui/PageHeader";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 type RemediationQueueItem = NonNullable<FunctionReturnType<typeof api.remediationQueueIntel.getRemediationQueueForRepository>>["queue"][number];
 type AutoRemediationRun = NonNullable<FunctionReturnType<typeof api.autoRemediationIntel.getAutoRemediationHistoryForRepository>>[number];
 type DepUpdateItem = NonNullable<FunctionReturnType<typeof api.dependencyUpdateIntel.getLatestDependencyUpdateRecommendations>>["recommendations"][number];
-import { AlertTriangle, Play, Wrench } from "lucide-react";
+import {
+	AlertTriangle,
+	Play,
+} from "lucide-react";
 import { useState } from "react";
 import StatusPill from "../components/StatusPill";
+import SeverityBadge from "../components/ui/SeverityBadge";
 import AutoPrDetailDrawer from "../components/panels/AutoPrDetailDrawer";
 import AutoPrFeedPanel from "../components/panels/AutoPrFeedPanel";
 import type { PrProposal } from "../components/panels/AutoPrFeedPanel";
@@ -18,7 +24,6 @@ import { track } from "../lib/analytics";
 import {
 	formatTimestamp,
 	priorityTierTone,
-	severityTone,
 	slaComplianceTone } from "../lib/utils";
 import { useTenantSlug } from "../lib/workspace";
 import RouteErrorBoundary from "../components/RouteErrorBoundary";
@@ -35,7 +40,8 @@ type OverviewRepository = OverviewData["repositories"][number];
 function RemediationPage() {
 	const TENANT = useTenantSlug();
 	const overview = useQuery(api.dashboard.overview, { tenantSlug: TENANT });
-	const [selectedRepo, setSelectedRepo] = useState<string | null>(null);
+	const repositoryList: OverviewRepository[] = overview?.repositories ?? [];
+	const [activeRepo, selectRepo] = useSelectedRepo(repositoryList);
 
 	if (!overview) {
 		return (
@@ -49,41 +55,17 @@ function RemediationPage() {
 		);
 	}
 
-	const { repositories } = overview;
-	const activeRepo = selectedRepo
-		? repositories.find((r: OverviewRepository) => r._id === selectedRepo)
-		: repositories[0];
+	const repositories = repositoryList;
 
 	return (
 		<main>
-			<div className="page-header">
-				<div className="flex items-center gap-3">
-					<Wrench size={20} className="text-[var(--signal)]" />
-					<div>
-						<h1 className="page-title">Remediation</h1>
-						<p className="page-subtitle">
-							Automated priority queue · SLA enforcement · Auto-fix history
-						</p>
-					</div>
-				</div>
-			</div>
+			<PageHeader
+				title="Remediation"
+				description="What to fix next, ranked by risk and SLA, with auto-generated fix PRs and post-fix validation"
+				actions={<RepoPicker repositories={repositories} active={activeRepo} onSelect={selectRepo} />}
+			/>
 
 			<div className="page-body">
-				{repositories.length > 1 && (
-					<div className="tab-bar mb-4">
-						{repositories.map((r: OverviewRepository) => (
-							<button
-								key={r._id}
-								type="button"
-								className={`tab-btn ${activeRepo?._id === r._id ? "is-active" : ""}`}
-								onClick={() => setSelectedRepo(r._id)}
-							>
-								{r.fullName.split("/").pop()}
-							</button>
-						))}
-					</div>
-				)}
-
 				{activeRepo && (
 					<RepoRemediationView
 						tenantSlug={TENANT}
@@ -251,37 +233,32 @@ function RepoRemediationView({
 							)}
 						</div>
 
-						{/* Queue items */}
-						<div className="space-y-2">
-							{queue.queue.map((item: RemediationQueueItem) => (
-								<div key={item.findingId} className="card card-sm">
-									<div className="flex flex-wrap items-center gap-2">
-										<StatusPill
-											label={item.priorityTier.toUpperCase()}
-											tone={priorityTierTone(item.priorityTier)}
-										/>
-										<StatusPill
-											label={item.severity}
-											tone={severityTone(item.severity)}
-										/>
-										<StatusPill
-											label={`score ${item.priorityScore.toFixed(0)}`}
-											tone="neutral"
-										/>
+						{/* Queue items — identical titles collapse into one row */}
+						<div className="list">
+							{groupQueue(queue.queue as RemediationQueueItem[]).map(({ item, count }) => (
+								<div key={item.findingId} className="list-row !items-start">
+									<StatusPill
+										label={item.priorityTier.toUpperCase()}
+										tone={priorityTierTone(item.priorityTier)}
+									/>
+									<span className="w-[84px] shrink-0">
+										<SeverityBadge severity={item.severity} />
+									</span>
+									<div className="min-w-0 flex-1">
+										<p className="flex items-center gap-2 text-[0.84rem] font-medium">
+											<span className="truncate">{item.title}</span>
+											{count > 1 && <span className="badge !h-[18px] tabular">×{count}</span>}
+										</p>
+										{item.priorityRationale.length > 0 && (
+											<p className="truncate text-xs text-[var(--text-3)]">{item.priorityRationale[0]}</p>
+										)}
 									</div>
-									<h3 className="mt-1.5 text-sm font-semibold text-[var(--sea-ink)]">
-										{item.title}
-									</h3>
-									{item.priorityRationale.length > 0 && (
-										<p className="mt-0.5 text-xs text-[var(--sea-ink-soft)]">
-											{item.priorityRationale[0]}
-										</p>
-									)}
 									{item.slaStatus === "breached_sla" && (
-										<p className="mt-0.5 text-xs text-[var(--danger)]">
-											SLA breached
-										</p>
+										<StatusPill label="SLA breached" tone="danger" />
 									)}
+									<span className="w-16 shrink-0 text-right text-xs text-[var(--text-3)] tabular">
+										score {item.priorityScore.toFixed(0)}
+									</span>
 								</div>
 							))}
 						</div>
@@ -602,4 +579,14 @@ function RepoRemediationView({
 		)}
 	</div>
 	);
+}
+
+function groupQueue(items: RemediationQueueItem[]) {
+	const map = new Map<string, { item: RemediationQueueItem; count: number }>();
+	for (const item of items) {
+		const existing = map.get(item.title);
+		if (existing) existing.count++;
+		else map.set(item.title, { item, count: 1 });
+	}
+	return [...map.values()];
 }

@@ -1,5 +1,7 @@
 import { X, Check, CheckCheck, Bell } from "lucide-react";
 import type { Id } from "../lib/convex";
+import { relativeTime } from "../lib/format";
+import StatusPill from "./StatusPill";
 
 type Notification = {
 	_id: Id<"notifications">;
@@ -33,18 +35,18 @@ const TYPE_LABELS: Record<string, string> = {
 	member_invited: "Member Invited",
 	system: "System" };
 
-const TYPE_COLORS: Record<string, string> = {
-	finding_critical: "bg-red-100 text-red-700",
-	finding_high: "bg-orange-100 text-orange-700",
-	gate_blocked: "bg-red-100 text-red-700",
-	gate_overridden: "bg-yellow-100 text-yellow-700",
-	exploit_validated: "bg-red-100 text-red-700",
-	remediation_dispatched: "bg-blue-100 text-blue-700",
-	pr_generated: "bg-green-100 text-green-700",
-	scan_completed: "bg-green-100 text-green-700",
-	sla_breach: "bg-red-100 text-red-700",
-	member_invited: "bg-blue-100 text-blue-700",
-	system: "bg-gray-100 text-gray-700" };
+const TYPE_TONES: Record<string, "danger" | "warning" | "success" | "info" | "neutral"> = {
+	finding_critical: "danger",
+	finding_high: "warning",
+	gate_blocked: "danger",
+	gate_overridden: "warning",
+	exploit_validated: "danger",
+	remediation_dispatched: "info",
+	pr_generated: "success",
+	scan_completed: "success",
+	sla_breach: "danger",
+	member_invited: "info",
+	system: "neutral" };
 
 export default function NotificationDrawer({
 	open,
@@ -60,22 +62,22 @@ export default function NotificationDrawer({
 		<>
 			{/* Backdrop */}
 			<div
-				className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm"
+				className="fixed inset-0 z-[60] bg-[var(--overlay)]"
 				onClick={onClose}
 				aria-hidden="true"
 			/>
 
 			{/* Drawer */}
-			<aside className="fixed right-0 top-0 z-50 flex h-full w-full max-w-md flex-col border-l border-[var(--line)] bg-[var(--panel-bg)] shadow-2xl">
+			<aside className="fixed right-0 top-0 z-[61] flex h-full w-full max-w-md flex-col border-l border-[var(--line-strong)] bg-[var(--surface)] shadow-2xl">
 				{/* Header */}
 				<div className="flex items-center justify-between border-b border-[var(--line)] px-4 py-3">
 					<div className="flex items-center gap-2">
-						<Bell size={18} className="text-[var(--signal)]" />
+						
 						<h2 className="text-sm font-semibold text-[var(--sea-ink)]">
 							Notifications
 						</h2>
 						{unread.length > 0 && (
-							<span className="rounded-full bg-red-500 px-2 py-0.5 text-[0.65rem] font-bold text-white">
+							<span className="badge" data-tone="danger">
 								{unread.length}
 							</span>
 						)}
@@ -120,31 +122,26 @@ export default function NotificationDrawer({
 
 						const label =
 							TYPE_LABELS[n.type] ?? n.type;
-						const color =
-							TYPE_COLORS[n.type] ?? "bg-gray-100 text-gray-700";
+						const tone = TYPE_TONES[n.type] ?? "neutral";
 
 						return (
 							<div
 								key={n._id}
-								className={`border-b border-[var(--line)] px-4 py-3 transition-colors hover:bg-[var(--chip-bg)] ${!n.readAt ? "bg-[var(--chip-bg)]" : ""}`}
+								className={`border-b border-[var(--line)] px-4 py-3 transition-colors hover:bg-[var(--surface-2)] ${!n.readAt ? "bg-[var(--accent-soft)]" : ""}`}
 							>
 								<div className="flex items-start gap-3">
 									<div className="flex-1 min-w-0">
 										<div className="flex items-center gap-2 mb-1">
-											<span
-												className={`inline-flex rounded-full px-2 py-0.5 text-[0.6rem] font-semibold ${color}`}
-											>
-												{label}
-											</span>
+											<StatusPill label={label} tone={tone} />
 											{!n.readAt && (
-												<span className="h-2 w-2 rounded-full bg-blue-500" />
+												<span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />
 											)}
 										</div>
 										<p className="text-sm text-[var(--sea-ink)] truncate">
 											{(parsed.message as string) ?? n.type}
 										</p>
 										<p className="mt-1 text-[0.65rem] text-[var(--sea-ink-soft)]">
-											{new Date(n.createdAt).toLocaleString()}
+											{relativeTime(n.createdAt)}
 										</p>
 									</div>
 									{!n.readAt && (

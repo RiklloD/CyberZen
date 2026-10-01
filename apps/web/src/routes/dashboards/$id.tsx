@@ -39,7 +39,6 @@ function DashboardBuilderPage() {
 			<main>
 				<div className="page-header">
 					<div className="flex items-center gap-3">
-						<LayoutDashboard size={20} className="text-[var(--signal)]" />
 						<h1 className="page-title">Dashboard Builder</h1>
 					</div>
 				</div>
@@ -58,7 +57,6 @@ function DashboardBuilderPage() {
 		<main>
 			<div className="page-header">
 				<div className="flex items-center gap-3">
-					<LayoutDashboard size={20} className="text-[var(--signal)]" />
 					<div>
 						<h1 className="page-title">Dashboard Builder</h1>
 						<p className="page-subtitle">Create custom dashboards with configurable widgets</p>

@@ -66,7 +66,6 @@ function AuditLogPage() {
 		<main>
 			<div className="page-header">
 				<div className="flex items-center gap-3">
-					<ScrollText size={20} className="text-[var(--signal)]" />
 					<div>
 						<h1 className="page-title">Audit Log</h1>
 						<p className="page-subtitle">

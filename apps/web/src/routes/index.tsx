@@ -1,528 +1,460 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import {
-	AlertTriangle,
 	ArrowRight,
-	BookOpen,
-	Boxes,
-	GitMerge,
+	CheckCircle2,
+	FolderGit2,
+	GitPullRequestArrow,
+	Package,
 	Plus,
-	ShieldCheck,
-	Sparkles,
-	Waypoints } from "lucide-react";
-import LiveScanPanel from "../components/LiveScanPanel";
-import SetupChecklist from "../components/SetupChecklist";
-import StatusPill from "../components/StatusPill";
-import { api } from "../lib/convex";
-import { formatTimestamp, severityTone, workflowTone } from "../lib/utils";
-import { useTenantSlug } from "../lib/workspace";
+	ShieldAlert,
+	Zap,
+} from "lucide-react";
+import { useState } from "react";
+import ActivityFeed from "../components/ActivityFeed";
+import AddRepositoryModal from "../components/AddRepositoryModal";
+import FindingListRow from "../components/FindingListRow";
 import QueryErrorFallback from "../components/QueryErrorFallback";
+import SetupChecklist from "../components/SetupChecklist";
+import EmptyState from "../components/ui/EmptyState";
+import PageHeader from "../components/ui/PageHeader";
+import Section from "../components/ui/Section";
+import SeverityBreakdown from "../components/ui/SeverityBreakdown";
+import SilentBoundary from "../components/ui/SilentBoundary";
+import { api } from "../lib/convex";
+import {
+	countBySeverity,
+	type FindingRow,
+	groupFindings,
+	isExploitable,
+	isOpen,
+} from "../lib/findings";
+import { absoluteTime, plural, relativeTime } from "../lib/format";
+import { useTenantSlug } from "../lib/workspace";
 
-export const Route = createFileRoute("/")({ errorComponent: QueryErrorFallback, component: DashboardPage });
+export const Route = createFileRoute("/")({
+	errorComponent: QueryErrorFallback,
+	component: OverviewPage,
+});
 
-type OverviewData = NonNullable<
-	FunctionReturnType<typeof api.dashboard.overview>
->;
-type OverviewFinding = OverviewData["findings"][number];
-type OverviewWorkflow = OverviewData["workflows"][number];
-type OverviewWorkflowTask = OverviewWorkflow["tasks"][number];
-type OverviewGateDecision =
-	OverviewData["ciGateEnforcement"]["recentDecisions"][number];
+type OverviewData = NonNullable<FunctionReturnType<typeof api.dashboard.overview>>;
+type OverviewRepository = OverviewData["repositories"][number];
+type GateDecision = OverviewData["ciGateEnforcement"]["recentDecisions"][number];
 
-const SKELETONS = ["a", "b", "c", "d", "e"];
+function OverviewPage() {
+	const tenantSlug = useTenantSlug();
+	const navigate = useNavigate();
+	const overview = useQuery(api.dashboard.overview, { tenantSlug });
+	const findingRows = useQuery(api.findings.list, { tenantSlug, limit: 200 }) as
+		| FindingRow[]
+		| undefined;
+	const [showAddRepo, setShowAddRepo] = useState(false);
 
-function DashboardPage() {
-	const TENANT = useTenantSlug();
-	const overview = useQuery(api.dashboard.overview, {
-		tenantSlug: TENANT });
-	const eduStats = useQuery(api.securityEducation.getEducationStats, {
-		tenantSlug: TENANT });
-
-	if (overview === undefined) {
-		return (
-			<main className="page-body-padded">
-				<div className="stats-grid mb-6">
-					{SKELETONS.map((id) => (
-						<div key={id} className="loading-panel h-24 rounded-2xl" />
-					))}
-				</div>
-				<div className="grid gap-4 xl:grid-cols-[1.3fr_1fr]">
-					<div className="loading-panel h-64 rounded-2xl" />
-					<div className="loading-panel h-64 rounded-2xl" />
-				</div>
-			</main>
-		);
+	if (overview === undefined || findingRows === undefined) {
+		return <OverviewSkeleton />;
 	}
 
 	if (overview === null) {
 		return (
 			<main className="page-body-padded">
-				<div className="panel rounded-[2rem] px-6 py-10 sm:px-10 sm:py-12">
-					<ShieldCheck size={32} className="mb-3 opacity-30" />
-					<p className="text-sm font-semibold text-[var(--sea-ink)] mb-1">
-						No workspace yet
-					</p>
-					<p className="max-w-2xl text-sm text-[var(--sea-ink-soft)]">
-						This deployment does not have a tenant record or repositories
-						connected yet. Use onboarding to create the company workspace,
-						import a live SBOM bundle, register repos, and queue the first scan.
-					</p>
-					<div className="mt-6 flex flex-wrap gap-3">
-						<Link to="/onboarding" className="signal-button">
+				<EmptyState
+					icon={ShieldAlert}
+					title="No workspace yet"
+					description="Create a workspace, connect GitHub and add a repository to get your first security report."
+					actions={
+						<Link to="/onboarding" className="btn btn-primary">
 							Start onboarding
 						</Link>
-						<Link to="/integrations" className="signal-button secondary-button">
-							View integrations
-						</Link>
-					</div>
-				</div>
+					}
+					bordered
+				/>
 			</main>
 		);
 	}
 
-	const {
-		tenant,
-		stats,
-		findings,
-		workflows,
-		ciGateEnforcement,
-		repositories } = overview;
+	const { tenant, stats, repositories, ciGateEnforcement } = overview;
+	const open = findingRows.filter(isOpen);
+	const severity = countBySeverity(open);
+	const urgent = severity.critical + severity.high;
+	const exploitable = open.filter(isExploitable).length;
+	const fixable = open.filter((f) => !!f.fixVersion).length;
+	const groups = groupFindings(open);
+	const lastScan = Math.max(0, ...repositories.map((r: OverviewRepository) => r.lastScannedAt ?? 0));
+
+	const openFinding = (f: FindingRow) =>
+		void navigate({ to: "/findings", search: { id: f._id } });
 
 	return (
 		<main>
-			<div className="page-header">
-				<div>
-					<h1 className="page-title">{tenant.name}</h1>
-					<p className="page-subtitle">
-						{tenant.deploymentMode.replace(/_/g, " ")} ·{" "}
-						{tenant.currentPhase.replace(/_/g, " ")}
-					</p>
-				</div>
-			</div>
+			<PageHeader
+				title={tenant.name}
+				description={
+					<>
+						{plural(repositories.length, "repository", "repositories")} monitored
+						{lastScan > 0 && (
+							<span title={absoluteTime(lastScan)}> · last scan {relativeTime(lastScan)}</span>
+						)}
+					</>
+				}
+				actions={
+					<button type="button" className="btn" onClick={() => setShowAddRepo(true)}>
+						<Plus size={14} />
+						Add repository
+					</button>
+				}
+			/>
+
+			{showAddRepo && (
+				<AddRepositoryModal tenantSlug={tenantSlug} onClose={() => setShowAddRepo(false)} />
+			)}
 
 			<div className="page-body">
-					{/* Setup checklist — shown only when setup is incomplete */}
-					<SetupChecklist
-						hasRepos={repositories.length > 0}
-						hasGithub={repositories.length > 0}
-						hasFindings={findings.length > 0}
-						hasGatePolicy={ciGateEnforcement.blockedCount > 0 || ciGateEnforcement.approvedCount > 0}
-						hasTeamMembers={false}
-						hasApiKey={false}
-					/>
-
-					{/* Needs Attention — surfaces what requires immediate action */}
-					{(stats.criticalFindings > 0 || ciGateEnforcement.blockedCount > 0 || stats.activeWorkflows > 0) && (
-						<div className="needs-attention">
-							{stats.criticalFindings > 0 && (
-								<Link to="/findings" className="needs-attention-card">
-									<div className="needs-attention-count is-critical">{stats.criticalFindings}</div>
-									<div>
-										<div className="needs-attention-label">Critical findings</div>
-										<div className="text-[11px] text-[var(--sea-ink-dim)]">Need triage</div>
-									</div>
-									<ArrowRight size={14} className="ml-auto text-[var(--sea-ink-dim)]" />
-								</Link>
-							)}
-							{ciGateEnforcement.blockedCount > 0 && (
-								<Link to="/ci-cd" className="needs-attention-card">
-									<div className="needs-attention-count is-warning">{ciGateEnforcement.blockedCount}</div>
-									<div>
-										<div className="needs-attention-label">Gates blocked</div>
-										<div className="text-[11px] text-[var(--sea-ink-dim)]">PRs waiting</div>
-									</div>
-									<ArrowRight size={14} className="ml-auto text-[var(--sea-ink-dim)]" />
-								</Link>
-							)}
-							{stats.activeWorkflows > 0 && (
-								<Link to="/repositories" className="needs-attention-card">
-									<div className="needs-attention-count is-info">{stats.activeWorkflows}</div>
-									<div>
-										<div className="needs-attention-label">Active scans</div>
-										<div className="text-[11px] text-[var(--sea-ink-dim)]">In progress</div>
-									</div>
-									<ArrowRight size={14} className="ml-auto text-[var(--sea-ink-dim)]" />
-								</Link>
-							)}
-						</div>
-					)}
-
-					{/* Stats */}
-				<div className="stats-grid">
-					{[
-						{
-							label: "Open findings",
-							value: stats.openFindings,
-							hint: "Unresolved risk",
-							icon: AlertTriangle },
-						{
-							label: "Critical / High",
-							value: stats.criticalFindings,
-							hint: "Merge blockers",
-							icon: ShieldCheck },
-						{
-							label: "Active workflows",
-							value: stats.activeWorkflows,
-							hint: "Queued or running",
-							icon: Waypoints },
-						{
-							label: "SBOM components",
-							value: stats.sbomComponents,
-							hint: "Known inventory",
-							icon: Boxes },
-						{
-							label: "Validated",
-							value: stats.validatedFindings,
-							hint: "Exploit-confirmed",
-							icon: Sparkles },
-					].map(({ label, value, hint, icon: Icon }) => (
-						<div key={label} className="stat-card rise-in">
-							<div className="flex items-center justify-between">
-								<span className="stat-label">{label}</span>
-								<span className="metric-icon">
-									<Icon size={14} />
-								</span>
-							</div>
-							<div className="stat-value">{value}</div>
-							<p className="stat-hint">{hint}</p>
-						</div>
-					))}
-				</div>
-
-				{/* Live Scan Activity Panel — the dashboard's scan visibility hub */}
-				<LiveScanPanel />
-
-				{/* Repositories */}
-				{repositories.length > 0 && (
-					<>
-						<div className="mb-4 flex items-center justify-between">
-							<h2 className="section-title">Repositories</h2>
-							<div className="flex items-center gap-4">
-								<Link
-									to="/onboarding"
-									className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--lagoon-deep)] hover:underline"
-								>
-									<Plus size={13} />
-									Propose repository
-								</Link>
-								<Link
-									to="/repositories"
-									className="text-xs font-semibold text-[var(--lagoon-deep)] hover:underline"
-								>
-									View all →
-								</Link>
-							</div>
-						</div>
-						<div className="repo-grid mb-6">
-							{repositories.slice(0, 6).map((repo: OverviewData["repositories"][number]) => (
-								<div key={repo._id} className="card card-sm">
-									<div className="repo-header">
-										<span className="repo-name">{repo.fullName}</span>
-										<StatusPill
-											label={repo.latestSnapshot ? "has SBOM" : "no SBOM"}
-											tone={repo.latestSnapshot ? "success" : "neutral"}
-										/>
-									</div>
-									{repo.latestSnapshot && (
-										<div className="flex flex-wrap gap-1.5 mt-1">
-											<StatusPill
-												label={`${repo.latestSnapshot.previewComponents.length} components`}
-												tone="neutral"
-											/>
-											{repo.latestSnapshot.vulnerablePreview.length > 0 && (
-												<StatusPill
-													label={`${repo.latestSnapshot.vulnerablePreview.length} vulnerable`}
-													tone="danger"
-												/>
-											)}
-										</div>
+				{/* ── Posture headline ─────────────────────────────────────── */}
+				<div className="mb-7 grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
+					<div className="card flex flex-col gap-5 !p-5">
+						<div className="flex flex-wrap items-start justify-between gap-4">
+							<div>
+								<p className="text-[0.8rem] text-[var(--text-2)]">Security posture</p>
+								<p className="mt-1 text-[1.35rem] font-semibold leading-tight tracking-[-0.02em]">
+									{urgent > 0 ? (
+										<>
+											<span className="text-[var(--sev-critical)]">{urgent}</span>{" "}
+											critical or high {urgent === 1 ? "finding needs" : "findings need"} attention
+										</>
+									) : open.length > 0 ? (
+										<>No critical or high findings open</>
+									) : (
+										<>All clear. No open findings</>
 									)}
-								</div>
-							))}
-						</div>
-					</>
-				)}
-
-				{/* Main grid: findings + workflows */}
-				<div className="grid gap-4 xl:grid-cols-[1.3fr_1fr]">
-					{/* Findings */}
-					<div>
-						<div className="mb-4 flex items-center justify-between">
-							<h2 className="section-title">Open findings</h2>
-							<div className="flex items-center gap-3">
-								{findings.length > 0 && (
-									<StatusPill
-										label={`${findings.length} visible`}
-										tone="warning"
-									/>
-								)}
+								</p>
+							</div>
+							{urgent > 0 && (
 								<Link
 									to="/findings"
-									className="text-xs font-semibold text-[var(--lagoon-deep)] hover:underline"
+									search={{ severity: "urgent" }}
+									className="btn btn-primary"
 								>
-									All findings →
+									Triage now
+									<ArrowRight size={14} />
 								</Link>
-							</div>
-						</div>
-						<div className="space-y-3">
-							{findings.slice(0, 8).map((finding: OverviewFinding) => (
-								<div key={finding._id} className="card card-sm">
-									<div className="flex flex-wrap items-center gap-2">
-										<StatusPill
-											label={finding.severity}
-											tone={severityTone(finding.severity)}
-										/>
-										<StatusPill label={finding.source} tone="info" />
-										<StatusPill
-											label={finding.validationStatus}
-											tone={
-												finding.validationStatus === "validated"
-													? "success"
-													: "warning"
-											}
-										/>
-									</div>
-									<h3 className="mt-2 text-sm font-semibold text-[var(--sea-ink)]">
-										{finding.title}
-									</h3>
-									<div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-xs text-[var(--sea-ink-soft)]">
-										<span>{finding.status.replace(/_/g, " ")}</span>
-										<span>
-											Confidence: {Math.round(finding.confidence * 100)}%
-										</span>
-										<span>{formatTimestamp(finding.createdAt)}</span>
-									</div>
-								</div>
-							))}
-							{findings.length === 0 && (
-								<div className="empty-state">
-									<ShieldCheck size={20} className="mb-2 opacity-30" />
-									<p>No open findings.</p>
-								</div>
 							)}
 						</div>
+						<SeverityBreakdown counts={severity} />
 					</div>
 
-					{/* Workflows + CI/CD */}
-					<div className="space-y-4">
-						{/* Workflows */}
-						<div>
-							<div className="mb-3 flex items-center justify-between">
-								<h2 className="section-title">Recent workflows</h2>
-							</div>
-							<div className="space-y-3">
-								{workflows.slice(0, 5).map((workflow: OverviewWorkflow) => (
-									<div key={workflow._id} className="card card-sm">
-										<div className="flex items-center justify-between gap-2">
-											<span className="text-sm font-semibold text-[var(--sea-ink)]">
-												{workflow.workflowType.replace(/_/g, " ")}
-											</span>
-											<StatusPill
-												label={workflow.status}
-												tone={workflowTone(workflow.status)}
-											/>
-										</div>
-										<p className="mt-1 text-xs text-[var(--sea-ink-soft)]">
-											{workflow.summary}
-										</p>
-										<div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-[var(--sea-ink-soft)]">
-											<span>Priority: {workflow.priority}</span>
-											<span>
-												{workflow.completedTaskCount}/{workflow.totalTaskCount}{" "}
-												tasks
-											</span>
-											{workflow.currentStage && (
-												<span>{workflow.currentStage.replace(/_/g, " ")}</span>
-											)}
-										</div>
-										<div className="mt-2 flex flex-wrap gap-1.5">
-											{workflow.tasks
-												.slice(0, 6)
-												.map((task: OverviewWorkflowTask) => (
-													<StatusPill
-														key={task._id}
-														label={`${task.order + 1}. ${task.stage}`}
-														tone={workflowTone(task.status)}
-													/>
-												))}
-										</div>
-									</div>
-								))}
-								{workflows.length === 0 && (
-									<div className="empty-state">
-										<Waypoints size={20} className="mb-2 opacity-30" />
-										<p>No recent workflows.</p>
-									</div>
-								)}
-							</div>
-						</div>
+					<div className="kpi-strip is-2col">
+						<Kpi
+							to="/findings"
+							search={{ exploitable: true }}
+							icon={<Zap size={13} />}
+							label="Exploitable"
+							value={exploitable}
+							hint="Confirmed in sandbox"
+							tone={exploitable > 0 ? "danger" : undefined}
+						/>
+						<Kpi
+							to="/findings"
+							search={{ fixable: true }}
+							icon={<CheckCircle2 size={13} />}
+							label="Fix available"
+							value={fixable}
+							hint="Known patched version"
+						/>
+						<Kpi
+							to="/ci-cd"
+							icon={<GitPullRequestArrow size={13} />}
+							label="Gates blocked"
+							value={ciGateEnforcement.blockedCount}
+							hint={`${ciGateEnforcement.approvedCount} approved recently`}
+							tone={ciGateEnforcement.blockedCount > 0 ? "warning" : undefined}
+						/>
+						<Kpi
+							to="/supply-chain"
+							icon={<Package size={13} />}
+							label="Components"
+							value={stats.sbomComponents}
+							hint="In latest SBOM"
+						/>
+					</div>
+				</div>
 
-						{/* CI/CD Gate summary */}
-						<div>
-							<div className="mb-3 flex items-center justify-between">
-								<h2 className="section-title">
-									<span className="inline-flex items-center gap-2">
-										<GitMerge size={15} className="text-[var(--signal)]" />
-										CI/CD Gate enforcement
-									</span>
-								</h2>
-								<Link
-									to="/ci-cd"
-									className="text-xs font-semibold text-[var(--lagoon-deep)] hover:underline"
-								>
-									Full view →
+				<div className="grid gap-x-6 xl:grid-cols-[minmax(0,1fr)_340px]">
+					<div className="min-w-0">
+						{/* ── Fix first ──────────────────────────────────────── */}
+						<Section
+							title="Fix first"
+							description="Open findings ranked by severity, exploitability and fix availability"
+							actions={
+								<Link to="/findings" className="section-link">
+									All {open.length} findings
+									<ArrowRight size={13} />
 								</Link>
-							</div>
-							{ciGateEnforcement.blockedCount === 0 &&
-							ciGateEnforcement.approvedCount === 0 ? (
-								<div className="empty-state">
-									<GitMerge size={20} className="mb-2 opacity-30" />
-									<p>No gate decisions yet.</p>
+							}
+						>
+							{groups.length === 0 ? (
+								<div className="list">
+									<EmptyState
+										icon={CheckCircle2}
+										title="Nothing to fix right now"
+										description="New findings from scans, breach intel and agents land here, ranked by risk."
+									/>
 								</div>
 							) : (
-								<div className="card card-sm">
-									<div className="flex flex-wrap gap-2 mb-3">
-										<StatusPill
-											label={`${ciGateEnforcement.blockedCount} blocked`}
-											tone={
-												ciGateEnforcement.blockedCount > 0
-													? "danger"
-													: "success"
-											}
-										/>
-										<StatusPill
-											label={`${ciGateEnforcement.approvedCount} approved`}
-											tone="success"
-										/>
-										{ciGateEnforcement.overrideCount > 0 && (
-											<StatusPill
-												label={`${ciGateEnforcement.overrideCount} overridden`}
-												tone="warning"
-											/>
-										)}
-									</div>
-									<div className="space-y-2">
-										{ciGateEnforcement.recentDecisions
-											.slice(0, 3)
-											.map((d: OverviewGateDecision) => (
-												<div key={d._id} className="inset-panel">
-													<div className="flex flex-wrap items-center gap-1.5">
-														<StatusPill
-															label={d.decision}
-															tone={
-																d.decision === "blocked"
-																	? "danger"
-																	: d.decision === "approved"
-																		? "success"
-																		: "warning"
-															}
-														/>
-														<StatusPill
-															label={d.stage.replace(/_/g, " ")}
-															tone="neutral"
-														/>
-													</div>
-													<p className="mt-1.5 text-xs font-medium text-[var(--sea-ink)]">
-														{d.findingTitle}
-													</p>
-													<p className="mt-0.5 text-xs text-[var(--sea-ink-soft)]">
-														{d.repositoryName} · {formatTimestamp(d.createdAt)}
-													</p>
-												</div>
-											))}
-									</div>
+								<div className="list">
+									{groups.slice(0, 7).map((g) => (
+										<FindingListRow key={g.key} group={g} onOpen={() => openFinding(g.lead)} />
+									))}
 								</div>
 							)}
-						</div>
-					</div>
-				</div>
+						</Section>
 
-				{/* Security Education Widget */}
-				{eduStats && (
-					<div className="mt-6">
-						<div className="mb-3 flex items-center justify-between">
-							<h2 className="section-title">
-								<span className="inline-flex items-center gap-2">
-									<BookOpen size={15} className="text-[var(--signal)]" />
-									Security Education
-								</span>
-							</h2>
-							<Link
-								to="/findings"
-								className="text-xs font-semibold text-[var(--lagoon-deep)] hover:underline"
-							>
-								View findings →
-							</Link>
-						</div>
-						<div className="card card-sm">
-							<div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
-								<div className="text-center">
-									<p className="text-2xl font-bold text-[var(--sea-ink)]">
-										{eduStats.totalViews}
-									</p>
-									<p className="text-xs text-[var(--sea-ink-soft)] mt-0.5">
-										Total views
-									</p>
-								</div>
-								<div className="text-center">
-									<p className="text-2xl font-bold text-[var(--sea-ink)]">
-										{eduStats.uniqueLearners}
-									</p>
-									<p className="text-xs text-[var(--sea-ink-soft)] mt-0.5">
-										Learners
-									</p>
-								</div>
-								<div className="text-center">
-									<p className="text-2xl font-bold text-[var(--signal)]">
-										{eduStats.completionRate}%
-									</p>
-									<p className="text-xs text-[var(--sea-ink-soft)] mt-0.5">
-										Completion rate
-									</p>
-								</div>
-								<div className="text-center">
-									<p className="text-2xl font-bold text-[var(--sea-ink)]">
-										{eduStats.topicsCompleted}/{eduStats.totalContent}
-									</p>
-									<p className="text-xs text-[var(--sea-ink-soft)] mt-0.5">
-										Topics covered
-									</p>
-								</div>
-							</div>
-							{eduStats.topTopics.length > 0 && (
-								<div>
-									<p className="text-xs font-medium text-[var(--sea-ink)] mb-2">
-										Most viewed topics
-									</p>
-									<div className="flex flex-wrap gap-2">
-										{eduStats.topTopics.map((t: { findingType: string; viewCount: number }) => (
-											<span
-												key={t.findingType}
-												className="inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded-full bg-[var(--surface-soft)] border border-[var(--line)] text-[var(--sea-ink-soft)]"
+						{/* ── Repositories ───────────────────────────────────── */}
+						<Section
+							title="Repositories"
+							actions={
+								<Link to="/repositories" className="section-link">
+									Manage
+									<ArrowRight size={13} />
+								</Link>
+							}
+						>
+							{repositories.length === 0 ? (
+								<div className="list">
+									<EmptyState
+										icon={FolderGit2}
+										title="No repositories yet"
+										description="Add a repository to build its SBOM and run the first scan."
+										actions={
+											<button
+												type="button"
+												className="btn btn-primary"
+												onClick={() => setShowAddRepo(true)}
 											>
-												<BookOpen size={10} className="text-[var(--signal)]" />
-												{t.findingType.replace(/_/g, " ")}
-												<span className="font-semibold text-[var(--sea-ink)]">
-													{t.viewCount}
-												</span>
+												<Plus size={14} />
+												Add repository
+											</button>
+										}
+									/>
+								</div>
+							) : (
+								<RepositoryRiskTable repositories={repositories} openFindings={open} />
+							)}
+						</Section>
+					</div>
+
+					<aside className="min-w-0">
+						<SilentBoundary>
+							<div className="section">
+								<SetupChecklist
+									repositoryCount={repositories.length}
+									scannedRepositoryCount={
+										repositories.filter((r: OverviewRepository) => r.lastScannedAt || r.latestSnapshot).length
+									}
+									gateDecisionCount={
+										ciGateEnforcement.blockedCount +
+										ciGateEnforcement.approvedCount +
+										ciGateEnforcement.overrideCount
+									}
+								/>
+							</div>
+						</SilentBoundary>
+
+						<Section title="Recent activity">
+							<ActivityFeed />
+						</Section>
+
+						{ciGateEnforcement.recentDecisions.length > 0 && (
+							<Section
+								title="Gate decisions"
+								actions={
+									<Link to="/ci-cd" className="section-link">
+										View all
+										<ArrowRight size={13} />
+									</Link>
+								}
+							>
+								<div className="list">
+									{ciGateEnforcement.recentDecisions.slice(0, 4).map((d: GateDecision) => (
+										<div key={d._id} className="list-row !items-start">
+											<span
+												className="badge mt-0.5 shrink-0"
+												data-tone={
+													d.decision === "blocked"
+														? "danger"
+														: d.decision === "approved"
+															? "success"
+															: "warning"
+												}
+											>
+												{d.decision === "blocked"
+													? "Blocked"
+													: d.decision === "approved"
+														? "Passed"
+														: "Overridden"}
 											</span>
-										))}
+											<div className="min-w-0 flex-1">
+												<p className="truncate text-[0.82rem]">{d.findingTitle}</p>
+												<p className="text-xs text-[var(--text-3)]">
+													{d.repositoryName} · {relativeTime(d.createdAt)}
+												</p>
+											</div>
+										</div>
+									))}
+								</div>
+							</Section>
+						)}
+					</aside>
+				</div>
+			</div>
+		</main>
+	);
+}
+
+function Kpi({
+	to,
+	search,
+	icon,
+	label,
+	value,
+	hint,
+	tone,
+}: {
+	to: string;
+	search?: Record<string, unknown>;
+	icon: React.ReactNode;
+	label: string;
+	value: number;
+	hint: string;
+	tone?: "danger" | "warning";
+}) {
+	return (
+		<Link
+			to={to as "/"}
+			search={search as never}
+			className="kpi"
+		>
+			<span className="kpi-label">
+				{icon}
+				{label}
+			</span>
+			<span
+				className="kpi-value block"
+				style={tone ? { color: `var(--${tone})` } : undefined}
+			>
+				{value.toLocaleString()}
+			</span>
+			<span className="kpi-hint block">{hint}</span>
+		</Link>
+	);
+}
+
+function RepositoryRiskTable({
+	repositories,
+	openFindings,
+}: {
+	repositories: OverviewRepository[];
+	openFindings: FindingRow[];
+}) {
+	const byRepo = new Map<string, FindingRow[]>();
+	for (const f of openFindings) {
+		const list = byRepo.get(f.repositoryId) ?? [];
+		list.push(f);
+		byRepo.set(f.repositoryId, list);
+	}
+	const rows = repositories
+		.map((repo) => {
+			const findings = byRepo.get(repo._id) ?? [];
+			return { repo, findings, counts: countBySeverity(findings) };
+		})
+		.sort(
+			(a, b) =>
+				b.counts.critical - a.counts.critical ||
+				b.counts.high - a.counts.high ||
+				b.findings.length - a.findings.length,
+		);
+
+	return (
+		<div className="list overflow-x-auto">
+			<table className="data-table">
+				<thead>
+					<tr>
+						<th>Repository</th>
+						<th className="w-[28%]">Open findings</th>
+						<th className="text-right">Vulnerable deps</th>
+						<th className="text-right">Last scan</th>
+					</tr>
+				</thead>
+				<tbody>
+					{rows.map(({ repo, findings, counts }) => (
+						<tr key={repo._id}>
+							<td data-label="Repository">
+								<Link
+									to="/repositories"
+									search={{ repo: repo._id }}
+									className="font-medium text-[var(--text)] hover:underline"
+								>
+									{repo.fullName}
+								</Link>
+								<div className="text-xs text-[var(--text-3)]">
+									{repo.primaryLanguage} · {repo.defaultBranch}
+								</div>
+							</td>
+							<td data-label="Open findings">
+								<div className="flex items-center gap-3">
+									<span className="w-6 text-right font-semibold tabular">{findings.length}</span>
+									<div className="flex-1">
+										<SeverityBreakdown counts={counts} compact linkToFindings={false} />
 									</div>
 								</div>
-							)}
-							{eduStats.totalViews === 0 && (
-								<p className="text-xs text-[var(--sea-ink-soft)]">
-									No education content viewed yet. Security education appears in
-									finding details — expand any finding to learn about the
-									vulnerability class.
-								</p>
-							)}
-						</div>
-					</div>
-				)}
-				{/* Navigation cards removed — sidebar + dashboard panels handle navigation */}
-				</div>
-				</main>
-				);
-				}
+							</td>
+							<td data-label="Vulnerable deps" className="text-right tabular">
+								{repo.latestSnapshot ? (
+									<span
+										className={
+											repo.latestSnapshot.vulnerableComponentCount > 0
+												? "font-medium text-[var(--danger)]"
+												: "text-[var(--text-3)]"
+										}
+									>
+										{repo.latestSnapshot.vulnerableComponentCount}
+										<span className="text-[var(--text-3)] font-normal">
+											{" "}
+											/ {repo.latestSnapshot.totalComponents}
+										</span>
+									</span>
+								) : (
+									<span className="text-[var(--text-3)]">No SBOM</span>
+								)}
+							</td>
+							<td
+								data-label="Last scan"
+								className="text-right text-[var(--text-2)] tabular"
+								title={absoluteTime(repo.lastScannedAt)}
+							>
+								{repo.lastScannedAt ? relativeTime(repo.lastScannedAt) : "Never"}
+							</td>
+						</tr>
+					))}
+				</tbody>
+			</table>
+		</div>
+	);
+}
+
+function OverviewSkeleton() {
+	return (
+		<main className="page-body-padded">
+			<div className="skeleton mb-2 h-7 w-56" />
+			<div className="skeleton mb-7 h-4 w-72" />
+			<div className="mb-7 grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
+				<div className="skeleton h-40" />
+				<div className="skeleton h-40" />
+			</div>
+			<div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
+				<div className="skeleton h-96" />
+				<div className="skeleton h-96" />
+			</div>
+		</main>
+	);
+}

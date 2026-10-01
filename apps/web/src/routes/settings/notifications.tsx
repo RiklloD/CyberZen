@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Bell } from "lucide-react";
 import { useMutation, useQuery } from "convex/react";
 import { useState } from "react";
 import { api } from "../../lib/convex";
@@ -66,7 +65,6 @@ function NotificationSettingsPage() {
 		<main>
 			<div className="page-header">
 				<div className="flex items-center gap-3">
-					<Bell size={20} className="text-[var(--signal)]" />
 					<div>
 						<h1 className="page-title">Notification Preferences</h1>
 						<p className="page-subtitle">

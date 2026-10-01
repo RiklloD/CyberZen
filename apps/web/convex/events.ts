@@ -2193,19 +2193,40 @@ async function ingestCanonicalDisclosure(
   disclosure: CanonicalDisclosureInput,
 ) {
   const { tenant, repository } = repositoryContext
-  const routedWorkflow = buildBreachDisclosureWorkflow({
+  const baseWorkflow = buildBreachDisclosureWorkflow({
     packageName: disclosure.packageName,
     sourceName: disclosure.sourceName,
     sourceRef: disclosure.sourceRef,
     severity: disclosure.severity,
   })
+  // The router's key (`disclosure:<pkg>:<ref>`) is global, so the same advisory
+  // matched in a second repository (or tenant) collided with the first one's
+  // event and aborted the whole sync. Scope it to the repository, and only
+  // accept a legacy unscoped event when it belongs to this same repository.
+  const routedWorkflow = {
+    ...baseWorkflow,
+    dedupeKey: `${baseWorkflow.dedupeKey}:${repository._id}`,
+  }
 
-  const existingEvent = await ctx.db
+  const scopedEvent = await ctx.db
     .query('ingestionEvents')
     .withIndex('by_dedupe_key', (q) =>
       q.eq('dedupeKey', routedWorkflow.dedupeKey),
     )
     .unique()
+  const legacyEvent = scopedEvent
+    ? null
+    : await ctx.db
+        .query('ingestionEvents')
+        .withIndex('by_dedupe_key', (q) =>
+          q.eq('dedupeKey', baseWorkflow.dedupeKey),
+        )
+        .first()
+  const existingEvent =
+    scopedEvent ??
+    (legacyEvent && legacyEvent.repositoryId === repository._id
+      ? legacyEvent
+      : null)
 
   if (existingEvent) {
     const existingWorkflowRun = await ctx.db

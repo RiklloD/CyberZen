@@ -5,10 +5,10 @@ import { BarChart3, Briefcase, ClipboardCheck, FileCheck2, ShieldCheck, Trophy }
 import HubTabs from "../components/HubTabs";
 
 const REPORTS_TABS = [
-	{ key: "posture", label: "Security Posture", icon: ShieldCheck, to: "/posture" },
-	{ key: "executive", label: "Executive Report", icon: BarChart3, to: "/executive-report" },
-	{ key: "maturity", label: "Maturity Assessment", icon: Trophy, to: "/maturity" },
-	{ key: "business-impact", label: "Business Impact", icon: Briefcase, to: "/business-impact" },
+	{ key: "posture", label: "Posture", icon: ShieldCheck, to: "/posture" },
+	{ key: "executive", label: "Executive", icon: BarChart3, to: "/executive-report" },
+	{ key: "maturity", label: "Maturity", icon: Trophy, to: "/maturity" },
+	{ key: "business-impact", label: "Business impact", icon: Briefcase, to: "/business-impact" },
 	{ key: "compliance", label: "Compliance", icon: ClipboardCheck, to: "/compliance" },
 ];
 import { useState, useEffect } from "react";
@@ -77,7 +77,6 @@ function CompliancePage() {
 		<main>
 			<div className="page-header">
 				<div className="flex items-center gap-3">
-					<FileCheck2 size={20} className="text-[var(--signal)]" />
 					<div>
 						<h1 className="page-title">Compliance</h1>
 						<p className="page-subtitle">

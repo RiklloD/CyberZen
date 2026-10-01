@@ -36,7 +36,6 @@ function DriftPosturePage() {
 		<main>
 			<div className="page-header">
 				<div className="flex items-center gap-3">
-					<Activity size={20} className="text-[var(--signal)]" />
 					<div>
 						<h1 className="page-title">Drift Posture</h1>
 						<p className="page-subtitle">

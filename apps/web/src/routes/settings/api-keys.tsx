@@ -46,7 +46,6 @@ function ApiKeysPage() {
 		<main>
 			<div className="page-header">
 				<div className="flex items-center gap-3">
-					<Key size={20} className="text-[var(--signal)]" />
 					<div>
 						<h1 className="page-title">API Keys</h1>
 						<p className="page-subtitle">

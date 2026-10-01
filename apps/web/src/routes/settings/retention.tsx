@@ -144,7 +144,6 @@ function RetentionSettingsPage() {
 		<main>
 			<div className="page-header">
 				<div className="flex items-center gap-3">
-					<Database size={20} className="text-[var(--signal)]" />
 					<div>
 						<h1 className="page-title">Data Retention</h1>
 						<p className="page-subtitle">

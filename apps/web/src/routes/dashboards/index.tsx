@@ -22,7 +22,6 @@ function DashboardListPage() {
 		<main>
 			<div className="page-header">
 				<div className="flex items-center gap-3">
-					<LayoutDashboard size={20} className="text-[var(--signal)]" />
 					<div>
 						<h1 className="page-title">Dashboards</h1>
 						<p className="page-subtitle">

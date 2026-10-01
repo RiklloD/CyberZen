@@ -24,13 +24,13 @@ export default function NotificationBell() {
 		<>
 			<button
 				type="button"
-				className="relative flex h-9 w-9 items-center justify-center rounded-full border border-[var(--chip-line)] bg-[var(--chip-bg)] text-[var(--sea-ink-soft)] transition-colors hover:text-[var(--signal)]"
+				className="icon-button"
 				onClick={() => setDrawerOpen(true)}
 				aria-label={`Notifications${count > 0 ? ` (${count} unread)` : ""}`}
 			>
 				<Bell size={16} />
 				{count > 0 && (
-					<span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[0.6rem] font-bold text-white">
+					<span className="icon-button-badge">
 						{count > 99 ? "99+" : count}
 					</span>
 				)}

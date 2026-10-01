@@ -39,6 +39,7 @@ import { useFeatureFlag } from "../lib/featureFlags";
 type SettingsLink = {
 	to: string;
 	label: string;
+	description?: string;
 	icon: LucideIcon;
 	featureFlag?: string;
 };
@@ -48,59 +49,59 @@ type SettingsGroup = {
 	links: SettingsLink[];
 };
 
-const SETTINGS_GROUPS: SettingsGroup[] = [
+export const SETTINGS_GROUPS: SettingsGroup[] = [
 	{
 		label: "Workspace",
 		links: [
-			{ to: "/settings/general", label: "General", icon: Settings },
-			{ to: "/settings/team", label: "Team", icon: Users },
-			{ to: "/settings/roles", label: "Roles & Permissions", icon: Shield },
-			{ to: "/settings/billing", label: "Billing", icon: CreditCard },
+			{ to: "/settings/general", label: "General", description: "Workspace name, slug and defaults", icon: Settings },
+			{ to: "/settings/team", label: "Team", description: "Invite teammates and manage members", icon: Users },
+			{ to: "/settings/roles", label: "Roles & permissions", description: "Custom roles and fine-grained access", icon: Shield },
+			{ to: "/settings/billing", label: "Billing", description: "Plan, usage and invoices", icon: CreditCard },
 		],
 	},
 	{
 		label: "Integrations",
 		links: [
-			{ to: "/integrations", label: "Integrations", icon: Plug },
-			{ to: "/marketplace", label: "Marketplace", icon: Store },
-			{ to: "/settings/llm-providers", label: "LLM Providers", icon: Cpu },
-			{ to: "/settings/api-keys", label: "API Keys", icon: Key },
-			{ to: "/settings/webhooks", label: "Webhooks", icon: Webhook },
-			{ to: "/docs/github-integration", label: "GitHub Action", icon: Github },
-			{ to: "/docs/api", label: "API Docs", icon: BookOpen },
+			{ to: "/integrations", label: "Integrations", description: "Slack, Jira, Linear, PagerDuty and more", icon: Plug },
+			{ to: "/marketplace", label: "Marketplace", description: "Community scanners and policies", icon: Store },
+			{ to: "/settings/llm-providers", label: "LLM providers", description: "Models used by the AI agents", icon: Cpu },
+			{ to: "/settings/api-keys", label: "API keys", description: "Keys for the CLI, CI and automation", icon: Key },
+			{ to: "/settings/webhooks", label: "Webhooks", description: "Push events to your own systems", icon: Webhook },
+			{ to: "/docs/github-integration", label: "GitHub Action", description: "Gate pull requests in CI", icon: Github },
+			{ to: "/docs/api", label: "API docs", description: "REST API reference", icon: BookOpen },
 		],
 	},
 	{
-		label: "Security Policy",
+		label: "Security policy",
 		links: [
-			{ to: "/settings/scans", label: "Scan Schedules", icon: CalendarClock },
-			{ to: "/settings/policies", label: "Policy Builder", icon: ShieldQuestion },
-			{ to: "/settings/suppression", label: "Suppression Rules", icon: FilterX },
-			{ to: "/settings/notifications", label: "Notifications", icon: Bell },
-			{ to: "/settings/on-call", label: "On-Call", icon: Clock },
-			{ to: "/audit-log", label: "Audit Log", icon: ScrollText },
+			{ to: "/settings/scans", label: "Scan schedules", description: "When repositories are re-scanned", icon: CalendarClock },
+			{ to: "/settings/policies", label: "Policy builder", description: "Rules that block merges and deploys", icon: ShieldQuestion },
+			{ to: "/settings/suppression", label: "Suppression rules", description: "Silence known noise automatically", icon: FilterX },
+			{ to: "/settings/notifications", label: "Notifications", description: "Who gets alerted, and how", icon: Bell },
+			{ to: "/settings/on-call", label: "On-call", description: "Escalation rotations", icon: Clock },
+			{ to: "/audit-log", label: "Audit log", description: "Every action taken in this workspace", icon: ScrollText },
 		],
 	},
 	{
-		label: "Access & Auth",
+		label: "Access & authentication",
 		links: [
-			{ to: "/settings/two-factor", label: "Two-Factor Auth", icon: Shield },
-			{ to: "/settings/sso", label: "SSO / SAML", icon: Shield, featureFlag: "sso" },
-			{ to: "/settings/sessions", label: "Sessions", icon: Laptop },
-			{ to: "/settings/ip-allowlist", label: "IP Allowlist", icon: Globe },
-			{ to: "/settings/access-review", label: "Access Review", icon: ClipboardCheck },
-			{ to: "/settings/mssp-keys", label: "MSSP Keys", icon: Key },
+			{ to: "/settings/two-factor", label: "Two-factor auth", description: "Protect your account", icon: Shield },
+			{ to: "/settings/sso", label: "SSO / SAML", description: "Single sign-on for your organisation", icon: Shield, featureFlag: "sso" },
+			{ to: "/settings/sessions", label: "Sessions", description: "Active sign-ins and devices", icon: Laptop },
+			{ to: "/settings/ip-allowlist", label: "IP allowlist", description: "Restrict access by network", icon: Globe },
+			{ to: "/settings/access-review", label: "Access review", description: "Periodic review of who has access", icon: ClipboardCheck },
+			{ to: "/settings/mssp-keys", label: "MSSP keys", description: "Managed security provider access", icon: Key },
 		],
 	},
 	{
 		label: "Advanced",
 		links: [
-			{ to: "/settings/retention", label: "Data Retention", icon: Database },
-			{ to: "/settings/data-privacy", label: "Data Privacy", icon: Shield },
-			{ to: "/settings/jobs", label: "Background Jobs", icon: Activity },
-			{ to: "/settings/sla", label: "SLA Policies", icon: Clock },
-			{ to: "/dashboards", label: "Dashboard Builder", icon: BarChart3 },
-			{ to: "/settings/deployment", label: "Deployment Mode", icon: Server, featureFlag: "deployment_toggle" },
+			{ to: "/settings/retention", label: "Data retention", description: "How long findings and logs are kept", icon: Database },
+			{ to: "/settings/data-privacy", label: "Data privacy", description: "Exports, deletion and PII handling", icon: Shield },
+			{ to: "/settings/jobs", label: "Background jobs", description: "Scheduled work and its health", icon: Activity },
+			{ to: "/settings/sla", label: "SLA policies", description: "Time-to-fix targets per severity", icon: Clock },
+			{ to: "/dashboards", label: "Dashboard builder", description: "Custom dashboards for your team", icon: BarChart3 },
+			{ to: "/settings/deployment", label: "Deployment mode", description: "Cloud, hybrid or self-hosted", icon: Server, featureFlag: "deployment_toggle" },
 		],
 	},
 ];
@@ -121,8 +122,7 @@ export default function SettingsLayout({
 		<div className="settings-layout">
 			<aside className="settings-subnav">
 				<div className="settings-subnav-header">
-					<Settings size={16} className="text-[var(--signal)]" />
-					<span>Settings</span>
+										<span>Settings</span>
 				</div>
 				{SETTINGS_GROUPS.map((group) => (
 					<div key={group.label} className="settings-subnav-group">

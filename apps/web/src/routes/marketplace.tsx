@@ -35,7 +35,6 @@ function MarketplacePage() {
 		<main>
 			<div className="page-header">
 				<div className="flex items-center gap-3">
-					<Store size={20} className="text-[var(--signal)]" />
 					<div>
 						<h1 className="page-title">Integration Marketplace</h1>
 						<p className="page-subtitle">

@@ -5,9 +5,9 @@ import {
 	Download,
 	FileText,
 	Loader2,
-	Shield,
 	Trash2,
-	X } from "lucide-react";
+	X,
+} from "lucide-react";
 import { useState } from "react";
 import { api } from "../../lib/convex";
 import { useTenantSlug } from "../../lib/workspace";
@@ -99,7 +99,6 @@ function DataPrivacyPage() {
 		<main>
 			<div className="page-header">
 				<div className="flex items-center gap-3">
-					<Shield size={20} className="text-[var(--signal)]" />
 					<div>
 						<h1 className="page-title">Data Privacy</h1>
 						<p className="page-subtitle">

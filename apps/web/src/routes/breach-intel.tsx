@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
-import { Shield } from "lucide-react";
 import { useMemo, useState } from "react";
 import StatusPill from "../components/StatusPill";
 import { PanelSkeleton } from "../components/panels/SharedPanelComponents";
@@ -9,7 +8,11 @@ import BreachIntelFeedPanel from "../components/panels/BreachIntelFeedPanel";
 import EpssThreatIntelPanel from "../components/panels/EpssThreatIntelPanel";
 import Tier3SignalsPanel from "../components/panels/Tier3SignalsPanel";
 import { api } from "../lib/convex";
-import { formatTimestamp, syncTone } from "../lib/utils";
+import { syncTone } from "../lib/utils";
+import { absoluteTime, humanize, relativeTime } from "../lib/format";
+import PageHeader from "../components/ui/PageHeader";
+import Section from "../components/ui/Section";
+import EmptyState from "../components/ui/EmptyState";
 import { useTenantSlug } from "../lib/workspace";
 import QueryErrorFallback from "../components/QueryErrorFallback";
 
@@ -71,32 +74,21 @@ function BreachIntelPage() {
 
 	return (
 		<main>
-			<div className="page-header">
-				<div className="flex items-center gap-3">
-					<Shield size={20} className="text-[var(--signal)]" />
-					<div>
-						<h1 className="page-title">Breach Intel</h1>
-						<p className="page-subtitle">
-							{advisoryAggregator.recentImportedDisclosures} recent imports ·{" "}
-							{advisoryAggregator.recentMatchedDisclosures} matched disclosures
-						</p>
-					</div>
-				</div>
-
-				{/* Repository selector */}
-				{repoNames.length > 0 && (
-					<div className="flex items-center gap-2">
-						<label
-							htmlFor="repo-filter"
-							className="text-xs text-[var(--sea-ink-soft)]"
-						>
-							Repository:
-						</label>
+			<PageHeader
+				title="Breach intel"
+				description={
+					<>
+						Advisories from GitHub, OSV and threat feeds, matched against your live SBOM ·{" "}
+						{advisoryAggregator.recentMatchedDisclosures} matched
+					</>
+				}
+				actions={
+					repoNames.length > 0 && (
 						<select
-							id="repo-filter"
+							aria-label="Repository"
 							value={selectedRepo}
 							onChange={(e) => setSelectedRepo(e.target.value)}
-							className="rounded-lg border border-[var(--line)] bg-[var(--surface-soft)] px-3 py-1.5 text-xs text-[var(--sea-ink)] focus:outline-none focus:ring-2 focus:ring-[var(--signal)]"
+							className="input !w-auto"
 						>
 							<option value="all">All repositories</option>
 							{repoNames.map((name) => (
@@ -105,9 +97,9 @@ function BreachIntelPage() {
 								</option>
 							))}
 						</select>
-					</div>
-				)}
-			</div>
+					)
+				}
+			/>
 
 			<div className="page-body">
 				<div className="grid gap-4 xl:grid-cols-[1.3fr_1fr]">
@@ -116,78 +108,33 @@ function BreachIntelPage() {
 
 					{/* Right: Advisory aggregator + sources + threat intel */}
 					<div className="space-y-4">
-						{/* Advisory Aggregator */}
-						<div>
-							<div className="section-header mb-3">
-								<h2 className="section-title">Advisory Aggregator</h2>
-							</div>
-							<div className="card card-sm mb-3">
-								<div className="flex flex-wrap gap-2">
-									<StatusPill
-										label={`${selectedRepo === "all" ? advisoryAggregator.recentImportedDisclosures : filteredDisclosures.length} imported`}
-										tone="neutral"
-									/>
-									<StatusPill
-										label={`${selectedRepo === "all" ? advisoryAggregator.recentMatchedDisclosures : filteredDisclosures.filter((d) => d.matchStatus === "matched").length} matched`}
-										tone={
-											(selectedRepo === "all"
-												? advisoryAggregator.recentMatchedDisclosures
-												: filteredDisclosures.filter((d) => d.matchStatus === "matched").length) > 0
-												? "warning"
-												: "success"
-										}
-									/>
-									{advisoryAggregator.lastCompletedAt && (
-										<StatusPill
-											label={`Last sync: ${formatTimestamp(advisoryAggregator.lastCompletedAt)}`}
-											tone="neutral"
-										/>
-									)}
+						{/* Advisory sync history */}
+						<Section
+							title="Advisory sync"
+							description={
+								advisoryAggregator.lastCompletedAt
+									? `Last successful sync ${relativeTime(advisoryAggregator.lastCompletedAt)}`
+									: "No successful sync yet"
+							}
+						>
+							{filteredRuns.length === 0 ? (
+								<div className="list">
+									<EmptyState title="No sync runs yet" description="Advisory syncs run on a schedule and after every SBOM import." />
 								</div>
-							</div>
-
-							<div className="space-y-2">
-								{filteredRuns.map(
-									(run: OverviewAdvisoryRun) => (
-										<div key={run._id} className="card card-sm">
-											<div className="flex flex-wrap items-center gap-2">
-												<StatusPill
-													label={run.status}
-													tone={syncTone(run.status)}
-												/>
-												<StatusPill label={run.triggerType} tone="info" />
-												<StatusPill
-													label={`${run.packageCount} packages`}
-													tone="neutral"
-												/>
-											</div>
-											<p className="mt-1 text-xs text-[var(--sea-ink-soft)]">
-												{run.repositoryName} · {formatTimestamp(run.startedAt)}
-											</p>
-											<div className="mt-1 flex flex-wrap gap-2 text-xs text-[var(--sea-ink-soft)]">
-												<span>
-													GitHub: {run.githubImported}/{run.githubFetched}
-												</span>
-												<span>
-													OSV: {run.osvImported}/{run.osvFetched}
-												</span>
-											</div>
-											{run.reason && (
-												<p className="mt-0.5 text-xs text-[var(--warning)]">
-													{run.reason}
-												</p>
-											)}
-										</div>
-									),
-								)}
-							</div>
-						</div>
+							) : (
+								<div className="list">
+									{filteredRuns.map((run: OverviewAdvisoryRun) => (
+										<SyncRunRow key={run._id} run={run} />
+									))}
+								</div>
+							)}
+						</Section>
 
 						{/* Source coverage */}
 						{advisoryAggregator.sourceCoverage.length > 0 && (
 							<div>
-								<h2 className="section-title mb-3">Source Coverage</h2>
-								<div className="card">
+								<h2 className="section-title mb-3">Source coverage</h2>
+								<div className="list">
 									<table className="data-table">
 										<thead>
 											<tr>
@@ -234,5 +181,52 @@ function BreachIntelPage() {
 				</div>
 			</div>
 		</main>
+	);
+}
+
+function SyncRunRow({ run }: { run: OverviewAdvisoryRun }) {
+	const [expanded, setExpanded] = useState(false);
+	const failed = run.status === "failed";
+	const tone = syncTone(run.status);
+	return (
+		<div className="list-row !items-start">
+			<span
+				className="mt-1.5 h-2 w-2 shrink-0 rounded-full"
+				style={{ background: `var(--${tone === "neutral" ? "text-3" : tone})` }}
+			/>
+			<div className="min-w-0 flex-1">
+				<div className="flex items-center gap-2 text-[0.82rem]">
+					<span className="font-medium">{run.repositoryName}</span>
+					<span className="text-[var(--text-3)]">· {humanize(run.triggerType)}</span>
+					<span className="ml-auto shrink-0 text-xs text-[var(--text-3)]" title={absoluteTime(run.startedAt)}>
+						{relativeTime(run.startedAt)}
+					</span>
+				</div>
+				<p className="text-xs text-[var(--text-3)]">
+					{failed ? (
+						<span className="text-[var(--danger)]">Sync failed</span>
+					) : (
+						<>
+							{run.packageCount} packages · GitHub {run.githubImported}/{run.githubFetched} · OSV{" "}
+							{run.osvImported}/{run.osvFetched}
+						</>
+					)}
+					{run.reason && (
+						<button
+							type="button"
+							className="ml-2 text-[var(--text-2)] underline-offset-2 hover:underline"
+							onClick={() => setExpanded((v) => !v)}
+						>
+							{expanded ? "Hide details" : "Details"}
+						</button>
+					)}
+				</p>
+				{expanded && run.reason && (
+					<pre className="mt-1.5 whitespace-pre-wrap break-words rounded-[var(--radius-sm)] bg-[var(--surface-2)] p-2 font-mono text-[0.7rem] text-[var(--text-2)]">
+						{run.reason}
+					</pre>
+				)}
+			</div>
+		</div>
 	);
 }

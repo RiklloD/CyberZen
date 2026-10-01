@@ -1,6 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
-import { Globe, Plus, Trash2, CheckCircle, XCircle } from "lucide-react";
+import {
+	Plus,
+	Trash2,
+	CheckCircle,
+	XCircle,
+} from "lucide-react";
 import { useState, useTransition } from "react";
 import StatusPill from "../../components/StatusPill";
 import { api } from "../../lib/convex";
@@ -68,7 +73,6 @@ function IpAllowlistPage() {
     <main>
       <div className="page-header">
         <div className="flex items-center gap-3">
-          <Globe size={20} className="text-[var(--signal)]" />
           <div>
             <h1 className="page-title">IP Allowlist</h1>
             <p className="page-subtitle">

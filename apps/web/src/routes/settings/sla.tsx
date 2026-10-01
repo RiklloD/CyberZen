@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Clock } from "lucide-react";
 import SlaPolicyForm from "../../components/settings/SlaPolicyForm";
 import { useTenantSlug } from "../../lib/workspace";
 import RouteErrorBoundary from "../../components/RouteErrorBoundary";
@@ -15,7 +14,6 @@ function SlaSettingsPage() {
 		<main>
 			<div className="page-header">
 				<div className="flex items-center gap-3">
-					<Clock size={20} className="text-[var(--signal)]" />
 					<div>
 						<h1 className="page-title">SLA Policy</h1>
 						<p className="page-subtitle">

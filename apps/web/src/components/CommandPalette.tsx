@@ -2,10 +2,21 @@ import { useNavigate } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import {
 	AlertTriangle,
-	ArrowRight,
+	BarChart3,
+	Bot,
 	GitBranch,
+	GitPullRequestArrow,
+	Home,
+	Key,
+	Network,
+	Package,
+	Plug,
+	Radar,
 	Search,
+	Settings,
 	Shield,
+	UserPlus,
+	Wrench,
 	X } from "lucide-react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "../lib/convex";
@@ -29,15 +40,29 @@ type NavEntry = {
 };
 
 const NAV_ENTRIES: NavEntry[] = [
-	{ type: "navigate", label: "Dashboard", sublabel: "Home", route: "/", icon: Search },
-	{ type: "navigate", label: "Findings", sublabel: "Security findings", route: "/findings", icon: AlertTriangle },
-	{ type: "navigate", label: "Repositories", sublabel: "Connected repos", route: "/repositories", icon: GitBranch },
-	{ type: "navigate", label: "Compliance", sublabel: "Regulatory status", route: "/compliance", icon: Shield },
-	{ type: "navigate", label: "Remediation", sublabel: "Auto-fix & PRs", route: "/remediation", icon: ArrowRight },
-	{ type: "navigate", label: "CI/CD Gates", sublabel: "Gate decisions", route: "/ci-cd", icon: ArrowRight },
-	{ type: "navigate", label: "Supply Chain", sublabel: "Dependency security", route: "/supply-chain", icon: ArrowRight },
-	{ type: "navigate", label: "Settings", sublabel: "Workspace config", route: "/settings", icon: Search },
+	{ type: "navigate", label: "Overview", sublabel: "What needs attention", route: "/", icon: Home },
+	{ type: "navigate", label: "Findings", sublabel: "Triage open issues", route: "/findings", icon: AlertTriangle },
+	{ type: "navigate", label: "Repositories", sublabel: "Monitored codebases", route: "/repositories", icon: GitBranch },
+	{ type: "navigate", label: "Remediation", sublabel: "Fix queue, auto-PRs, SLAs", route: "/remediation", icon: Wrench },
+	{ type: "navigate", label: "CI/CD gates", sublabel: "Merge & deploy policy", route: "/ci-cd", icon: GitPullRequestArrow },
+	{ type: "navigate", label: "Breach intel", sublabel: "Advisories matched to your inventory", route: "/breach-intel", icon: Radar },
+	{ type: "navigate", label: "Supply chain", sublabel: "SBOM, typosquats, zero-days", route: "/supply-chain", icon: Package },
+	{ type: "navigate", label: "Attack paths", sublabel: "Dependency graph & blast radius", route: "/attack-paths", icon: Network },
+	{ type: "navigate", label: "Agents", sublabel: "AI agent activity", route: "/agent-activity", icon: Bot },
+	{ type: "navigate", label: "Reports", sublabel: "Posture, compliance, executive", route: "/reports", icon: BarChart3 },
+	{ type: "navigate", label: "Compliance", sublabel: "Framework evidence", route: "/compliance", icon: Shield },
+	{ type: "navigate", label: "Settings", sublabel: "Workspace configuration", route: "/settings", icon: Settings },
+	{ type: "navigate", label: "Invite teammates", sublabel: "Settings → Team", route: "/settings/team", icon: UserPlus },
+	{ type: "navigate", label: "Create API key", sublabel: "Settings → API keys", route: "/settings/api-keys", icon: Key },
+	{ type: "navigate", label: "Integrations", sublabel: "Slack, Jira, PagerDuty…", route: "/integrations", icon: Plug },
 ];
+
+const OPEN_EVENT = "cyberzen:open-command-palette";
+
+/** Open the palette from anywhere (e.g. the top bar search button). */
+export function openCommandPalette() {
+	document.dispatchEvent(new Event(OPEN_EVENT));
+}
 
 type SearchResult = {
 	_id: string;
@@ -110,8 +135,17 @@ export default function CommandPalette() {
 				setOpen(false);
 			}
 		}
+		function handleOpen() {
+			setOpen(true);
+			setQuery("");
+			setActiveIndex(0);
+		}
 		document.addEventListener("keydown", handleKeyDown);
-		return () => document.removeEventListener("keydown", handleKeyDown);
+		document.addEventListener(OPEN_EVENT, handleOpen);
+		return () => {
+			document.removeEventListener("keydown", handleKeyDown);
+			document.removeEventListener(OPEN_EVENT, handleOpen);
+		};
 	}, [open]);
 
 	// Focus input on open

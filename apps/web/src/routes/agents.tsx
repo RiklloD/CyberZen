@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
-import { Bot } from "lucide-react";
 import { useState } from "react";
 import AgentMemoryPanel from "../components/panels/AgentMemoryPanel";
 import LearningProfilePanel from "../components/panels/LearningProfilePanel";
@@ -67,7 +66,6 @@ function AgentsPage() {
 		<main>
 			<div className="page-header">
 				<div className="flex items-center gap-3">
-					<Bot size={20} className="text-[var(--signal)]" />
 					<div>
 						<h1 className="page-title">Agents &amp; Learning</h1>
 						<p className="page-subtitle">

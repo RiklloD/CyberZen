@@ -1,164 +1,118 @@
 import { useClerk } from "@clerk/react";
 import { Link } from "@tanstack/react-router";
-import {
-	ChevronUp,
-	Github,
-	Key,
-	LogOut,
-	Plug,
-	Settings,
-	User } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { BookOpen, Github, Key, Keyboard, LogOut, Plug, Settings } from "lucide-react";
+import { useCallback, useRef, useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../lib/convex";
+import { useDismiss } from "../lib/useDismiss";
 
 export default function UserProfileButton() {
 	const profile = useQuery(api.userProfile.getProfile);
 	const { signOut } = useClerk();
 	const [open, setOpen] = useState(false);
 	const ref = useRef<HTMLDivElement>(null);
+	const close = useCallback(() => setOpen(false), []);
+	useDismiss(ref, open, close);
 
-	// Close on outside click.
-	useEffect(() => {
-		if (!open) return;
-		function handleClick(e: MouseEvent) {
-			if (ref.current && !ref.current.contains(e.target as Node)) {
-				setOpen(false);
-			}
-		}
-		document.addEventListener("mousedown", handleClick);
-		return () => document.removeEventListener("mousedown", handleClick);
-	}, [open]);
+	if (!profile) return <div className="flex-1" />;
 
-	if (!profile) return null;
-
-	const initials = (profile.name ?? profile.email ?? "?")
-		.split(/\s+/)
-		.map((w) => w[0])
+	const display = profile.name ?? profile.email ?? "Account";
+	const initials = display
+		.split(/[\s@.]+/)
+		.filter(Boolean)
+		.map((w: string) => w[0])
 		.join("")
 		.slice(0, 2)
 		.toUpperCase();
 
+	const avatar = (size: "sm" | "lg") =>
+		profile.image ? (
+			<img
+				src={profile.image}
+				alt=""
+				className={`${size === "sm" ? "h-[22px] w-[22px]" : "h-8 w-8"} rounded-full object-cover`}
+			/>
+		) : (
+			<span className={size === "sm" ? "sidebar-user-avatar" : "sidebar-user-avatar-lg"}>
+				{initials}
+			</span>
+		);
+
 	return (
-		<div ref={ref} className="relative">
+		<div ref={ref} className="relative min-w-0 flex-1">
 			<button
 				type="button"
-				className="sidebar-user-trigger"
+				className="sidebar-user-trigger w-full"
 				onClick={() => setOpen((v) => !v)}
 				aria-expanded={open}
-				aria-haspopup="true"
+				aria-haspopup="menu"
 			>
-				{profile.image ? (
-					<img
-						src={profile.image}
-						alt=""
-						className="h-7 w-7 rounded-full object-cover"
-					/>
-				) : (
-					<span className="sidebar-user-avatar">{initials}</span>
-				)}
-				<span className="sidebar-user-name truncate">
-					{profile.name ?? profile.email}
-				</span>
-				<ChevronUp
-					size={13}
-					className={`ml-auto transition-transform ${open ? "" : "rotate-180"}`}
-				/>
+				{avatar("sm")}
+				<span className="sidebar-user-name truncate">{display}</span>
 			</button>
 
 			{open && (
-				<div className="sidebar-user-dropdown">
-					{/* User info header */}
-					<div className="sidebar-user-header">
-						{profile.image ? (
-							<img
-								src={profile.image}
-								alt=""
-								className="h-9 w-9 rounded-full object-cover"
-							/>
-						) : (
-							<span className="sidebar-user-avatar-lg">{initials}</span>
-						)}
+				<div className="menu bottom-[calc(100%+6px)] left-0 w-[220px]" role="menu">
+					<div className="flex items-center gap-2.5 px-2 py-2">
+						{avatar("lg")}
 						<div className="min-w-0">
-							<p className="truncate text-sm font-semibold text-[var(--sea-ink)]">
-								{profile.name ?? "User"}
-							</p>
-							<p className="truncate text-xs text-[var(--sea-ink-soft)]">
-								{profile.email}
-							</p>
+							<p className="truncate text-sm font-medium">{profile.name ?? "Account"}</p>
+							<p className="truncate text-xs text-[var(--text-3)]">{profile.email}</p>
 						</div>
 					</div>
-
-					{/* GitHub connection status */}
-					<div className="sidebar-user-section">
-						<div className="flex items-center gap-2">
+					<div className="menu-sep" />
+					{profile.githubConnected ? (
+						<div className="menu-item cursor-default hover:!bg-transparent">
 							<Github size={14} />
-							<span className="text-xs font-medium">
-								{profile.githubConnected
-									? `Connected as @${profile.githubLogin}`
-									: "GitHub not connected"}
-							</span>
-							<span
-								className={`ml-auto h-2 w-2 rounded-full ${
-									profile.githubConnected
-										? "bg-[var(--success)]"
-										: "bg-[var(--muted)]"
-								}`}
-							/>
+							<span className="flex-1 truncate">@{profile.githubLogin}</span>
+							<span className="h-1.5 w-1.5 rounded-full bg-[var(--success)]" />
 						</div>
-						{!profile.githubConnected && (
-							<Link
-								to="/onboarding"
-								className="mt-1.5 block text-xs font-semibold text-[var(--lagoon-deep)] hover:underline"
-								onClick={() => setOpen(false)}
-							>
-								Connect GitHub →
-							</Link>
-						)}
-					</div>
-
-					{/* Quick links */}
-					<div className="sidebar-user-links">
-						<Link
-							to="/settings"
-							className="sidebar-user-link"
-							onClick={() => setOpen(false)}
-						>
-							<Settings size={14} />
-							Settings
+					) : (
+						<Link to="/connect/github" className="menu-item" onClick={close}>
+							<Github size={14} />
+							<span className="flex-1">Connect GitHub</span>
 						</Link>
-						<Link
-							to="/settings/api-keys"
-							className="sidebar-user-link"
-							onClick={() => setOpen(false)}
-						>
-							<Key size={14} />
-							API Keys
-						</Link>
-						<Link
-							to="/integrations"
-							className="sidebar-user-link"
-							onClick={() => setOpen(false)}
-						>
-							<Plug size={14} />
-							Integrations
-						</Link>
-					</div>
-
-					{/* Sign out */}
-					<div className="sidebar-user-footer">
-						<button
-							type="button"
-							className="sidebar-user-link w-full text-left text-[var(--danger)]"
-							onClick={() => {
-								setOpen(false);
-								void signOut();
-							}}
-						>
-							<LogOut size={14} />
-							Sign out
-						</button>
-					</div>
+					)}
+					<Link to="/settings" className="menu-item" onClick={close}>
+						<Settings size={14} />
+						Settings
+					</Link>
+					<Link to="/settings/api-keys" className="menu-item" onClick={close}>
+						<Key size={14} />
+						API keys
+					</Link>
+					<Link to="/integrations" className="menu-item" onClick={close}>
+						<Plug size={14} />
+						Integrations
+					</Link>
+					<Link to="/docs/api" className="menu-item" onClick={close}>
+						<BookOpen size={14} />
+						API docs
+					</Link>
+					<button
+						type="button"
+						className="menu-item"
+						onClick={() => {
+							close();
+							document.dispatchEvent(new KeyboardEvent("keydown", { key: "?" }));
+						}}
+					>
+						<Keyboard size={14} />
+						<span className="flex-1">Keyboard shortcuts</span>
+						<span className="kbd">?</span>
+					</button>
+					<div className="menu-sep" />
+					<button
+						type="button"
+						className="menu-item is-danger"
+						onClick={() => {
+							close();
+							void signOut();
+						}}
+					>
+						<LogOut size={14} />
+						Sign out
+					</button>
 				</div>
 			)}
 		</div>

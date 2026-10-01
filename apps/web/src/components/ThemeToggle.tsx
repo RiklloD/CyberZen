@@ -1,3 +1,4 @@
+import { Monitor, Moon, Sun } from "lucide-react";
 import { useEffect, useState } from "react";
 
 type ThemeMode = "light" | "dark" | "auto";
@@ -67,15 +68,17 @@ export default function ThemeToggle() {
 			? "Theme mode: auto (system). Click to switch to light mode."
 			: `Theme mode: ${mode}. Click to switch mode.`;
 
+	const Icon = mode === "auto" ? Monitor : mode === "dark" ? Moon : Sun;
+
 	return (
 		<button
 			type="button"
 			onClick={toggleMode}
 			aria-label={label}
 			title={label}
-			className="rounded-full border border-[var(--chip-line)] bg-[var(--chip-bg)] px-2.5 py-1 text-[0.75rem] font-semibold text-[var(--sea-ink-soft)] transition hover:text-[var(--sea-ink)] hover:-translate-y-0.5"
+			className="icon-button"
 		>
-			{mode === "auto" ? "Auto" : mode === "dark" ? "Dark" : "Light"}
+			<Icon size={15} />
 		</button>
 	);
 }

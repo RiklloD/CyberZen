@@ -1,6 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
-import { Plus, Users, Trash2, Clock, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
+import {
+	Plus,
+	Trash2,
+	Clock,
+	CheckCircle,
+	XCircle,
+	AlertTriangle,
+} from "lucide-react";
 import { useState, useTransition } from "react";
 import MemberListTable from "../../components/settings/MemberListTable";
 import InviteMemberModal from "../../components/modals/InviteMemberModal";
@@ -35,7 +42,6 @@ function TeamManagementPage() {
 		<main>
 			<div className="page-header">
 				<div className="flex items-center gap-3">
-					<Users size={20} className="text-[var(--signal)]" />
 					<div>
 						<h1 className="page-title">Team Management</h1>
 						<p className="page-subtitle">

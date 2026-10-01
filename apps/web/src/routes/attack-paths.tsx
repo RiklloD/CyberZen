@@ -1,7 +1,8 @@
+import RepoPicker, { useSelectedRepo } from "../components/ui/RepoPicker";
+import PageHeader from "../components/ui/PageHeader";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
-import { Shield } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import QueryErrorFallback from "../components/QueryErrorFallback";
 import { api } from "../lib/convex";
@@ -359,7 +360,6 @@ function AttackPathsPage() {
 	const [activeTab, setActiveTab] = useState<
 		"graph" | "blast-radius" | "critical-paths"
 	>("graph");
-	const [selectedRepoId, setSelectedRepoId] = useState<string | null>(null);
 	const [selectedFindingId, setSelectedFindingId] =
 		useState<Id<"findings"> | null>(null);
 	const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -367,10 +367,9 @@ function AttackPathsPage() {
 	const buildGraph = useMutation(api.attackPaths.buildDependencyGraph);
 	const computePaths = useMutation(api.attackPaths.computeAttackPaths);
 
-	const repos = overview?.repositories ?? [];
-	const activeRepoId = (selectedRepoId ?? repos[0]?._id) as
-		| Id<"repositories">
-		| undefined;
+	const repos: OverviewRepository[] = overview?.repositories ?? [];
+	const [activeRepo, selectRepo] = useSelectedRepo(repos);
+	const activeRepoId = activeRepo?._id as Id<"repositories"> | undefined;
 
 	const vizData = useQuery(
 		api.attackPaths.getAttackPathVisualization,
@@ -447,35 +446,23 @@ function AttackPathsPage() {
 
 	return (
 		<main>
-			<div className="page-header">
-				<div className="flex items-center gap-3">
-					<Shield size={20} className="text-[var(--signal)]" />
-					<div>
-						<h1 className="page-title">Attack Paths</h1>
-						<p className="page-subtitle">
-							Dependency graph · blast radius · critical attack paths
-						</p>
-					</div>
-				</div>
-			</div>
+			<PageHeader
+				title="Attack paths"
+				description="How a vulnerable dependency reaches your services and data, and which paths to cut first"
+				actions={
+					<RepoPicker
+						repositories={repos}
+						active={activeRepo}
+						onSelect={(id) => {
+							selectRepo(id);
+							setSelectedFindingId(null);
+							setSelectedNodeId(null);
+						}}
+					/>
+				}
+			/>
 
 			<div className="page-body space-y-4">
-				{/* Repository selector */}
-				{repos.length > 1 && (
-					<div className="tab-bar">
-						{repos.map((r: OverviewRepository) => (
-							<button
-								key={r._id}
-								type="button"
-								className={`tab-item${selectedRepoId === r._id || (!selectedRepoId && r._id === repos[0]._id) ? " is-active" : ""}`}
-								onClick={() => setSelectedRepoId(r._id)}
-							>
-								{r.name}
-							</button>
-						))}
-					</div>
-				)}
-
 				{/* Feature tabs */}
 				<div className="tab-bar">
 					{(
